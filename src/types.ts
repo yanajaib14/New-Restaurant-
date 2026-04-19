@@ -1,0 +1,304 @@
+export const T = {
+  bg: "#F5F5F0", // Warm Oat
+  surface: "#FFFFFF",
+  border: "#E5E5E0",
+  borderStrong: "#D5D5D0",
+  text: "#2C3639", // Deep Forest
+  muted: "#667275",
+  subtle: "#B2B7B9",
+  gold: "#C06C47", // Burnt Terracotta
+  goldLight: "#F9F3F0",
+  goldBorder: "#E9D9D0",
+  green: "#5A6A5A",
+  greenLight: "#F0F4F0",
+  greenBorder: "#D0DCD0",
+  blue: "#4A5A6A",
+  blueLight: "#F0F3F5",
+  blueBorder: "#D0D9E0",
+  red: "#8A4A4A",
+  redLight: "#F5F0F0",
+  redBorder: "#E0D0D0",
+  purple: "#6A5A7A",
+  purpleLight: "#F3F0F5",
+  purpleBorder: "#D9D0E0",
+  orange: "#8A6A4A",
+  orangeLight: "#F5F2F0",
+  orangeBorder: "#E0D9D0",
+  champagne: "#EEEBE3",
+  stone: "#DED9D2",
+};
+
+export const CAT_COLORS: Record<string, any> = {
+  "Lease & TI":  { dot: T.blue,   bg: T.blueLight,   border: T.blueBorder,   icon: "🏗️" },
+  "Menu & Bar":  { dot: T.gold,   bg: T.goldLight,   border: T.goldBorder,   icon: "🍽️" },
+  "Staffing":    { dot: T.green,  bg: T.greenLight,  border: T.greenBorder,  icon: "👥" },
+  "Permits":     { dot: T.red,    bg: T.redLight,    border: T.redBorder,    icon: "📋" },
+  "Marketing":   { dot: T.purple, bg: T.purpleLight, border: T.purpleBorder, icon: "📣" },
+  "Financials":  { dot: T.green,  bg: T.greenLight,  border: T.greenBorder,  icon: "💰" },
+  "Operations":  { dot: T.orange, bg: T.orangeLight, border: T.orangeBorder, icon: "⚙️" },
+};
+
+export const STATUS_COLORS: Record<string, any> = {
+  "Not Started": { bg: "#F5F5F5",   text: "#888",    border: "#E0E0E0" },
+  "In Progress":  { bg: T.blueLight, text: T.blue,   border: T.blueBorder },
+  "Complete":     { bg: T.greenLight,text: T.green,  border: T.greenBorder },
+  "Overdue":      { bg: T.redLight,  text: T.red,    border: T.redBorder },
+};
+
+export const PRIORITY_COLORS: Record<string, any> = {
+  "Low":      { bg: "#F5F5F5",    text: "#888",   border: "#E0E0E0" },
+  "Medium":   { bg: T.blueLight,  text: T.blue,  border: T.blueBorder },
+  "High":     { bg: T.goldLight,  text: T.gold,  border: T.goldBorder },
+  "Critical": { bg: T.redLight,   text: T.red,   border: T.redBorder },
+};
+
+export const NOTE_TAG_COLORS: Record<string, any> = {
+  "General":    { bg: "#F5F5F5",    text: "#666",   dot: "#BBB" },
+  "Vendor":     { bg: T.blueLight,  text: T.blue,  dot: T.blue },
+  "Menu":       { bg: T.goldLight,  text: T.gold,  dot: T.gold },
+  "Operations": { bg: T.orangeLight,text: T.orange,dot: T.orange },
+  "Finance":    { bg: T.greenLight, text: T.green, dot: T.green },
+  "Marketing":  { bg: T.purpleLight,text: T.purple,dot: T.purple },
+};
+
+export const CATEGORIES = ["Lease & TI","Menu & Bar","Staffing","Permits","Marketing","Financials","Operations"];
+export const INV_CATEGORIES = ["One-Time Deco", "Furniture", "China/Glassware", "Operating Supplies"];
+export const DEPARTMENTS = ["Kitchen", "Bar", "FOH"];
+export const MENU_SECTIONS = ["Small Plates","Shared Plates","Catering","Main Plates","Desserts","Drinks","Wine","Specials"];
+
+export const PHASE_COLORS: Record<string, string> = {
+  "Pre-Launch": T.gold,
+  "Construction": T.blue,
+  "Staffing": T.green,
+  "Operations": T.orange,
+  "Training": T.purple,
+  "Launch": T.red,
+};
+
+export const WHEN_COLORS: Record<string, any> = {
+  "Opening": { dot: T.gold, bg: T.goldLight },
+  "During Service": { dot: T.blue, bg: T.blueLight },
+  "Closing": { dot: T.purple, bg: T.purpleLight },
+};
+
+export interface ChecklistItem {
+  id: number;
+  text: string;
+  done: boolean;
+}
+
+export interface Task {
+  id: number;
+  category: string;
+  task: string;
+  due: string;
+  status: string;
+  priority: string;
+  checklist: ChecklistItem[];
+  assignedTo?: string;
+  isCritical?: boolean;
+}
+
+export interface Ingredient {
+  id: number;
+  name: string;
+  quantity: number;
+  unit: string;
+  cost: number;
+}
+
+export interface MenuItem {
+  id: number;
+  section: string;
+  name: string;
+  desc: string;
+  price: number;
+  foodCost: number; // This will now be calculated or kept as a target %
+  hero: boolean;
+  notes: string;
+  imageUrl?: string;
+  ingredients: Ingredient[];
+  costPerBottle?: number;
+  sellPriceBottle?: number;
+  sellPriceGlass?: number;
+}
+
+export interface StartupCost {
+  id: number;
+  category: string;
+  budgeted: number;
+  actual: number;
+}
+
+export interface OperatingCost {
+  id: number;
+  category: string;
+  monthly: number;
+}
+
+export interface Milestone {
+  id: number;
+  milestone: string;
+  date: string;
+  phase: string;
+  done: boolean;
+  assignedTo?: string;
+}
+
+export interface NoteFile {
+  id: number;
+  name: string;
+  size: number;
+  type: string;
+  url: string;
+  isImage: boolean;
+}
+
+export interface Note {
+  id: number;
+  tag: string;
+  title: string;
+  body: string;
+  date: string;
+  files: NoteFile[];
+}
+
+export interface Vendor {
+  id: number;
+  name: string;
+  contact: string;
+  email: string;
+  phone: string;
+  category: string;
+  deliveryDays: string[];
+  notes: string;
+}
+
+export type InventoryDepartment = "Kitchen" | "Bar" | "FOH";
+export type ProcurementStatus = "Not Ordered" | "Ordered" | "Arrived";
+export type InventoryCategory = "One-Time Deco" | "Furniture" | "China/Glassware" | "Operating Supplies";
+
+export interface InventoryItem {
+  id: number;
+  name: string;
+  category: InventoryCategory;
+  department: InventoryDepartment;
+  procurementStatus: ProcurementStatus;
+  vendorId?: number;
+  price: number;
+  leadTime: string;
+  currentStock: number;
+  parLevel: number;
+  unit: string;
+  lastOrdered: string;
+  notes?: string;
+}
+
+export interface UtilityAccount {
+  id: number;
+  name: string;
+  accountNumber: string;
+  loginInfo: string;
+  monthlyCost: number;
+  startDate: string;
+  fileUrl?: string;
+}
+
+export interface Permit {
+  id: number;
+  name: string;
+  issuer: string;
+  expiryDate: string;
+  status: "Active" | "Expiring Soon" | "Expired" | "Pending";
+  fileUrl?: string;
+}
+
+export interface MarketingPost {
+  id: number;
+  platform: string;
+  title: string;
+  date: string;
+  status: "Draft" | "Scheduled" | "Posted";
+  notes?: string;
+}
+
+export interface TrainingModule {
+  id: number;
+  title: string;
+  category: "FOH" | "BOH" | "General";
+  completed: boolean;
+  videoUrl?: string;
+  date?: string; // Added for calendar support
+  steps: { id: number; text: string; done: boolean }[];
+}
+
+export interface DailyChecklist {
+  id: number;
+  title: string;
+  shift: "AM" | "PM";
+  assignedTo?: string; // Checklist owner
+  items: { id: number; text: string; done: boolean; assignedTo?: string }[];
+}
+
+export interface Invoice {
+  id: number;
+  vendorName: string;
+  date: string;
+  amount: number;
+  category: string;
+  status: "Paid" | "Pending" | "Overdue";
+  items: { name: string; quantity: number; price: number }[];
+  fileUrl?: string;
+}
+
+export interface Position {
+  id: number;
+  role: string;
+  openings: number;
+  hired: number;
+  status: "Urgent" | "Filled" | "Future";
+  salary?: string;
+  compPlan?: string;
+  offerLetterUrl?: string;
+}
+
+export interface Candidate {
+  id: number;
+  name: string;
+  position: string;
+  resumeUrl?: string;
+  stage: "Applied" | "Interviewed" | "Trial Shift" | "Hired" | "Rejected";
+  date?: string; // Added for calendar support (interview/trial shift date)
+  feedback: string;
+  trialScores?: {
+    technique: number;
+    speed: number;
+    vibe: number;
+  };
+  partnerNotes?: string;
+}
+
+export interface ActivityLog {
+  id: number;
+  user: string;
+  action: string;
+  timestamp: string;
+}
+
+export type UserRole = "Owner" | "Manager";
+
+export interface User {
+  id: string;
+  name: string;
+  role: UserRole;
+  pin: string;
+}
+
+export interface DigitalAsset {
+  id: number;
+  name: string;
+  category: string;
+  url: string;
+  loginInfo?: string;
+  notes?: string;
+}
