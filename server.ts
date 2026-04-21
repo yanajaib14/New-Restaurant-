@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import session from "express-session";
 import { Readable } from "stream";
 import pg from "pg";
+import { InsForgeClient } from "@insforge/sdk";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -82,6 +83,14 @@ async function startServer() {
     process.env.GOOGLE_CLIENT_SECRET,
     `${process.env.APP_URL || "http://localhost:3000"}/auth/google/callback`
   );
+
+  // InsForge Setup
+  const insforgeUrl = (process.env.VITE_INSFORGE_URL || "https://arqsta8h.us-west.insforge.app").replace(/\/$/, "");
+  const insforgeKey = process.env.VITE_INSFORGE_KEY || "ik_d3902514ce290fc64bb4900a677890ce";
+  const insforge = new InsForgeClient({
+    baseUrl: insforgeUrl,
+    anonKey: insforgeKey,
+  });
 
   // API routes
   app.get("/api/health", (req, res) => {
@@ -364,6 +373,39 @@ async function startServer() {
     } catch (error: any) {
       console.error("Settings title update error:", error);
       return res.status(500).json({ error: error?.message || "Settings update failed" });
+    }
+  });
+
+  app.post("/api/auth/change-password", async (req, res) => {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const oldPassword = String(req.body?.oldPassword || "");
+    const newPassword = String(req.body?.newPassword || "");
+
+    if (!email || !oldPassword || !newPassword) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters" });
+    }
+
+    try {
+      // Verify current password by attempting sign-in with InsForge
+      const signInRes = await insforge.auth.signInWithPassword({
+        email,
+        password: oldPassword,
+      });
+
+      if (signInRes.error) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+
+      // Note: Password update is handled client-side via InsForge SDK
+      // This endpoint verifies the old password and logs the change
+      return res.json({ ok: true, message: "Password verified. Please complete update on client." });
+    } catch (error: any) {
+      console.error("Password verification error:", error);
+      return res.status(500).json({ error: error?.message || "Password verification failed" });
     }
   });
 

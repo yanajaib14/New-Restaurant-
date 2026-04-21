@@ -9,8 +9,8 @@ export const Pill = ({ label, color, bg, border, size = 10 }: { label: string, c
   </span>
 );
 
-export const Btn = ({ children, onClick, variant = "ghost", small = false, style = {}, active = false }: { children: React.ReactNode, onClick?: () => void, variant?: "primary" | "danger" | "ghost" | "outline", small?: boolean, style?: React.CSSProperties, active?: boolean }) => {
-  const base: React.CSSProperties = { cursor: "pointer", borderRadius: 16, fontSize: small ? 11 : 12, fontFamily: "'Inter', sans-serif", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 8, transition: "all .3s cubic-bezier(0.4, 0, 0.2, 1)", ...style };
+export const Btn = ({ children, onClick, variant = "ghost", small = false, style = {}, active = false, disabled = false }: { children: React.ReactNode, onClick?: () => void, variant?: "primary" | "danger" | "ghost" | "outline", small?: boolean, style?: React.CSSProperties, active?: boolean, disabled?: boolean }) => {
+  const base: React.CSSProperties = { cursor: disabled ? "not-allowed" : "pointer", borderRadius: 16, fontSize: small ? 11 : 12, fontFamily: "'Inter', sans-serif", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 8, transition: "all .3s cubic-bezier(0.4, 0, 0.2, 1)", opacity: disabled ? 0.6 : 1, ...style };
   const variants = {
     primary: { background: active ? T.stone : T.gold, border: `1px solid ${T.gold}`, color: active ? T.text : "#FFF", padding: small ? "8px 18px" : "12px 24px", boxShadow: active ? "none" : "0 8px 16px rgba(182, 137, 72, 0.15)" },
     danger: { background: T.redLight, border: `1px solid ${T.redBorder}`, color: T.red, padding: small ? "8px 18px" : "12px 24px" },
@@ -18,10 +18,11 @@ export const Btn = ({ children, onClick, variant = "ghost", small = false, style
     outline: { background: active ? T.champagne : "#FFF", border: `1px solid ${T.borderStrong}`, color: T.text, padding: small ? "8px 18px" : "12px 24px" },
   };
   return <button 
-    onClick={onClick} 
+    onClick={onClick}
+    disabled={disabled}
     style={{ ...base, ...variants[variant] }}
-    onMouseOver={e => { e.currentTarget.style.transform = "translateY(-1px)"; }}
-    onMouseOut={e => { e.currentTarget.style.transform = "translateY(0)"; }}
+    onMouseOver={e => { if (!disabled) (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-1px)"; }}
+    onMouseOut={e => { if (!disabled) (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)"; }}
   >{children}</button>;
 };
 
@@ -187,6 +188,101 @@ export function ChangePinModal({ currentPin, onSave, onClose, userRole, userEmai
         <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
           <Btn onClick={onClose} variant="ghost" style={{ flex: 1, justifyContent: "center" }}>Cancel</Btn>
           <Btn onClick={handleSave} variant="primary" style={{ flex: 1, justifyContent: "center" }}>Save New PIN</Btn>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+export function ChangePasswordModal({ onSave, onClose, isLoading = false }: { onSave: (oldPassword: string, newPassword: string) => Promise<void>, onClose: () => void, isLoading?: boolean }) {
+  const [oldPassword, setOldPassword] = React.useState("");
+  const [newPassword, setNewPassword] = React.useState("");
+  const [confirmPassword, setConfirmPassword] = React.useState("");
+  const [error, setError] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+
+  const handleSave = async () => {
+    setError("");
+    
+    if (!oldPassword) {
+      setError("Current password is required");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setError("New password must be at least 8 characters");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("New passwords do not match");
+      return;
+    }
+    if (newPassword === oldPassword) {
+      setError("New password must be different from current password");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await onSave(oldPassword, newPassword);
+      onClose();
+    } catch (err: any) {
+      setError(err?.message || "Failed to update password. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal title="Change Sign-In Password" onClose={onClose} width={400}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <Field label="CURRENT PASSWORD">
+          <input 
+            type="password" 
+            value={oldPassword} 
+            onChange={e => setOldPassword(e.target.value)} 
+            style={inpStyle} 
+            placeholder="••••••••" 
+            disabled={loading || isLoading}
+          />
+        </Field>
+        <Field label="NEW PASSWORD (MIN 8 CHARACTERS)">
+          <input 
+            type="password" 
+            value={newPassword} 
+            onChange={e => setNewPassword(e.target.value)} 
+            style={inpStyle} 
+            placeholder="••••••••" 
+            disabled={loading || isLoading}
+          />
+        </Field>
+        <Field label="CONFIRM NEW PASSWORD">
+          <input 
+            type="password" 
+            value={confirmPassword} 
+            onChange={e => setConfirmPassword(e.target.value)} 
+            style={inpStyle} 
+            placeholder="••••••••" 
+            disabled={loading || isLoading}
+          />
+        </Field>
+        {error && <p style={{ color: T.red, fontSize: 12, margin: 0, fontWeight: 500 }}>{error}</p>}
+        <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+          <Btn 
+            onClick={onClose} 
+            variant="ghost" 
+            style={{ flex: 1, justifyContent: "center" }}
+            disabled={loading || isLoading}
+          >
+            Cancel
+          </Btn>
+          <Btn 
+            onClick={handleSave} 
+            variant="primary" 
+            style={{ flex: 1, justifyContent: "center" }}
+            disabled={loading || isLoading}
+          >
+            {loading || isLoading ? "Updating..." : "Update Password"}
+          </Btn>
         </div>
       </div>
     </Modal>
