@@ -3,6 +3,7 @@ import { T, CAT_COLORS, STATUS_COLORS, PRIORITY_COLORS, CATEGORIES, Task } from 
 import { Modal, Field, inpStyle, selStyle, Btn } from './UI';
 
 export function TaskModal({ task, initialDate, onSave, onClose }: { task: Task | null, initialDate?: string, onSave: (form: any) => void, onClose: () => void }) {
+  const isMobile = window.innerWidth < 1024;
   const blank = { task: "", category: "Lease & TI", due: initialDate || "", status: "Not Started", priority: "Medium", checklist: [], assignedTo: "", isCritical: false };
   const [form, setForm] = useState<any>(task ? { ...task, checklist: task.checklist.map(c => ({ ...c })) } : blank);
   const [newItem, setNewItem] = useState("");
@@ -17,7 +18,7 @@ export function TaskModal({ task, initialDate, onSave, onClose }: { task: Task |
         <span style={{ fontSize: 13, fontWeight: 600, color: form.isCritical ? T.red : T.text }}>Critical Path Task</span>
         {form.isCritical && <span style={{ fontSize: 10, color: T.red, fontWeight: 700, marginLeft: "auto" }}>OVERDUE ALERTS ACTIVE</span>}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
         <Field label="CATEGORY"><select value={form.category} onChange={e => set("category", e.target.value)} style={selStyle}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></Field>
         <Field label="PRIORITY"><select value={form.priority} onChange={e => set("priority", e.target.value)} style={selStyle}>{["Low", "Medium", "High", "Critical"].map(p => <option key={p}>{p}</option>)}</select></Field>
         <Field label="DUE DATE"><input type="date" value={form.due} onChange={e => set("due", e.target.value)} style={inpStyle} /></Field>
@@ -30,12 +31,12 @@ export function TaskModal({ task, initialDate, onSave, onClose }: { task: Task |
           {form.checklist.length > 0 && <span style={{ fontSize: 11, color: T.muted }}>{form.checklist.filter((c: any) => c.done).length}/{form.checklist.length} done</span>}
         </div>
         {form.checklist.map((item: any) => (
-          <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
+          <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7, flexWrap: isMobile ? "wrap" : "nowrap" }}>
             <button onClick={() => setForm((f: any) => ({ ...f, checklist: f.checklist.map((c: any) => c.id === item.id ? { ...c, done: !c.done } : c) }))} style={{ width: 18, height: 18, minWidth: 18, border: `2px solid ${item.done ? T.green : T.border}`, borderRadius: 4, background: item.done ? T.greenLight : "#FFF", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0, flexShrink: 0 }}>
               {item.done && <span style={{ color: T.green, fontSize: 11 }}>✓</span>}
             </button>
-            <input value={item.text} onChange={e => setForm((f: any) => ({ ...f, checklist: f.checklist.map((c: any) => c.id === item.id ? { ...c, text: e.target.value } : c) }))} style={{ ...inpStyle, flex: 2, padding: "6px 10px", textDecoration: item.done ? "line-through" : "none", color: item.done ? T.muted : T.text, fontSize: 12 }} />
-            <input value={item.assignedTo || ""} onChange={e => setForm((f: any) => ({ ...f, checklist: f.checklist.map((c: any) => c.id === item.id ? { ...c, assignedTo: e.target.value } : c) }))} placeholder="Assign to…" style={{ ...inpStyle, flex: 1, padding: "6px 10px", fontSize: 11, background: "#FFF" }} title="Assigned To" />
+            <input value={item.text} onChange={e => setForm((f: any) => ({ ...f, checklist: f.checklist.map((c: any) => c.id === item.id ? { ...c, text: e.target.value } : c) }))} style={{ ...inpStyle, flex: 2, minWidth: isMobile ? "100%" : undefined, padding: "6px 10px", textDecoration: item.done ? "line-through" : "none", color: item.done ? T.muted : T.text, fontSize: 12 }} />
+            <input value={item.assignedTo || ""} onChange={e => setForm((f: any) => ({ ...f, checklist: f.checklist.map((c: any) => c.id === item.id ? { ...c, assignedTo: e.target.value } : c) }))} placeholder="Assign to…" style={{ ...inpStyle, flex: 1, minWidth: isMobile ? "calc(100% - 40px)" : undefined, padding: "6px 10px", fontSize: 11, background: "#FFF" }} title="Assigned To" />
             <button onClick={() => setForm((f: any) => ({ ...f, checklist: f.checklist.filter((c: any) => c.id !== item.id) }))} style={{ background: "none", border: "none", color: T.subtle, cursor: "pointer", fontSize: 16, padding: "0 2px" }}>×</button>
           </div>
         ))}
@@ -44,7 +45,7 @@ export function TaskModal({ task, initialDate, onSave, onClose }: { task: Task |
           <Btn onClick={addItem} variant="outline" small>+ Add</Btn>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20, flexWrap: "wrap" }}>
         {task && (
           <div style={{ marginRight: "auto" }}>
             <Btn onClick={() => onSave({ ...form, _delete: true })} variant="outline" style={{ color: T.red, borderColor: T.redBorder }}>Delete Task</Btn>

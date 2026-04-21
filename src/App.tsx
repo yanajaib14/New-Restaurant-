@@ -1094,8 +1094,8 @@ export default function App() {
               </div>
             )}
             {/* Row 1: Logo, Search, Stats */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "14px 16px" : "18px 32px", borderBottom: `1px solid ${T.border}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", justifyContent: "space-between", gap: isMobile ? 10 : 0, padding: isMobile ? "12px 14px" : "18px 32px", borderBottom: `1px solid ${T.border}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
             {isMobile && (
               <button 
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -1104,35 +1104,18 @@ export default function App() {
                 {isMenuOpen ? "✕" : "☰"}
               </button>
             )}
-            <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-              <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: T.text, letterSpacing: -0.8 }}>{appTitle}</span>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
+              <span style={{ fontFamily: "'Playfair Display',serif", fontSize: isMobile ? 20 : 24, fontWeight: 700, color: T.text, letterSpacing: -0.8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{appTitle}</span>
               {!isMobile && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: T.subtle, letterSpacing: 1, fontWeight: 600 }}>LAUNCH DASHBOARD</span>}
-            </div>
-            
-            {/* AI Search Bar */}
-            <div style={{ display: "flex", alignItems: "center", background: "#FFF", borderRadius: 24, padding: "4px 16px", border: `1px solid ${T.border}`, width: isMobile ? 160 : 280, height: 36, marginLeft: isMobile ? 8 : 24, boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}>
-              <span style={{ fontSize: 12, marginRight: 8, opacity: 0.7 }}>✦</span>
-              <input 
-                placeholder="Ask assistant..." 
-                style={{ background: "none", border: "none", outline: "none", fontSize: 11, width: "100%", color: T.text, fontFamily: "'Inter', sans-serif" }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && e.currentTarget.value.trim()) {
-                    const val = e.currentTarget.value;
-                    e.currentTarget.value = "";
-                    setTab("ai");
-                    sendAi(val);
-                  }
-                }}
-              />
             </div>
           </div>
           
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: isMobile ? "space-between" : "flex-end", width: isMobile ? "100%" : "auto" }}>
             {isUnlocked && (
               <button 
                 onClick={() => setIsUnlocked(false)}
                 title="Lock sensitive data"
-                style={{ background: T.goldLight, border: `1px solid ${T.goldBorder}`, borderRadius: 12, padding: "6px 12px", cursor: "pointer", color: T.gold, display: "flex", alignItems: "center", gap: 6 }}
+                style={{ background: T.goldLight, border: `1px solid ${T.goldBorder}`, borderRadius: 10, padding: isMobile ? "6px 10px" : "6px 12px", cursor: "pointer", color: T.gold, display: "flex", alignItems: "center", gap: 6 }}
               >
                 <ShieldCheck size={14} />
                 <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "'Inter', sans-serif" }}>LOCK</span>
@@ -1140,11 +1123,28 @@ export default function App() {
             )}
             <button 
               onClick={() => { logout(); setIsUnlocked(false); }}
-              style={{ background: T.stone, border: `1px solid ${T.border}`, borderRadius: 12, padding: "6px 16px", fontSize: 11, fontWeight: 600, color: T.text, cursor: "pointer" }}
+              style={{ background: T.stone, border: `1px solid ${T.border}`, borderRadius: 10, padding: isMobile ? "6px 10px" : "6px 16px", fontSize: 11, fontWeight: 600, color: T.text, cursor: "pointer", whiteSpace: "nowrap" }}
             >
               Sign Out ({isPartnerAccount ? 'Admin' : (userRole || 'User')})
             </button>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: T.subtle, fontWeight: 500 }}>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Phoenix" })}</span>
+            {!isMobile && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: T.subtle, fontWeight: 500 }}>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Phoenix" })}</span>}
+          </div>
+
+          {/* AI Search Bar */}
+          <div style={{ display: "flex", alignItems: "center", background: "#FFF", borderRadius: 24, padding: "4px 14px", border: `1px solid ${T.border}`, width: isMobile ? "100%" : 280, height: 36, marginLeft: isMobile ? 0 : 24, boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}>
+            <span style={{ fontSize: 12, marginRight: 8, opacity: 0.7 }}>✦</span>
+            <input 
+              placeholder="Ask assistant..." 
+              style={{ background: "none", border: "none", outline: "none", fontSize: 11, width: "100%", color: T.text, fontFamily: "'Inter', sans-serif" }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                  const val = e.currentTarget.value;
+                  e.currentTarget.value = "";
+                  setTab("ai");
+                  sendAi(val);
+                }
+              }}
+            />
           </div>
         </div>
 
@@ -1203,7 +1203,7 @@ export default function App() {
 
         {/* Mobile Menu Overlay */}
         {isMobile && isMenuOpen && (
-          <div style={{ position:"fixed", inset:0, top:"calc(60px + env(safe-area-inset-top, 0px))", background:"#FFF", zIndex:100, padding:"20px 20px calc(20px + env(safe-area-inset-bottom, 0px))", display:"flex", flexDirection:"column", gap:4, overflowY:"auto", WebkitOverflowScrolling:"touch" }}>
+          <div style={{ position:"fixed", inset:0, top:"calc(112px + env(safe-area-inset-top, 0px))", background:"#FFF", zIndex:100, padding:"16px 16px calc(20px + env(safe-area-inset-bottom, 0px))", display:"flex", flexDirection:"column", gap:4, overflowY:"auto", WebkitOverflowScrolling:"touch" }}>
             {GROUPS.map(group => (
               <div key={group} style={{ marginBottom:16 }}>
                 <div style={{ fontSize:10, fontFamily:"'DM Mono',monospace", color:T.subtle, letterSpacing:1, padding:"0 12px", marginBottom:8 }}>{group}</div>
@@ -1412,22 +1412,59 @@ export default function App() {
                   <Btn onClick={()=>setTaskModal("new")} variant="primary">+ New Task</Btn>
                 </div>
               }/>
-            {/* Filters */}
-            <div style={{ display:"flex", gap:10, marginBottom:14, flexWrap:"wrap", alignItems:"center" }}>
-              {["All",...CATEGORIES].map(c=>(
-                <button key={c} onClick={()=>setCatF(c)}
-                  style={{ cursor:"pointer", borderRadius:24, padding:"6px 16px", fontSize:11, fontFamily:"'Inter', sans-serif", border:`1px solid ${catFilter===c?(CAT_COLORS[c]?.dot||T.gold):T.border}`, background:catFilter===c?(CAT_COLORS[c]?.bg||T.goldLight):"#FFF", color:catFilter===c?(CAT_COLORS[c]?.dot||T.gold):T.muted, fontWeight:catFilter===c?700:500 }}>
-                  {c==="All"?"All Categories":c}
-                </button>
-              ))}
-              <div style={{ width:1, height:20, background:T.border, margin:"0 4px" }}/>
-              {["All","Not Started","In Progress","Complete","Overdue"].map(s=>(
-                <button key={s} onClick={()=>setStatF(s)}
-                  style={{ cursor:"pointer", borderRadius:24, padding:"6px 16px", fontSize:11, fontFamily:"'Inter', sans-serif", border:`1px solid ${statFilter===s?((STATUS_COLORS as any)[s]?.border||T.borderStrong):T.border}`, background:statFilter===s?((STATUS_COLORS as any)[s]?.bg||"#F5F5F5"):"#FFF", color:statFilter===s?((STATUS_COLORS as any)[s]?.text||T.text):T.muted, fontWeight:statFilter===s?700:500 }}>
-                  {s==="All"?"All Status":s}
-                </button>
-              ))}
-            </div>
+            {/* Table / Mobile Cards */}
+            {isMobile ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {tasks.filter(t => (catFilter === "All" || t.category === catFilter) && (statFilter === "All" || t.status === statFilter)).length === 0 ? (
+                  <div style={{ padding: 20, textAlign: "center", color: T.muted, fontSize: 13, background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12 }}>
+                    No tasks match these filters.
+                  </div>
+                ) : (
+                  tasks.filter(t => (catFilter === "All" || t.category === catFilter) && (statFilter === "All" || t.status === statFilter)).map(t => {
+                    const sc = STATUS_COLORS[t.status];
+                    const pc = PRIORITY_COLORS[t.priority];
+                    const cc = CAT_COLORS[t.category] || {};
+                    return (
+                      <div key={t.id} style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 12 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 6 }}>{t.task}</div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                              <span style={{ fontSize: 10, color: cc.dot, background: cc.bg, border: `1px solid ${cc.border}`, borderRadius: 10, padding: "2px 8px" }}>{t.category}</span>
+                              <span style={{ fontSize: 10, color: pc.text, background: pc.bg, border: `1px solid ${pc.border}`, borderRadius: 10, padding: "2px 8px" }}>{t.priority}</span>
+                              <span style={{ fontSize: 10, color: sc.text, background: sc.bg, border: `1px solid ${sc.border}`, borderRadius: 10, padding: "2px 8px" }}>{t.status}</span>
+                            </div>
+                            <div style={{ marginTop: 8, fontSize: 11, color: T.muted }}>
+                              Due {t.due || "—"} • {t.assignedTo || "Unassigned"}
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button onClick={() => setTaskModal(t)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 12 }}>✎</button>
+                            <button onClick={() => setDelConfirm({ label: t.task, onConfirm: () => deleteRecord('tasks', t.id, t.task, setTasks) })} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 12 }}>✕</button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            ) : (
+              <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, overflow:"hidden" }}>
+                <div style={{ display:"grid", gridTemplateColumns:"28px 1fr 120px 140px 100px 90px 70px", padding:"10px 18px", background:T.bg, borderBottom:`1px solid ${T.border}` }}>
+                  {["","TASK / PROGRESS","DUE","STATUS","OWNER","PRIORITY",""] .map((h,i)=>(
+                    <div key={i} style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:T.subtle, letterSpacing:.8 }}>{h}</div>
+                  ))}
+                </div>
+                {tasks.filter(t=>(catFilter==="All"||t.category===catFilter)&&(statFilter==="All"||t.status===statFilter)).length===0
+                  ? <div style={{ padding:36, textAlign:"center", color:T.muted, fontSize:13 }}>No tasks match these filters. <button onClick={()=>setTaskModal("new")} style={{ marginLeft:8, background:"none", border:`1px solid ${T.border}`, borderRadius:8, padding:"5px 12px", cursor:"pointer", color:T.gold, fontSize:12 }}>+ Add Task</button></div>
+                  : tasks.filter(t=>(catFilter==="All"||t.category===catFilter)&&(statFilter==="All"||t.status===statFilter)).map(t=>(
+                    <TaskRow key={t.id} task={t} onEdit={setTaskModal}
+                      onDelete={t => setDelConfirm({ label: t.task, onConfirm: () => deleteRecord('tasks', t.id, t.task, setTasks) })}
+                      onStatusChange={(id, s) => updateRecord('tasks', id, { status: s }, 'Task Status', setTasks)}
+                      onToggleCheck={toggleTaskCheck} />
+                  ))}
+              </div>
+            )}
             {/* Table */}
             <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, overflow:"hidden" }}>
               <div style={{ display:"grid", gridTemplateColumns:"28px 1fr 120px 140px 100px 90px 70px", padding:"10px 18px", background:T.bg, borderBottom:`1px solid ${T.border}` }}>
@@ -1461,38 +1498,68 @@ export default function App() {
                 </button>
               ))}
             </div>
-            <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, overflow:"hidden" }}>
-              <div style={{ display:"grid", gridTemplateColumns:"110px 44px 1fr 1.8fr 70px 80px 52px 1fr 70px", padding:"10px 18px", background:T.bg, borderBottom:`1px solid ${T.border}` }}>
-                {["SECTION","","NAME","DESCRIPTION","PRICE / B&G","COST %","HERO","NOTES",""].map((h,i)=>(
-                  <div key={i} style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:T.subtle, letterSpacing:.8 }}>{h}</div>
+            {isMobile ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {menuItems.filter(m => menuSecF === "All" || m.section === menuSecF).map(item => (
+                  <div key={item.id} style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 12 }}>
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <div style={{ width: 52, height: 52, borderRadius: 8, background: T.bg, border: `1px solid ${T.border}`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        {item.imageUrl ? <img src={item.imageUrl} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 18 }}>🍽️</span>}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{item.name}</div>
+                        <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{item.section}</div>
+                        <div style={{ fontSize: 11, color: T.muted, marginTop: 4 }}>{item.desc || "—"}</div>
+                        <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 12, fontFamily: "'DM Mono',monospace", color: T.green, fontWeight: 700 }}>
+                            {item.section === "Wine" ? `B ${item.sellPriceBottle} / G ${item.sellPriceGlass}` : `$${item.price}`}
+                          </span>
+                          <span style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", fontWeight: 700, color: item.foodCost > 30 ? T.red : T.green, background: item.foodCost > 30 ? T.redLight : T.greenLight, padding: "2px 8px", borderRadius: 4 }}>{item.foodCost}%</span>
+                          {item.hero && <span style={{ fontSize: 12 }}>⭐ Hero</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6, marginTop: 10, justifyContent: "flex-end" }}>
+                      <button onClick={() => setMenuModal(item)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 12 }}>✎</button>
+                      <button onClick={() => setDelConfirm({ label: item.name, onConfirm: () => deleteRecord('menu_items', item.id, item.name, setMenuItems) })} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 12 }}>✕</button>
+                    </div>
+                  </div>
                 ))}
               </div>
-              {menuItems.filter(m=>menuSecF==="All"||m.section===menuSecF).map((item,i)=>(
-                <div key={item.id} style={{ display:"grid", gridTemplateColumns:"110px 44px 1fr 1.8fr 70px 80px 52px 1fr 70px", padding:"13px 18px", borderBottom:`1px solid ${T.border}`, background:i%2===0?"#FFF":T.bg, alignItems:"center" }}>
-                  <div style={{ fontSize:10, color:T.muted, fontFamily:"'DM Mono',monospace" }}>{item.section}</div>
-                  <div style={{ width:32, height:32, borderRadius:6, background:T.bg, border:`1px solid ${T.border}`, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                    {item.imageUrl ? <img src={item.imageUrl} alt={item.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ fontSize:12 }}>🍽️</span>}
-                  </div>
-                  <div style={{ fontSize:13, fontFamily:"'Playfair Display',serif", fontWeight:600, color:T.text }}>{item.name}</div>
-                  <div style={{ fontSize:11, color:T.muted, fontStyle:"italic" }}>{item.desc}</div>
-                  <div style={{ fontSize:13, fontFamily:"'DM Mono',monospace", color:T.green, fontWeight:600 }}>
-                    {item.section === "Wine" ? (
-                      <div style={{ lineHeight: 1.2 }}>
-                        <div style={{ fontSize:10, color:T.muted }}>B: ${item.sellPriceBottle}</div>
-                        <div style={{ fontSize:10, color:T.muted }}>G: ${item.sellPriceGlass}</div>
-                      </div>
-                    ) : `$${item.price}`}
-                  </div>
-                  <div><span style={{ fontSize:11, fontFamily:"'DM Mono',monospace", fontWeight:600, color:item.foodCost>30?T.red:T.green, background:item.foodCost>30?T.redLight:T.greenLight, padding:"2px 8px", borderRadius:4 }}>{item.foodCost}%</span></div>
-                  <div style={{ textAlign:"center", fontSize:14 }}>{item.hero?"⭐":"—"}</div>
-                  <div style={{ fontSize:11, color:T.muted }}>{item.notes||"—"}</div>
-                  <div style={{ display:"flex", gap:5 }}>
-                    <button onClick={()=>setMenuModal(item)} style={{ background:"none",border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 7px",color:T.muted,cursor:"pointer",fontSize:11 }}>✎</button>
-                    <button onClick={()=>setDelConfirm({label:item.name,onConfirm:()=>deleteRecord('menu_items', item.id, item.name, setMenuItems)})} style={{ background:"none",border:`1px solid ${T.redBorder}`,borderRadius:6,padding:"3px 7px",color:T.red,cursor:"pointer",fontSize:11 }}>✕</button>
-                  </div>
+            ) : (
+              <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, overflow:"hidden" }}>
+                <div style={{ display:"grid", gridTemplateColumns:"110px 44px 1fr 1.8fr 70px 80px 52px 1fr 70px", padding:"10px 18px", background:T.bg, borderBottom:`1px solid ${T.border}` }}>
+                  {["SECTION","","NAME","DESCRIPTION","PRICE / B&G","COST %","HERO","NOTES",""] .map((h,i)=>(
+                    <div key={i} style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:T.subtle, letterSpacing:.8 }}>{h}</div>
+                  ))}
                 </div>
-              ))}
-            </div>
+                {menuItems.filter(m=>menuSecF==="All"||m.section===menuSecF).map((item,i)=>(
+                  <div key={item.id} style={{ display:"grid", gridTemplateColumns:"110px 44px 1fr 1.8fr 70px 80px 52px 1fr 70px", padding:"13px 18px", borderBottom:`1px solid ${T.border}`, background:i%2===0?"#FFF":T.bg, alignItems:"center" }}>
+                    <div style={{ fontSize:10, color:T.muted, fontFamily:"'DM Mono',monospace" }}>{item.section}</div>
+                    <div style={{ width:32, height:32, borderRadius:6, background:T.bg, border:`1px solid ${T.border}`, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      {item.imageUrl ? <img src={item.imageUrl} alt={item.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ fontSize:12 }}>🍽️</span>}
+                    </div>
+                    <div style={{ fontSize:13, fontFamily:"'Playfair Display',serif", fontWeight:600, color:T.text }}>{item.name}</div>
+                    <div style={{ fontSize:11, color:T.muted, fontStyle:"italic" }}>{item.desc}</div>
+                    <div style={{ fontSize:13, fontFamily:"'DM Mono',monospace", color:T.green, fontWeight:600 }}>
+                      {item.section === "Wine" ? (
+                        <div style={{ lineHeight: 1.2 }}>
+                          <div style={{ fontSize:10, color:T.muted }}>B: ${item.sellPriceBottle}</div>
+                          <div style={{ fontSize:10, color:T.muted }}>G: ${item.sellPriceGlass}</div>
+                        </div>
+                      ) : `$${item.price}`}
+                    </div>
+                    <div><span style={{ fontSize:11, fontFamily:"'DM Mono',monospace", fontWeight:600, color:item.foodCost>30?T.red:T.green, background:item.foodCost>30?T.redLight:T.greenLight, padding:"2px 8px", borderRadius:4 }}>{item.foodCost}%</span></div>
+                    <div style={{ textAlign:"center", fontSize:14 }}>{item.hero?"⭐":"—"}</div>
+                    <div style={{ fontSize:11, color:T.muted }}>{item.notes||"—"}</div>
+                    <div style={{ display:"flex", gap:5 }}>
+                      <button onClick={()=>setMenuModal(item)} style={{ background:"none",border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 7px",color:T.muted,cursor:"pointer",fontSize:11 }}>✎</button>
+                      <button onClick={()=>setDelConfirm({label:item.name,onConfirm:()=>deleteRecord('menu_items', item.id, item.name, setMenuItems)})} style={{ background:"none",border:`1px solid ${T.redBorder}`,borderRadius:6,padding:"3px 7px",color:T.red,cursor:"pointer",fontSize:11 }}>✕</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -1530,31 +1597,59 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr 120px 120px 2fr", padding: "10px 18px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
-                {["INGREDIENT", "CATEGORY", "DEPT", "TOTAL QTY", "TOTAL COST", "USED IN DISHES"].map(h => (
-                  <div key={h} style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: T.subtle, letterSpacing: .8 }}>{h}</div>
-                ))}
-              </div>
-              {aggregatedIngredients.length === 0 ? (
-                <div style={{ padding: 40, textAlign: "center", color: T.muted }}>No ingredients found matching filters.</div>
-              ) : (
-                aggregatedIngredients.map((ing, i) => (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr 120px 120px 2fr", padding: "14px 18px", borderBottom: `1px solid ${T.border}`, alignItems: "center" }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{ing.name}</div>
-                    <div style={{ fontSize: 11, color: T.muted }}>{ing.category}</div>
-                    <div style={{ fontSize: 11, color: T.muted }}>{ing.department}</div>
-                    <div style={{ fontSize: 13, fontFamily: "'DM Mono',monospace", color: T.text }}>{ing.quantity} {ing.unit}</div>
-                    <div style={{ fontSize: 13, fontFamily: "'DM Mono',monospace", color: T.green, fontWeight: 600 }}>${ing.totalCost.toFixed(2)}</div>
-                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                      {ing.items.map(dish => (
-                        <span key={dish} style={{ fontSize: 10, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 4, padding: "2px 6px", color: T.muted }}>{dish}</span>
-                      ))}
+            {isMobile ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {aggregatedIngredients.length === 0 ? (
+                  <div style={{ padding: 20, textAlign: "center", color: T.muted, background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12 }}>No ingredients found matching filters.</div>
+                ) : (
+                  aggregatedIngredients.map((ing, i) => (
+                    <div key={i} style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 12 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{ing.name}</div>
+                      <div style={{ marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap", fontSize: 11, color: T.muted }}>
+                        <span>{ing.category}</span>
+                        <span>•</span>
+                        <span>{ing.department}</span>
+                      </div>
+                      <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                        <span style={{ color: T.muted }}>{ing.quantity} {ing.unit}</span>
+                        <span style={{ fontFamily: "'DM Mono',monospace", color: T.green, fontWeight: 700 }}>${ing.totalCost.toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 8 }}>
+                        {ing.items.map(dish => (
+                          <span key={dish} style={{ fontSize: 10, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 4, padding: "2px 6px", color: T.muted }}>{dish}</span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr 120px 120px 2fr", padding: "10px 18px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
+                  {["INGREDIENT", "CATEGORY", "DEPT", "TOTAL QTY", "TOTAL COST", "USED IN DISHES"].map(h => (
+                    <div key={h} style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: T.subtle, letterSpacing: .8 }}>{h}</div>
+                  ))}
+                </div>
+                {aggregatedIngredients.length === 0 ? (
+                  <div style={{ padding: 40, textAlign: "center", color: T.muted }}>No ingredients found matching filters.</div>
+                ) : (
+                  aggregatedIngredients.map((ing, i) => (
+                    <div key={i} style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr 120px 120px 2fr", padding: "14px 18px", borderBottom: `1px solid ${T.border}`, alignItems: "center" }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{ing.name}</div>
+                      <div style={{ fontSize: 11, color: T.muted }}>{ing.category}</div>
+                      <div style={{ fontSize: 11, color: T.muted }}>{ing.department}</div>
+                      <div style={{ fontSize: 13, fontFamily: "'DM Mono',monospace", color: T.text }}>{ing.quantity} {ing.unit}</div>
+                      <div style={{ fontSize: 13, fontFamily: "'DM Mono',monospace", color: T.green, fontWeight: 600 }}>${ing.totalCost.toFixed(2)}</div>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        {ing.items.map(dish => (
+                          <span key={dish} style={{ fontSize: 10, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 4, padding: "2px 6px", color: T.muted }}>{dish}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         )}
 

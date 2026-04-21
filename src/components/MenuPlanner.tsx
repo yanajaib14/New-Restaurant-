@@ -3,6 +3,7 @@ import { T, MENU_SECTIONS, MenuItem, Ingredient } from '../types';
 import { Modal, Field, inpStyle, selStyle, Btn } from './UI';
 
 export function MenuModal({ item, onSave, onClose }: { item: MenuItem | null, onSave: (form: any) => void, onClose: () => void }) {
+  const isMobile = window.innerWidth < 1024;
   const blank = { name: "", section: "Small Plates", desc: "", price: "", foodCost: 30, hero: false, notes: "", imageUrl: "", ingredients: [], costPerBottle: "", sellPriceBottle: "", sellPriceGlass: "" };
   const [form, setForm] = useState<any>(item ? { ...item } : blank);
   const [newIng, setNewIng] = useState({ name: "", quantity: "", unit: "oz", cost: "" });
@@ -54,7 +55,7 @@ export function MenuModal({ item, onSave, onClose }: { item: MenuItem | null, on
 
   return (
     <Modal title={item ? "Edit Menu Item" : "New Menu Item"} onClose={onClose} width={540}>
-      <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 12, marginBottom: 16 }}>
         <div 
           onClick={() => fileInputRef.current?.click()}
           style={{ width: 100, height: 100, borderRadius: 12, background: T.bg, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0, cursor: "pointer", position: "relative" }}
@@ -75,7 +76,7 @@ export function MenuModal({ item, onSave, onClose }: { item: MenuItem | null, on
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
         <Field label="SECTION"><select value={form.section} onChange={e => set("section", e.target.value)} style={selStyle}>{MENU_SECTIONS.map(s => <option key={s}>{s}</option>)}</select></Field>
         {form.section === "Wine" ? (
           <Field label="SELL PRICE (BOTTLE) ($)"><input type="number" value={form.sellPriceBottle} onChange={e => set("sellPriceBottle", e.target.value)} placeholder="0" style={inpStyle} /></Field>
@@ -85,7 +86,7 @@ export function MenuModal({ item, onSave, onClose }: { item: MenuItem | null, on
       </div>
 
       {form.section === "Wine" && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginBottom: 16 }}>
           <Field label="OUR COST (BOTTLE) ($)"><input type="number" value={form.costPerBottle} onChange={e => set("costPerBottle", e.target.value)} placeholder="0" style={inpStyle} /></Field>
           <Field label="SELL PRICE (GLASS/OZ) ($)"><input type="number" value={form.sellPriceGlass} onChange={e => set("sellPriceGlass", e.target.value)} placeholder="0" style={inpStyle} /></Field>
         </div>
@@ -117,22 +118,22 @@ export function MenuModal({ item, onSave, onClose }: { item: MenuItem | null, on
           ))}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 60px 60px 70px 40px", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 60px 60px 70px 40px", gap: 8 }}>
           <input value={newIng.name} onChange={e => setNewIng({ ...newIng, name: e.target.value })} placeholder="Ingredient" style={{ ...inpStyle, fontSize: 12, padding: "6px 10px" }} />
           <input type="number" value={newIng.quantity} onChange={e => setNewIng({ ...newIng, quantity: e.target.value })} placeholder="Qty" style={{ ...inpStyle, fontSize: 12, padding: "6px 10px" }} />
           <input value={newIng.unit} onChange={e => setNewIng({ ...newIng, unit: e.target.value })} placeholder="Unit" style={{ ...inpStyle, fontSize: 12, padding: "6px 10px" }} />
           <input type="number" value={newIng.cost} onChange={e => setNewIng({ ...newIng, cost: e.target.value })} placeholder="$ Cost" style={{ ...inpStyle, fontSize: 12, padding: "6px 10px" }} />
-          <Btn onClick={addIng} variant="outline" small style={{ height: 32 }}>+</Btn>
+          <Btn onClick={addIng} variant="outline" small style={{ height: 32, gridColumn: isMobile ? "1 / -1" : undefined }}>+ Add</Btn>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
         <Field label="DESCRIPTION"><input value={form.desc} onChange={e => set("desc", e.target.value)} placeholder="Short description…" style={inpStyle} /></Field>
         <Field label="HERO ITEM"><label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", paddingTop: 8 }}><input type="checkbox" checked={form.hero} onChange={e => set("hero", e.target.checked)} style={{ width: 16, height: 16, cursor: "pointer", accentColor: T.gold }} /><span style={{ fontSize: 13, fontFamily: "'Inter', sans-serif", color: T.text, fontWeight: 600 }}>Mark as hero item ⭐</span></label></Field>
       </div>
       <Field label="INTERNAL NOTES"><input value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Internal notes…" style={inpStyle} /></Field>
 
-      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap", marginTop: 20 }}>
         <Btn onClick={onClose} variant="ghost">Cancel</Btn>
         <Btn onClick={() => { 
           if (form.name.trim()) {

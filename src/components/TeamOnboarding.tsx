@@ -116,6 +116,7 @@ const INIT_ROLES = [
 ];
 
 export function TeamOnboarding() {
+  const isMobile = window.innerWidth < 1024;
   const [section, setSection] = useState("roles");   // "roles" | "rules" | "checklist"
   const [activeRole, setActiveRole] = useState("server");
   const [activeCat, setActiveCat] = useState<any>(null);
@@ -198,10 +199,10 @@ export function TeamOnboarding() {
       </div>
 
       {/* Section toggle */}
-      <div style={{ display: "flex", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: 3, gap: 3, marginBottom: 22, width: "fit-content" }}>
+      <div style={{ display: "flex", background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: 3, gap: 3, marginBottom: 22, width: isMobile ? "100%" : "fit-content", overflowX: isMobile ? "auto" : "visible" }}>
         {[["roles", "👥 Roles & Sidework"], ["rules", "📋 House Rules"], ["checklist", "✅ Shift Checklist"]].map(([id, label]) => (
           <button key={id} onClick={() => setSection(id)}
-            style={{ background: section === id ? "#FFF" : "transparent", border: section === id ? `1px solid ${T.borderStrong}` : "1px solid transparent", borderRadius: 8, padding: "8px 20px", cursor: "pointer", fontSize: 12, fontFamily: "'DM Sans',sans-serif", fontWeight: section === id ? 600 : 400, color: section === id ? T.text : T.muted, boxShadow: section === id ? "0 1px 4px rgba(0,0,0,.07)" : "none", transition: "all .15s", whiteSpace: "nowrap" }}>
+            style={{ background: section === id ? "#FFF" : "transparent", border: section === id ? `1px solid ${T.borderStrong}` : "1px solid transparent", borderRadius: 8, padding: isMobile ? "8px 12px" : "8px 20px", cursor: "pointer", fontSize: 12, fontFamily: "'DM Sans',sans-serif", fontWeight: section === id ? 600 : 400, color: section === id ? T.text : T.muted, boxShadow: section === id ? "0 1px 4px rgba(0,0,0,.07)" : "none", transition: "all .15s", whiteSpace: "nowrap", flexShrink: 0 }}>
             {label}
           </button>
         ))}
@@ -209,7 +210,7 @@ export function TeamOnboarding() {
 
       {/* ── ROLES & SIDEWORK ── */}
       {section === "roles" && (
-        <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 18 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "220px 1fr", gap: 14 }}>
           {/* Role selector */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {roles.map(r => {
@@ -237,7 +238,7 @@ export function TeamOnboarding() {
           {role && (
             <div>
               {/* Role header */}
-              <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 20, marginBottom: 14 }}>
+              <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: isMobile ? 14 : 20, marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
                   <span style={{ fontSize: 26 }}>{role.icon}</span>
                   <div>
@@ -246,7 +247,7 @@ export function TeamOnboarding() {
                   </div>
                 </div>
                 {/* When filter */}
-                <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+                <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
                   {["All", "Opening", "During Service", "Closing"].map(w => {
                     const wc = (WHEN_COLORS as any)[w] || { bg: T.bg, text: T.muted, border: T.border };
                     const active = whenFilter === w;
@@ -269,7 +270,7 @@ export function TeamOnboarding() {
                   const isEdit = editingTask?.id === task.id;
                   return (
                     <div key={task.id} style={{ borderBottom: `1px solid ${T.border}`, background: checked ? T.greenLight : i % 2 === 0 ? "#FFF" : T.bg }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 18px" }}>
+                      <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 12, padding: isMobile ? "11px 12px" : "13px 18px" }}>
                         {/* Checkbox */}
                         <button onClick={() => toggleCheck(role.id, task.id)}
                           style={{ width: 20, height: 20, minWidth: 20, border: `2px solid ${checked ? T.green : T.border}`, borderRadius: 4, background: checked ? T.green : "#FFF", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0, flexShrink: 0, transition: "all .15s" }}>
@@ -277,13 +278,13 @@ export function TeamOnboarding() {
                         </button>
                         {/* Task name */}
                         <div style={{ flex: 1, cursor: "pointer" }} onClick={() => setExpandedTask(isExp ? null : task.id)}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                             <span style={{ fontSize: 13, fontWeight: 500, color: checked ? T.muted : T.text, textDecoration: checked ? "line-through" : "none" }}>{task.task}</span>
                             <span style={{ fontSize: 10, fontFamily: "'DM Sans',sans-serif", fontWeight: 500, padding: "2px 8px", borderRadius: 12, background: wc.bg, color: wc.text, border: `1px solid ${wc.border}` }}>{task.when}</span>
                           </div>
                         </div>
                         {/* Expand / Edit / Delete */}
-                        <div style={{ display: "flex", gap: 5 }}>
+                        <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
                           <button onClick={() => setExpandedTask(isExp ? null : task.id)}
                             style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 8px", color: T.muted, cursor: "pointer", fontSize: 11, transform: isExp ? "rotate(180deg)" : "none", transition: "transform .15s" }}>▾</button>
                           <button onClick={() => setEditingTask(isEdit ? null : { ...task, roleId: role.id })}
@@ -294,14 +295,14 @@ export function TeamOnboarding() {
                       </div>
                       {/* Expanded detail */}
                       {isExp && !isEdit && (
-                        <div style={{ padding: "0 18px 14px 50px", fontSize: 12, color: "#555", lineHeight: 1.7, fontStyle: "italic" }}>{task.detail}</div>
+                        <div style={{ padding: isMobile ? "0 12px 12px 44px" : "0 18px 14px 50px", fontSize: 12, color: "#555", lineHeight: 1.7, fontStyle: "italic" }}>{task.detail}</div>
                       )}
                       {/* Edit form */}
                       {isEdit && (
-                        <div style={{ padding: "0 18px 14px 50px" }}>
+                        <div style={{ padding: isMobile ? "0 12px 12px 44px" : "0 18px 14px 50px" }}>
                           <input value={editingTask.task} onChange={e => setEditingTask((p: any) => ({ ...p, task: e.target.value }))} style={{ ...inpS, marginBottom: 8 }} />
                           <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                            <select value={editingTask.when} onChange={e => setEditingTask((p: any) => ({ ...p, when: e.target.value }))} style={{ ...inpS, width: 160 }}>
+                            <select value={editingTask.when} onChange={e => setEditingTask((p: any) => ({ ...p, when: e.target.value }))} style={{ ...inpS, width: isMobile ? "100%" : 160 }}>
                               {["Opening", "During Service", "Closing"].map(w => <option key={w}>{w}</option>)}
                             </select>
                           </div>
@@ -318,7 +319,7 @@ export function TeamOnboarding() {
                 {/* Add new task */}
                 {addingTaskTo === role.id ? (
                   <div style={{ padding: 16, borderTop: `1px solid ${T.border}`, background: T.bg }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 160px", gap: 8, marginBottom: 8 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 160px", gap: 8, marginBottom: 8 }}>
                       <input value={newTaskText.task} onChange={e => setNewTaskText(p => ({ ...p, task: e.target.value }))} placeholder="Sidework task name…" style={inpS} />
                       <select value={newTaskText.when} onChange={e => setNewTaskText(p => ({ ...p, when: e.target.value }))} style={{ ...inpS, cursor: "pointer" }}>
                         {["Opening", "During Service", "Closing"].map(w => <option key={w}>{w}</option>)}
@@ -356,7 +357,7 @@ export function TeamOnboarding() {
             ))}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(420px,1fr))", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill,minmax(${isMobile ? 260 : 420}px,1fr))`, gap: 14 }}>
             {houseRules.filter(cat => !activeCat || cat.id === activeCat).map(cat => (
               <div key={cat.id} style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
                 {/* Category header */}
@@ -430,7 +431,7 @@ export function TeamOnboarding() {
           <div style={{ background: T.goldLight, border: `1px solid ${T.goldBorder}`, borderRadius: 10, padding: "12px 18px", marginBottom: 18, fontSize: 12, color: T.gold }}>
             ✦ Use this checklist at the start of each shift to confirm all team members have completed their sidework. Check off tasks as they are done.
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(340px,1fr))", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill,minmax(${isMobile ? 240 : 340}px,1fr))`, gap: 14 }}>
             {roles.map(r => {
               const { done, total, pct } = roleProgress(r);
               return (
