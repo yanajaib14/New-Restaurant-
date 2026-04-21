@@ -40,6 +40,10 @@ type ShoppingListItem = {
   items: string[];
   category: string;
   department: string;
+  purchaseType?: "Vendor" | "Store" | "";
+  vendorName?: string;
+  storeName?: string;
+  storeUrl?: string;
   isManual?: boolean;
 };
 
@@ -530,6 +534,10 @@ export default function App() {
       items: Array.isArray(item.items) ? item.items : (typeof item.items === 'string' ? item.items.split(',').filter(s => s.trim()) : []),
       category: item.category,
       department: item.department,
+      purchaseType: (item.purchaseType as "Vendor" | "Store" | "") || "",
+      vendorName: item.vendorName || "",
+      storeName: item.storeName || "",
+      storeUrl: item.storeUrl || "",
       isManual: true,
     } as ShoppingListItem));
     setShopManualItems(manual);
@@ -544,6 +552,10 @@ export default function App() {
         items: Array.isArray(item.items) ? item.items : (typeof item.items === 'string' ? item.items.split(',').filter(s => s.trim()) : []),
         category: item.category,
         department: item.department,
+        purchaseType: (item.purchaseType as "Vendor" | "Store" | "") || "",
+        vendorName: item.vendorName || "",
+        storeName: item.storeName || "",
+        storeUrl: item.storeUrl || "",
       };
     });
     setShopItemOverrides(overrides);
@@ -557,6 +569,9 @@ export default function App() {
   const [menuSecF, setMenuSecF] = useState("All");
   const [shopCatF, setShopCatF] = useState("All");
   const [shopDeptF, setShopDeptF] = useState("All");
+  const [shopSourceF, setShopSourceF] = useState("All");
+  const [shopVendorF, setShopVendorF] = useState("All");
+  const [shopStoreF, setShopStoreF] = useState("All");
   const [shopManualItems, setShopManualItems] = useState<ShoppingListItem[]>([]);
   const [shopItemOverrides, setShopItemOverrides] = useState<Record<string, Partial<ShoppingListItem>>>({});
   const [shopRemovedSourceKeys, setShopRemovedSourceKeys] = useState<string[]>([]);
@@ -569,6 +584,10 @@ export default function App() {
     unit: "",
     totalCost: 0,
     items: "",
+    purchaseType: "" as "Vendor" | "Store" | "",
+    vendorName: "",
+    storeName: "",
+    storeUrl: "",
   });
   const [noteSearch, setNoteSearch] = useState("");
   const [noteTagF, setNoteTagF] = useState("All");
@@ -1147,6 +1166,10 @@ export default function App() {
             items: [],
             category: invItem?.category || "Operating Supplies",
             department: invItem?.department || "Kitchen",
+            purchaseType: "",
+            vendorName: "",
+            storeName: "",
+            storeUrl: "",
             isManual: false,
           };
         }
@@ -1170,15 +1193,40 @@ export default function App() {
           sourceKey: row.sourceKey,
           isManual: false,
           items: override?.items || row.items,
+          purchaseType: (override?.purchaseType as "Vendor" | "Store" | "") || row.purchaseType || "",
+          vendorName: override?.vendorName || row.vendorName || "",
+          storeName: override?.storeName || row.storeName || "",
+          storeUrl: override?.storeUrl || row.storeUrl || "",
         } as ShoppingListItem;
       });
 
     const allRows = [...sourceRows, ...shopManualItems]
-      .filter(row => (shopCatF === "All" || row.category === shopCatF) && (shopDeptF === "All" || row.department === shopDeptF))
+      .filter(row =>
+        (shopCatF === "All" || row.category === shopCatF) &&
+        (shopDeptF === "All" || row.department === shopDeptF) &&
+        (shopSourceF === "All" || (shopSourceF === "Unassigned" ? !row.purchaseType : row.purchaseType === shopSourceF)) &&
+        (shopVendorF === "All" || (row.vendorName || "") === shopVendorF) &&
+        (shopStoreF === "All" || (row.storeName || "") === shopStoreF)
+      )
       .sort((a, b) => a.name.localeCompare(b.name));
 
     return allRows;
-  }, [aggregatedIngredients, shopRemovedSourceKeys, shopItemOverrides, shopManualItems, shopCatF, shopDeptF]);
+  }, [aggregatedIngredients, shopRemovedSourceKeys, shopItemOverrides, shopManualItems, shopCatF, shopDeptF, shopSourceF, shopVendorF, shopStoreF]);
+
+  const shopVendorOptions = useMemo(() => {
+    const fromVendors = vendors.map(v => v.name).filter(Boolean);
+    const fromRows = dbShoppingItems
+      .filter(item => item.purchaseType === "Vendor" && item.vendorName)
+      .map(item => String(item.vendorName));
+    return ["All", ...Array.from(new Set([...fromVendors, ...fromRows])).sort((a, b) => a.localeCompare(b))];
+  }, [vendors, dbShoppingItems]);
+
+  const shopStoreOptions = useMemo(() => {
+    const fromRows = dbShoppingItems
+      .filter(item => item.purchaseType === "Store" && item.storeName)
+      .map(item => String(item.storeName));
+    return ["All", ...Array.from(new Set(fromRows)).sort((a, b) => a.localeCompare(b))];
+  }, [dbShoppingItems]);
 
   const openNewShopItem = () => {
     setShopItemDraft({
@@ -1189,6 +1237,10 @@ export default function App() {
       unit: "",
       totalCost: 0,
       items: "",
+      purchaseType: "",
+      vendorName: "",
+      storeName: "",
+      storeUrl: "",
     });
     setShopItemModal("new");
   };
@@ -1202,6 +1254,10 @@ export default function App() {
       unit: item.unit,
       totalCost: item.totalCost,
       items: (item.items || []).join(", "),
+      purchaseType: item.purchaseType || "",
+      vendorName: item.vendorName || "",
+      storeName: item.storeName || "",
+      storeUrl: item.storeUrl || "",
     });
     setShopItemModal(item);
   };
@@ -1234,6 +1290,10 @@ export default function App() {
           unit: shopItemDraft.unit.trim(),
           totalCost: Number(shopItemDraft.totalCost) || 0,
           items: rowItems.join(","),
+          purchaseType: shopItemDraft.purchaseType || null,
+          vendorName: shopItemDraft.purchaseType === "Vendor" ? (shopItemDraft.vendorName.trim() || null) : null,
+          storeName: shopItemDraft.purchaseType === "Store" ? (shopItemDraft.storeName.trim() || null) : null,
+          storeUrl: shopItemDraft.purchaseType === "Store" ? (shopItemDraft.storeUrl.trim() || null) : null,
           sourceKey: null,
         });
         await refetch("shopping_list_items", setDbShoppingItems);
@@ -1266,6 +1326,10 @@ export default function App() {
             unit: shopItemDraft.unit.trim(),
             totalCost: Number(shopItemDraft.totalCost) || 0,
             items: rowItems.join(","),
+            purchaseType: shopItemDraft.purchaseType || null,
+            vendorName: shopItemDraft.purchaseType === "Vendor" ? (shopItemDraft.vendorName.trim() || null) : null,
+            storeName: shopItemDraft.purchaseType === "Store" ? (shopItemDraft.storeName.trim() || null) : null,
+            storeUrl: shopItemDraft.purchaseType === "Store" ? (shopItemDraft.storeUrl.trim() || null) : null,
           });
           await refetch("shopping_list_items", setDbShoppingItems);
         } catch (e) {
@@ -1287,6 +1351,10 @@ export default function App() {
             unit: shopItemDraft.unit.trim(),
             totalCost: Number(shopItemDraft.totalCost) || 0,
             items: rowItems.join(","),
+            purchaseType: shopItemDraft.purchaseType || null,
+            vendorName: shopItemDraft.purchaseType === "Vendor" ? (shopItemDraft.vendorName.trim() || null) : null,
+            storeName: shopItemDraft.purchaseType === "Store" ? (shopItemDraft.storeName.trim() || null) : null,
+            storeUrl: shopItemDraft.purchaseType === "Store" ? (shopItemDraft.storeUrl.trim() || null) : null,
           });
           await refetch("shopping_list_items", setDbShoppingItems);
         } catch (e) {
@@ -1304,6 +1372,10 @@ export default function App() {
             unit: shopItemDraft.unit.trim(),
             totalCost: Number(shopItemDraft.totalCost) || 0,
             items: rowItems.join(","),
+            purchaseType: shopItemDraft.purchaseType || null,
+            vendorName: shopItemDraft.purchaseType === "Vendor" ? (shopItemDraft.vendorName.trim() || null) : null,
+            storeName: shopItemDraft.purchaseType === "Store" ? (shopItemDraft.storeName.trim() || null) : null,
+            storeUrl: shopItemDraft.purchaseType === "Store" ? (shopItemDraft.storeUrl.trim() || null) : null,
             sourceKey: shopItemModal.sourceKey,
           });
           await refetch("shopping_list_items", setDbShoppingItems);
@@ -1560,6 +1632,31 @@ export default function App() {
             <Field label="UNIT"><input value={shopItemDraft.unit} onChange={e => setShopItemDraft(d => ({ ...d, unit: e.target.value }))} style={inpStyle} placeholder="kg, lb, case" /></Field>
           </div>
           <Field label="TOTAL COST ($)"><input type="number" min={0} step="0.01" value={shopItemDraft.totalCost} onChange={e => setShopItemDraft(d => ({ ...d, totalCost: Number(e.target.value) }))} style={inpStyle} /></Field>
+          <Field label="WHERE TO BUY">
+            <select
+              value={shopItemDraft.purchaseType}
+              onChange={e => setShopItemDraft(d => ({ ...d, purchaseType: e.target.value as "Vendor" | "Store" | "", vendorName: "", storeName: "", storeUrl: "" }))}
+              style={{ ...inpStyle, height: 42 }}
+            >
+              <option value="">Not set</option>
+              <option value="Vendor">Order Through Vendor</option>
+              <option value="Store">Buy From Store</option>
+            </select>
+          </Field>
+          {shopItemDraft.purchaseType === "Vendor" && (
+            <Field label="VENDOR">
+              <select value={shopItemDraft.vendorName} onChange={e => setShopItemDraft(d => ({ ...d, vendorName: e.target.value }))} style={{ ...inpStyle, height: 42 }}>
+                <option value="">Select vendor</option>
+                {vendors.map(v => <option key={v.id} value={v.name}>{v.name}</option>)}
+              </select>
+            </Field>
+          )}
+          {shopItemDraft.purchaseType === "Store" && (
+            <>
+              <Field label="STORE NAME"><input value={shopItemDraft.storeName} onChange={e => setShopItemDraft(d => ({ ...d, storeName: e.target.value }))} style={inpStyle} placeholder="e.g. Costco" /></Field>
+              <Field label="STORE LINK"><input value={shopItemDraft.storeUrl} onChange={e => setShopItemDraft(d => ({ ...d, storeUrl: e.target.value }))} style={inpStyle} placeholder="https://..." /></Field>
+            </>
+          )}
           <Field label="USED IN DISHES (COMMA SEPARATED)"><input value={shopItemDraft.items} onChange={e => setShopItemDraft(d => ({ ...d, items: e.target.value }))} style={inpStyle} placeholder="Pasta, Salad, Special" /></Field>
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
             <Btn onClick={() => setShopItemModal(null)} variant="ghost">Cancel</Btn>
@@ -1930,6 +2027,29 @@ export default function App() {
                     ))}
                   </div>
                 </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: T.muted, width: 100 }}>SOURCE:</span>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {["All", "Vendor", "Store", "Unassigned"].map(source => (
+                      <button key={source} onClick={() => setShopSourceF(source)}
+                        style={{ cursor: "pointer", borderRadius: 20, padding: isMobile ? "7px 12px" : "4px 12px", fontSize: isMobile ? 12 : 11, border: `1px solid ${shopSourceF === source ? T.green : T.border}`, background: shopSourceF === source ? T.greenLight : "#FFF", color: shopSourceF === source ? T.green : T.muted, fontWeight: shopSourceF === source ? 600 : 400 }}>
+                        {source}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+                  <Field label="FILTER VENDOR">
+                    <select value={shopVendorF} onChange={e => setShopVendorF(e.target.value)} style={{ ...inpStyle, height: 38 }}>
+                      {shopVendorOptions.map(v => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="FILTER STORE">
+                    <select value={shopStoreF} onChange={e => setShopStoreF(e.target.value)} style={{ ...inpStyle, height: 38 }}>
+                      {shopStoreOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </Field>
+                </div>
               </div>
             </div>
 
@@ -1945,7 +2065,14 @@ export default function App() {
                         <span>{ing.category}</span>
                         <span>•</span>
                         <span>{ing.department}</span>
+                        {(ing.purchaseType === "Vendor" && ing.vendorName) && <><span>•</span><span>Vendor: {ing.vendorName}</span></>}
+                        {(ing.purchaseType === "Store" && ing.storeName) && <><span>•</span><span>Store: {ing.storeName}</span></>}
                       </div>
+                      {ing.purchaseType === "Store" && ing.storeUrl && (
+                        <div style={{ marginTop: 6 }}>
+                          <a href={ing.storeUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: T.blue }}>Open Store Link</a>
+                        </div>
+                      )}
                       <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                         <span style={{ color: T.muted }}>{ing.quantity} {ing.unit}</span>
                         <span style={{ fontFamily: "'DM Mono',monospace", color: T.green, fontWeight: 700 }}>${ing.totalCost.toFixed(2)}</span>
@@ -1965,8 +2092,8 @@ export default function App() {
               </div>
             ) : (
               <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr 120px 120px 2fr 130px", padding: "10px 18px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
-                  {["INGREDIENT", "CATEGORY", "DEPT", "TOTAL QTY", "TOTAL COST", "USED IN DISHES", "ACTIONS"].map(h => (
+                <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr 1.2fr 120px 120px 1.8fr 130px", padding: "10px 18px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
+                  {["INGREDIENT", "CATEGORY", "DEPT", "WHERE TO BUY", "TOTAL QTY", "TOTAL COST", "USED IN DISHES", "ACTIONS"].map(h => (
                     <div key={h} style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: T.subtle, letterSpacing: .8 }}>{h}</div>
                   ))}
                 </div>
@@ -1974,10 +2101,16 @@ export default function App() {
                   <div style={{ padding: 40, textAlign: "center", color: T.muted }}>No ingredients found matching filters.</div>
                 ) : (
                   consolidatedShoppingRows.map((ing) => (
-                    <div key={ing.id} style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr 120px 120px 2fr 130px", padding: "14px 18px", borderBottom: `1px solid ${T.border}`, alignItems: "center" }}>
+                    <div key={ing.id} style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr 1.2fr 120px 120px 1.8fr 130px", padding: "14px 18px", borderBottom: `1px solid ${T.border}`, alignItems: "center" }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{ing.name}</div>
                       <div style={{ fontSize: 11, color: T.muted }}>{ing.category}</div>
                       <div style={{ fontSize: 11, color: T.muted }}>{ing.department}</div>
+                      <div style={{ fontSize: 11, color: T.muted }}>
+                        {ing.purchaseType === "Vendor" && ing.vendorName ? `Vendor: ${ing.vendorName}` : ing.purchaseType === "Store" && ing.storeName ? `Store: ${ing.storeName}` : "-"}
+                        {ing.purchaseType === "Store" && ing.storeUrl && (
+                          <div><a href={ing.storeUrl} target="_blank" rel="noreferrer" style={{ color: T.blue }}>Link</a></div>
+                        )}
+                      </div>
                       <div style={{ fontSize: 13, fontFamily: "'DM Mono',monospace", color: T.text }}>{ing.quantity} {ing.unit}</div>
                       <div style={{ fontSize: 13, fontFamily: "'DM Mono',monospace", color: T.green, fontWeight: 600 }}>${ing.totalCost.toFixed(2)}</div>
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>

@@ -231,6 +231,10 @@ CREATE TABLE shopping_list_items (
   items TEXT DEFAULT '[]',
   category TEXT NOT NULL,
   department TEXT NOT NULL,
+  "purchaseType" TEXT,
+  "vendorName" TEXT,
+  "storeName" TEXT,
+  "storeUrl" TEXT,
   "sourceKey" TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

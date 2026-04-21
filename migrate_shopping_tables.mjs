@@ -26,9 +26,20 @@ async function migrate() {
         items TEXT DEFAULT '[]',
         category TEXT NOT NULL,
         department TEXT NOT NULL,
+        "purchaseType" TEXT,
+        "vendorName" TEXT,
+        "storeName" TEXT,
+        "storeUrl" TEXT,
         "sourceKey" TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+    `;
+
+    const alterShoppingList = `
+      ALTER TABLE shopping_list_items ADD COLUMN IF NOT EXISTS "purchaseType" TEXT;
+      ALTER TABLE shopping_list_items ADD COLUMN IF NOT EXISTS "vendorName" TEXT;
+      ALTER TABLE shopping_list_items ADD COLUMN IF NOT EXISTS "storeName" TEXT;
+      ALTER TABLE shopping_list_items ADD COLUMN IF NOT EXISTS "storeUrl" TEXT;
     `;
 
     // Create cost_calculator_overrides table
@@ -57,6 +68,9 @@ async function migrate() {
     // Execute migrations
     await client.query(createShoppingList);
     console.log('✓ Created shopping_list_items table');
+
+    await client.query(alterShoppingList);
+    console.log('✓ Ensured shopping_list_items purchase-source columns exist');
 
     await client.query(createCostCalcOverrides);
     console.log('✓ Created cost_calculator_overrides table');
