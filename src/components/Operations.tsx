@@ -285,9 +285,29 @@ export function PermitTracker({ permits, onAdd, onEdit, onDelete }: { permits: P
 }
 
 export function PermitModal({ permit, onSave, onClose }: { permit: Permit | null, onSave: (form: any) => void, onClose: () => void }) {
-  const blank = { name: "", issuer: "", expiryDate: "", status: "Pending" };
+  const blank = { name: "", issuer: "", expiryDate: "", status: "Pending", fileUrl: "" };
   const [form, setForm] = useState<any>(permit ? { ...permit } : blank);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const fileData = event.target?.result;
+        set("fileUrl", fileData);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const getFileName = () => {
+    if (!form.fileUrl) return null;
+    if (form.fileUrl.startsWith("data:")) {
+      return "Document uploaded";
+    }
+    return form.fileUrl.split("/").pop();
+  };
 
   return (
     <Modal title={permit ? "Edit Permit" : "New Permit"} onClose={onClose} width={420}>
@@ -301,6 +321,21 @@ export function PermitModal({ permit, onSave, onClose }: { permit: Permit | null
           </select>
         </Field>
       </div>
+      <Field label="DOCUMENT UPLOAD">
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <input type="file" onChange={handleFileUpload} accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx" style={{ flex: 1, ...inpStyle, padding: "8px 12px" }} />
+          {form.fileUrl && (
+            <button onClick={() => set("fileUrl", "")} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "6px 12px", color: T.red, cursor: "pointer", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>
+              Clear
+            </button>
+          )}
+        </div>
+        {getFileName() && (
+          <div style={{ fontSize: 11, color: T.green, marginTop: 8, fontWeight: 600 }}>
+            ✓ {getFileName()}
+          </div>
+        )}
+      </Field>
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
         <Btn onClick={onClose} variant="ghost">Cancel</Btn>
         <Btn onClick={() => { if (form.name.trim()) onSave(form); }} variant="primary">{permit ? "Save Changes" : "Add Permit"}</Btn>
