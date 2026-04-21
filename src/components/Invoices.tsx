@@ -4,7 +4,7 @@ import { Modal, Field, inpStyle, selStyle, Btn, SectionHeader, Pill } from './UI
 import { GoogleGenAI } from "@google/genai";
 
 // Initialize Gemini
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || "" });
 
 export function InvoiceModal({ invoice, vendors, onSave, onClose }: { invoice: Invoice | null, vendors: Vendor[], onSave: (form: any) => void, onClose: () => void }) {
   const blank = { vendorName: "", date: new Date().toISOString().split('T')[0], amount: "", category: "Operations", status: "Pending", items: [] };

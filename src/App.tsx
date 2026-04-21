@@ -16,7 +16,9 @@ import { TeamOnboarding } from "./components/TeamOnboarding";
 import { Timeline, TimelineModal } from "./components/Timeline";
 import { NoteModal, NoteCard } from "./components/Notes";
 import { AIAssistant } from "./components/AI";
-
+import { useAuth } from "./context/AuthContext";
+import { Login } from "./components/Login";
+import { insforge } from "./services/insforge";
 import { VendorManager, VendorModal, InventoryTracker, InventoryModal, PermitTracker, PermitModal, UtilityTracker, UtilityModal } from "./components/Operations";
 import { MasterInventory } from "./components/MasterInventory";
 import { MarketingCalendar, MarketingModal, TrainingPortal, TrainingModal, DailyChecklistManager, ChecklistModal, DigitalAssetManager, DigitalAssetModal } from "./components/MarketingTraining";
@@ -227,6 +229,27 @@ export default function App() {
   const [training, setTraining]   = useState<TrainingModule[]>(INIT_TRAINING);
   const [checklists, setChecklists] = useState<DailyChecklist[]>(INIT_CHECKLISTS);
 
+  useEffect(() => {
+    async function loadInsforge() {
+      try {
+        const fetchTable = async (t: string) => (await insforge.database.from(t).select('*')).data || [];
+        const [t, m, v, i, p, mkt, tr, c] = await Promise.all(['tasks', 'menu_items', 'vendors', 'inventory_items', 'permits', 'marketing_posts', 'training_modules', 'daily_checklists'].map(fetchTable));
+        
+        if (t.length) setTasks(t as any);
+        if (m.length) setMenuItems(m as any);
+        if (v.length) setVendors(v as any);
+        if (i.length) setInventory(i as any);
+        if (p.length) setPermits(p as any);
+        if (mkt.length) setMarketing(mkt as any);
+        if (tr.length) setTraining(tr as any);
+        if (c.length) setChecklists(c as any);
+      } catch (e) {
+        console.error("Insforge Sync Error:", e);
+      }
+    }
+    loadInsforge();
+  }, []);
+
   // Modal states
   const [taskModal, setTaskModal]   = useState<any>(null); // null | "new" | task obj
   const [menuModal, setMenuModal]   = useState<any>(null);
@@ -252,20 +275,17 @@ export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem("app_user");
-    return saved ? JSON.parse(saved) : null;
-  });
+  const { user: currentUser, role: userRole, logout, isLoading: isAuthLoading } = useAuth();
   const [securityPin, setSecurityPin] = useState(() => localStorage.getItem("app_security_pin") || "1234");
   const [activity, setActivity] = useState<ActivityLog[]>(INIT_ACTIVITY);
   const [isDriveConnected, setIsDriveConnected] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [isChangePinOpen, setIsChangePinOpen] = useState(false);
 
-  const genAI = useMemo(() => new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! }), []);
+  const genAI = useMemo(() => new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' }), []);
 
   const logActivity = (action: string) => {
-    const newLog = { id: Date.now(), user: currentUser?.role || "System", action, timestamp: "Just now" };
+    const newLog = { id: Date.now(), user: userRole || "System", action, timestamp: "Just now" };
     setActivity(p => [newLog, ...p.slice(0, 4)]);
   };
 
@@ -374,160 +394,220 @@ export default function App() {
   const totHired = positions.reduce((s, p) => s + p.hired, 0);
   const staffingProg = totOpenings > 0 ? Math.round((totHired / totOpenings) * 100) : 0;
 
+  // ── Helper: re-fetch a single table and update state ──
+  const refetch = async (table: string, setter: (d: any[]) => void) => {
+    const { data } = await insforge.database.from(table).select('*');
+    if (data) setter(data as any);
+  };
+
   // ── Task CRUD ──
-  const saveTask = (form: any) => {
-    const isNew = !taskModal || taskModal === "new";
-    if (form._delete) {
-      setTasks(p => p.filter(t => t.id !== form.id));
+  const saveTask = async (form: any) => {
+    const { id, _delete, ...rest } = form;
+    if (_delete) {
+      await insforge.database.from('tasks').delete().eq('id', id);
       logActivity(`Deleted task: ${form.task}`);
-    } else if (taskModal && taskModal!=="new") {
-      setTasks(p=>p.map(t=>t.id===taskModal.id?{...form,id:taskModal.id}:t));
+    } else if (taskModal && taskModal !== 'new') {
+      await insforge.database.from('tasks').update(rest).eq('id', taskModal.id);
       logActivity(`Updated task: ${form.task}`);
     } else {
-      setTasks(p=>[...p,{...form,id:Date.now()}]);
+      await insforge.database.from('tasks').insert([rest]);
       logActivity(`Added task: ${form.task}`);
     }
+    await refetch('tasks', setTasks);
     setTaskModal(null);
     setCalDate(null);
   };
 
   // ── Menu CRUD ──
-  const saveMenu = (form: any) => {
-    if (menuModal && menuModal!=="new") {
-      setMenuItems(p=>p.map(m=>m.id===menuModal.id?{...form,id:menuModal.id}:m));
+  const saveMenu = async (form: any) => {
+    const { id, ...rest } = form;
+    if (menuModal && menuModal !== 'new') {
+      await insforge.database.from('menu_items').update(rest).eq('id', menuModal.id);
       logActivity(`Updated menu item: ${form.name}`);
     } else {
-      setMenuItems(p=>[...p,{...form,id:Date.now()}]);
+      await insforge.database.from('menu_items').insert([rest]);
       logActivity(`Added menu item: ${form.name}`);
     }
+    await refetch('menu_items', setMenuItems);
     setMenuModal(null);
   };
 
   // ── Financial CRUD ──
-  const saveFin = (form: any) => {
+  const saveFin = async (form: any) => {
     const { type, item } = finModal;
+    const table = type === 'startup' ? 'startup_costs' : 'operating_costs';
+    const setter = type === 'startup' ? setStartup : setOp;
+    const { id, ...rest } = form;
     if (item) {
-      if (type==="startup") setStartup(p=>p.map(x=>x.id===item.id?{...form,id:item.id}:x));
-      else setOp(p=>p.map(x=>x.id===item.id?{...form,id:item.id}:x));
+      await insforge.database.from(table).update(rest).eq('id', item.id);
       logActivity(`Updated financial item: ${form.category}`);
     } else {
-      if (type==="startup") setStartup(p=>[...p,{...form,id:Date.now()}]);
-      else setOp(p=>[...p,{...form,id:Date.now()}]);
+      await insforge.database.from(table).insert([rest]);
       logActivity(`Added financial item: ${form.category}`);
     }
+    await refetch(table, setter);
     setFinModal(null);
   };
 
   // ── Timeline CRUD ──
-  const saveTL = (form: any) => {
-    if (tlModal && tlModal!=="new") setTL(p=>p.map(t=>t.id===tlModal.id?{...form,id:tlModal.id}:t));
-    else setTL(p=>[...p,{...form,id:Date.now()}]);
+  const saveTL = async (form: any) => {
+    const { id, ...rest } = form;
+    if (tlModal && tlModal !== 'new') {
+      await insforge.database.from('milestones').update(rest).eq('id', tlModal.id);
+    } else {
+      await insforge.database.from('milestones').insert([rest]);
+    }
+    await refetch('milestones', setTL);
     setTlModal(null);
   };
 
   // ── Notes CRUD ──
-  const saveNote = (form: any) => {
-    const d = new Date().toLocaleDateString("en-US",{month:"short",day:"numeric"});
-    if (noteModal && noteModal!=="new") setNotes(p=>p.map(n=>n.id===noteModal.id?{...form,id:noteModal.id}:n));
-    else setNotes(p=>[...p,{...form,id:Date.now(),date:d}]);
+  const saveNote = async (form: any) => {
+    const d = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Phoenix' });
+    const { id, ...rest } = form;
+    if (noteModal && noteModal !== 'new') {
+      await insforge.database.from('notes').update(rest).eq('id', noteModal.id);
+    } else {
+      await insforge.database.from('notes').insert([{ ...rest, date: d }]);
+    }
+    await refetch('notes', setNotes);
     setNoteModal(null);
   };
 
   const filteredNotes = notes.filter(n => {
-    const matchTag  = noteTagF==="All" || n.tag===noteTagF;
+    const matchTag  = noteTagF==='All' || n.tag===noteTagF;
     const matchSearch = !noteSearch || n.title.toLowerCase().includes(noteSearch.toLowerCase()) || n.body?.toLowerCase().includes(noteSearch.toLowerCase());
     return matchTag && matchSearch;
   });
 
   // ── Vendor CRUD ──
-  const saveVendor = (form: any) => {
-    if (vendorModal && vendorModal !== "new") setVendors(p => p.map(v => v.id === vendorModal.id ? { ...form, id: vendorModal.id } : v));
-    else setVendors(p => [...p, { ...form, id: Date.now() }]);
+  const saveVendor = async (form: any) => {
+    const { id, ...rest } = form;
+    if (vendorModal && vendorModal !== 'new') {
+      await insforge.database.from('vendors').update(rest).eq('id', vendorModal.id);
+    } else {
+      await insforge.database.from('vendors').insert([rest]);
+    }
+    await refetch('vendors', setVendors);
     setVendorModal(null);
   };
 
   // ── Inventory CRUD ──
-  const saveInv = (form: any) => {
-    if (invModal && invModal !== "new") setInventory(p => p.map(i => i.id === invModal.id ? { ...form, id: invModal.id } : i));
-    else setInventory(p => [...p, { ...form, id: Date.now(), lastOrdered: "Just now" }]);
+  const saveInv = async (form: any) => {
+    const { id, ...rest } = form;
+    if (invModal && invModal !== 'new') {
+      await insforge.database.from('inventory_items').update(rest).eq('id', invModal.id);
+    } else {
+      await insforge.database.from('inventory_items').insert([{ ...rest, lastOrdered: 'Just now' }]);
+    }
+    await refetch('inventory_items', setInventory);
     setInvModal(null);
   };
 
   // ── Permit CRUD ──
-  const savePermit = (form: any) => {
-    if (permitModal && permitModal !== "new") setPermits(p => p.map(x => x.id === permitModal.id ? { ...form, id: permitModal.id } : x));
-    else setPermits(p => [...p, { ...form, id: Date.now() }]);
+  const savePermit = async (form: any) => {
+    const { id, ...rest } = form;
+    if (permitModal && permitModal !== 'new') {
+      await insforge.database.from('permits').update(rest).eq('id', permitModal.id);
+    } else {
+      await insforge.database.from('permits').insert([rest]);
+    }
+    await refetch('permits', setPermits);
     setPermitModal(null);
   };
 
   // ── Marketing CRUD ──
-  const saveMkt = (form: any) => {
-    if (form._delete) {
-      setMarketing(p => p.filter(x => x.id !== form.id));
-    } else if (mktModal && mktModal !== "new") {
-      setMarketing(p => p.map(x => x.id === mktModal.id ? { ...form, id: mktModal.id } : x));
+  const saveMkt = async (form: any) => {
+    const { id, _delete, ...rest } = form;
+    if (_delete) {
+      await insforge.database.from('marketing_posts').delete().eq('id', id);
+    } else if (mktModal && mktModal !== 'new') {
+      await insforge.database.from('marketing_posts').update(rest).eq('id', mktModal.id);
     } else {
-      setMarketing(p => [...p, { ...form, id: Date.now() }]);
+      await insforge.database.from('marketing_posts').insert([rest]);
     }
+    await refetch('marketing_posts', setMarketing);
     setMktModal(null);
   };
 
   // ── Training CRUD ──
-  const saveTrain = (form: any) => {
-    if (form._delete) {
-      setTraining(p => p.filter(x => x.id !== form.id));
-    } else if (trainModal && trainModal !== "new") {
-      setTraining(p => p.map(x => x.id === trainModal.id ? { ...form, id: trainModal.id } : x));
+  const saveTrain = async (form: any) => {
+    const { id, _delete, ...rest } = form;
+    if (_delete) {
+      await insforge.database.from('training_modules').delete().eq('id', id);
+    } else if (trainModal && trainModal !== 'new') {
+      await insforge.database.from('training_modules').update(rest).eq('id', trainModal.id);
     } else {
-      setTraining(p => [...p, { ...form, id: Date.now() }]);
+      await insforge.database.from('training_modules').insert([rest]);
     }
+    await refetch('training_modules', setTraining);
     setTrainModal(null);
   };
 
-  const savePos = (form: Position) => {
-    if (posModal && posModal !== "new") setPositions(p => p.map(x => x.id === posModal.id ? { ...form, id: posModal.id } : x));
-    else setPositions(p => [...p, { ...form, id: Date.now() }]);
+  const savePos = async (form: Position) => {
+    const { id, ...rest } = form as any;
+    if (posModal && posModal !== 'new') {
+      await insforge.database.from('positions').update(rest).eq('id', (posModal as any).id);
+    } else {
+      await insforge.database.from('positions').insert([rest]);
+    }
+    await refetch('positions', setPositions);
     setPosModal(null);
   };
 
-  const saveCan = (form: Candidate & { _delete?: boolean }) => {
-    if (form._delete) {
-      setCandidates(p => p.filter(x => x.id !== form.id));
+  const saveCan = async (form: Candidate & { _delete?: boolean }) => {
+    const { id, _delete, ...rest } = form as any;
+    if (_delete) {
+      await insforge.database.from('candidates').delete().eq('id', id);
       logActivity(`Removed candidate: ${form.name}`);
-    } else if (canModal && canModal !== "new") {
-      setCandidates(p => p.map(x => x.id === canModal.id ? { ...form, id: canModal.id } : x));
+    } else if (canModal && canModal !== 'new') {
+      await insforge.database.from('candidates').update(rest).eq('id', (canModal as any).id);
       logActivity(`Updated candidate: ${form.name}`);
     } else {
-      setCandidates(p => [...p, { ...form, id: Date.now() }]);
+      await insforge.database.from('candidates').insert([rest]);
       logActivity(`Added candidate: ${form.name}`);
     }
+    await refetch('candidates', setCandidates);
     setCanModal(null);
   };
 
-  const saveAsset = (form: DigitalAsset & { _delete?: boolean }) => {
-    if (form._delete) {
-      setAssets(p => p.filter(x => x.id !== form.id));
-    } else if (assetModal && assetModal !== "new") {
-      setAssets(p => p.map(x => x.id === assetModal.id ? { ...form, id: assetModal.id } : x));
+  const saveAsset = async (form: DigitalAsset & { _delete?: boolean }) => {
+    const { id, _delete, ...rest } = form as any;
+    if (_delete) {
+      await insforge.database.from('digital_assets').delete().eq('id', id);
+    } else if (assetModal && assetModal !== 'new') {
+      await insforge.database.from('digital_assets').update(rest).eq('id', (assetModal as any).id);
     } else {
-      setAssets(p => [...p, { ...form, id: Date.now() }]);
+      await insforge.database.from('digital_assets').insert([rest]);
     }
+    await refetch('digital_assets', setAssets);
     setAssetModal(null);
   };
 
   // ── Invoice CRUD ──
-  const saveInvoice = (form: any) => {
-    if (invoiceModal && invoiceModal !== "new") setInvoices(p => p.map(i => i.id === invoiceModal.id ? { ...form, id: invoiceModal.id } : i));
-    else setInvoices(p => [...p, { ...form, id: Date.now() }]);
+  const saveInvoice = async (form: any) => {
+    const { id, ...rest } = form;
+    if (invoiceModal && invoiceModal !== 'new') {
+      await insforge.database.from('invoices').update(rest).eq('id', invoiceModal.id);
+    } else {
+      await insforge.database.from('invoices').insert([rest]);
+    }
+    await refetch('invoices', setInvoices);
     setInvoiceModal(null);
   };
 
   // ── Checklist CRUD ──
-  const saveChk = (form: any) => {
-    if (chkModal && chkModal !== "new") setChecklists(p => p.map(x => x.id === chkModal.id ? { ...form, id: chkModal.id } : x));
-    else setChecklists(p => [...p, { ...form, id: Date.now() }]);
+  const saveChk = async (form: any) => {
+    const { id, ...rest } = form;
+    if (chkModal && chkModal !== 'new') {
+      await insforge.database.from('daily_checklists').update(rest).eq('id', chkModal.id);
+    } else {
+      await insforge.database.from('daily_checklists').insert([rest]);
+    }
+    await refetch('daily_checklists', setChecklists);
     setChkModal(null);
   };
+
 
   // ── AI ──
   const totalMonthlyUtilities = useMemo(() => {
@@ -550,7 +630,7 @@ export default function App() {
     try {
       const promptContext = `
         You are the AI Restaurant Launch Assistant.
-        Current Restaurant: New Restaurant
+        Current Restaurant: Glai Gangwon
         Launch Progress: ${prog}%
         Overdue Tasks: ${overdue}
         Startup Budget: $${totBudget.toLocaleString()} (Actual: $${totActual.toLocaleString()})
@@ -598,7 +678,7 @@ export default function App() {
       tag: "General",
       title: `AI Conversation - ${new Date().toLocaleDateString()}`,
       body: content,
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Phoenix' }),
       files: []
     };
     setNotes(p => [newNote, ...p]);
@@ -677,40 +757,10 @@ export default function App() {
   return (
     <div style={{ minHeight:"100vh", background:T.bg, color:T.text, fontFamily:"'DM Sans',sans-serif" }}>
       {/* ── LOGIN SCREEN ── */}
-      {!currentUser ? (
-        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #F9F8F6 0%, #E1D9D1 100%)", padding: 20 }}>
-          <div style={{ background: "#FFF", padding: "3rem", borderRadius: 24, boxShadow: "0 32px 64px rgba(0,0,0,0.1)", width: "100%", maxWidth: 440, textAlign: "center" }}>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, fontWeight: 700, color: T.text, marginBottom: 10 }}>New Restaurant</div>
-            <p style={{ color: T.muted, fontSize: 14, marginBottom: 40 }}>Select your role to access the launch dashboard</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {[
-                { name: "Restaurant Owner", role: "Owner" as UserRole, desc: "Full access to financials, team, and assets." },
-                { name: "Opening Manager", role: "Manager" as UserRole, desc: "Manage tasks, menu, and candidates. No financials." }
-              ].map(r => (
-                <button 
-                  key={r.role}
-                  onClick={() => {
-                    const u = { id: r.role.toLowerCase(), name: r.name, role: r.role, pin: "1234" };
-                    setCurrentUser(u);
-                    localStorage.setItem("app_user", JSON.stringify(u));
-                  }}
-                  style={{ 
-                    textAlign: "left", padding: "1.5rem", borderRadius: 16, border: `1px solid ${T.border}`, 
-                    background: "#FFF", cursor: "pointer", transition: "all .2s", display: "flex", flexDirection: "column", gap: 4
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.gold; e.currentTarget.style.background = T.goldLight; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.background = "#FFF"; }}
-                >
-                  <span style={{ fontWeight: 700, fontSize: 16, color: T.text }}>{r.name}</span>
-                  <span style={{ fontSize: 12, color: T.muted }}>{r.desc}</span>
-                </button>
-              ))}
-            </div>
-            <div style={{ marginTop: 40, borderTop: `1px solid ${T.border}`, paddingTop: 24 }}>
-              <span style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: T.subtle, letterSpacing: 1.2 }}>PROTOTYPE V1.2.0</span>
-            </div>
-          </div>
-        </div>
+      {isAuthLoading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: T.bg }}>Loading...</div>
+      ) : !currentUser ? (
+        <Login />
       ) : (
         <>
           {/* ── HEADER ── */}
@@ -736,7 +786,7 @@ export default function App() {
               </button>
             )}
             <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-              <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: T.text, letterSpacing: -0.8 }}>New Restaurant</span>
+              <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: T.text, letterSpacing: -0.8 }}>Glai Gangwon</span>
               {!isMobile && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: T.subtle, letterSpacing: 1, fontWeight: 600 }}>LAUNCH DASHBOARD</span>}
             </div>
             
@@ -770,12 +820,12 @@ export default function App() {
               </button>
             )}
             <button 
-              onClick={() => { setCurrentUser(null); localStorage.removeItem("app_user"); setIsUnlocked(false); }}
+              onClick={() => { logout(); setIsUnlocked(false); }}
               style={{ background: T.stone, border: `1px solid ${T.border}`, borderRadius: 12, padding: "6px 16px", fontSize: 11, fontWeight: 600, color: T.text, cursor: "pointer" }}
             >
-              Sign Out ({currentUser?.role})
+              Sign Out ({userRole || 'User'})
             </button>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: T.subtle, fontWeight: 500 }}>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: T.subtle, fontWeight: 500 }}>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Phoenix" })}</span>
           </div>
         </div>
 

@@ -37,7 +37,7 @@ export function LaunchWindow({ tasks, permits, candidates }: { tasks: Task[], pe
 
           return (
             <div key={dateStr} style={{ border: `1px solid ${isToday ? T.gold : T.border}`, borderRadius: 16, padding: 12, background: isToday ? T.goldLight : "none", minHeight: 140, transition: "all .3s ease" }}>
-              <div style={{ fontSize: 10, color: T.muted, marginBottom: 8, textAlign: "center", fontFamily: "'Inter', sans-serif", fontWeight: 700, letterSpacing: 0.5 }}>{date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}</div>
+              <div style={{ fontSize: 10, color: T.muted, marginBottom: 8, textAlign: "center", fontFamily: "'Inter', sans-serif", fontWeight: 700, letterSpacing: 0.5 }}>{date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'America/Phoenix' }).toUpperCase()}</div>
               <div style={{ 
                 width: 28, height: 28, borderRadius: "50%", margin: "0 auto", 
                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -125,7 +125,7 @@ export function FullCalendar({
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <button onClick={prevMonth} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: 6, cursor: "pointer" }}><ChevronLeft size={16} /></button>
             <span style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 16, minWidth: 140, textAlign: "center" }}>
-              {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'America/Phoenix' })}
             </span>
             <button onClick={nextMonth} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: 6, cursor: "pointer" }}><ChevronRight size={16} /></button>
           </div>
