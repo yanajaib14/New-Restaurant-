@@ -93,40 +93,78 @@ export function ProgressRing({ progress, size = 120, stroke = 8, color = T.gold 
 }
 
 export function PinGate({ onUnlock, correctPin }: { onUnlock: () => void, correctPin: string }) {
-  const [pin, setPin] = React.useState("");
+  const [digits, setDigits] = React.useState(["", "", "", ""]);
   const [error, setError] = React.useState(false);
+  const inputRefs = [
+    React.useRef<HTMLInputElement>(null),
+    React.useRef<HTMLInputElement>(null),
+    React.useRef<HTMLInputElement>(null),
+    React.useRef<HTMLInputElement>(null),
+  ];
 
-  const handleCheck = () => {
-    if (pin === correctPin) {
-      onUnlock();
-    } else {
-      setError(true);
-      setPin("");
-      setTimeout(() => setError(false), 1000);
+  const handleDigit = (idx: number, val: string) => {
+    const d = val.replace(/\D/g, "").slice(-1);
+    const next = digits.map((v, i) => i === idx ? d : v);
+    setDigits(next);
+    setError(false);
+    if (d && idx < 3) {
+      inputRefs[idx + 1].current?.focus();
+    }
+    if (next.every(v => v !== "")) {
+      const entered = next.join("");
+      if (entered === correctPin) {
+        onUnlock();
+      } else {
+        setError(true);
+        setTimeout(() => {
+          setDigits(["", "", "", ""]);
+          setError(false);
+          inputRefs[0].current?.focus();
+        }, 600);
+      }
+    }
+  };
+
+  const handleKeyDown = (idx: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace" && !digits[idx] && idx > 0) {
+      inputRefs[idx - 1].current?.focus();
     }
   };
 
   return (
-    <div style={{ padding: 40, textAlign: "center", background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, maxWidth: 400, margin: "40px auto" }}>
+    <div style={{ padding: 40, textAlign: "center", background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, maxWidth: 380, margin: "40px auto" }}>
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-        <Lock size={40} color={T.gold} />
+        <Lock size={40} color={error ? T.red : T.gold} />
       </div>
-      <h3 style={{ fontFamily: "'Playfair Display', serif", marginBottom: 8, fontSize: 18 }}>Secure Section</h3>
-      <p style={{ fontSize: 13, color: T.muted, marginBottom: 20 }}>Enter 4-digit PIN to view sensitive data</p>
-      <div style={{ display: "flex", gap: 10, justifyContent: "center", marginBottom: 20 }}>
-        <input 
-          type="password" 
-          maxLength={4} 
-          value={pin} 
-          onChange={e => setPin(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleCheck()}
-          style={{ width: 140, textAlign: "center", fontSize: 24, letterSpacing: 8, padding: 10, border: `2px solid ${error ? T.red : T.border}`, borderRadius: 8, outline: "none", background: T.bg }}
-          placeholder="••••"
-          autoFocus
-        />
+      <h3 style={{ fontFamily: "'Playfair Display', serif", marginBottom: 8, fontSize: 20, margin: "0 0 8px" }}>Secure Section</h3>
+      <p style={{ fontSize: 13, color: T.muted, marginBottom: 28 }}>Enter your 4-digit PIN</p>
+      <div style={{ display: "flex", gap: 12, justifyContent: "center", marginBottom: 8 }}>
+        {digits.map((d, i) => (
+          <input
+            key={i}
+            ref={inputRefs[i]}
+            type="tel"
+            inputMode="numeric"
+            maxLength={1}
+            value={d}
+            autoFocus={i === 0}
+            autoComplete="off"
+            onChange={e => handleDigit(i, e.target.value)}
+            onKeyDown={e => handleKeyDown(i, e)}
+            style={{
+              width: 56, height: 64, textAlign: "center", fontSize: 28, fontWeight: 700,
+              fontFamily: "'DM Mono', monospace",
+              border: `2px solid ${error ? T.red : d ? T.gold : T.border}`,
+              borderRadius: 12, outline: "none",
+              background: d ? T.goldLight : T.bg,
+              color: T.text,
+              transition: "border-color .15s, background .15s",
+              WebkitAppearance: "none",
+            }}
+          />
+        ))}
       </div>
-      <Btn onClick={handleCheck} variant="primary" style={{ width: "100%", justifyContent: "center" }}>Unlock Access</Btn>
-      {error && <p style={{ color: T.red, fontSize: 12, marginTop: 12, fontWeight: 500 }}>Incorrect PIN. Try again.</p>}
+      {error && <p style={{ color: T.red, fontSize: 12, marginTop: 12, fontWeight: 600 }}>Incorrect PIN. Try again.</p>}
     </div>
   );
 }

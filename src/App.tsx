@@ -1579,7 +1579,7 @@ export default function App() {
               title="Financial Tracker" 
               subtitle="Startup costs, operating expenses & break-even"
               action={
-                <div style={{ display: "flex", gap: 10 }}>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <Btn onClick={() => {
                     const combined = [
                       ...startup.map(s => ({ ...s, type: 'Startup' })),
@@ -1591,76 +1591,91 @@ export default function App() {
                       { key: 'budgeted', label: 'Budgeted/Monthly' },
                       { key: 'actual', label: 'Actual' },
                     ]);
-                  }} variant="outline" small>📥 Export CSV</Btn>
+                  }} variant="outline" small>📥 Export</Btn>
                   {canManageAccess && <Btn onClick={() => setIsChangePinOpen(true)} variant="outline" small>Change PIN</Btn>}
+                  {canManageAccess && (
+                    <Btn onClick={() => setDelConfirm({
+                      label: "all financial data",
+                      onConfirm: async () => {
+                        await Promise.all([
+                          ...startup.map(c => dbDelete('startup_costs', c.id)),
+                          ...operating.map(c => dbDelete('operating_costs', c.id)),
+                        ]);
+                        setStartup([]);
+                        setOp([]);
+                        logActivity("Reset all financial data");
+                      }
+                    })} variant="danger" small>🗑 Reset All</Btn>
+                  )}
                 </div>
               }
             />
             
             {/* Financial KPIs */}
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14, marginBottom:18 }}>
+            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap:12, marginBottom:16 }}>
               {[
                 {label:"Startup Budget",value:`$${(totBudget/1000).toFixed(0)}K`,sub:`Actual $${(totActual/1000).toFixed(0)}K`,color:totActual>totBudget?T.red:T.green,dot:totActual>totBudget?T.redLight:T.greenLight},
                 {label:"Break-Even / Mo",value:`$${(totOp/1000).toFixed(1)}K`,sub:"Monthly operating costs",color:T.gold,dot:T.goldLight},
                 {label:"Proj. Revenue / Mo",value:`$${(projRev/1000).toFixed(0)}K`,sub:"At 30% food cost",color:T.blue,dot:T.blueLight},
               ].map(k=>(
-                <div key={k.label} style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, padding:20 }}>
-                  <div style={{ fontSize:11, color:T.muted, fontFamily:"'DM Mono',monospace", marginBottom:8, letterSpacing:.5 }}>{k.label.toUpperCase()}</div>
-                  <div style={{ fontFamily:"'Playfair Display',serif", fontSize:24, fontWeight:700, color:k.color }}>{k.value}</div>
+                <div key={k.label} style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, padding: isMobile ? "14px 16px" : 20 }}>
+                  <div style={{ fontSize:11, color:T.muted, fontFamily:"'DM Mono',monospace", marginBottom:6, letterSpacing:.5 }}>{k.label.toUpperCase()}</div>
+                  <div style={{ fontFamily:"'Playfair Display',serif", fontSize: isMobile ? 28 : 24, fontWeight:700, color:k.color }}>{k.value}</div>
                   <div style={{ fontSize:11, color:T.muted, marginTop:4 }}>{k.sub}</div>
                 </div>
               ))}
             </div>
 
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:18 }}>
+            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:16 }}>
               {/* Startup Costs */}
-              <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, padding:22 }}>
+              <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, padding: isMobile ? 16 : 22 }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
                   <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:T.muted, letterSpacing:.8 }}>STARTUP COSTS</span>
                   <Btn onClick={()=>setFinModal({type:"startup",item:null})} variant="outline" small>+ Add</Btn>
                 </div>
+                {startup.length === 0 && <p style={{ fontSize:13, color:T.muted, textAlign:"center", padding:"20px 0" }}>No startup costs yet. Tap + Add to begin.</p>}
                 {startup.map(c=>{
                   const diff=Number(c.actual)-Number(c.budgeted);
                   return (
                     <div key={c.id} style={{ marginBottom:14 }}>
                       <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5, alignItems:"center" }}>
-                        <span style={{ fontSize:12, color:T.text }}>{c.category}</span>
-                        <div style={{ display:"flex", gap:10, alignItems:"center" }}>
-                          <span style={{ fontSize:10, fontFamily:"'DM Mono',monospace", color:T.muted }}>${Number(c.budgeted).toLocaleString()}</span>
-                          <span style={{ fontSize:11, fontFamily:"'DM Mono',monospace", fontWeight:600, color:diff>0?T.red:T.green }}>${Number(c.actual).toLocaleString()} {diff>0?"▲":"▼"}</span>
-                          <button onClick={()=>setFinModal({type:"startup",item:c})} style={{ background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:11,padding:"0 2px" }}>✎</button>
-                          <button onClick={()=>setDelConfirm({label:c.category,onConfirm:()=>deleteRecord('startup_costs', c.id, c.category, setStartup)})} style={{ background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:11,padding:"0 2px" }}>✕</button>
+                        <span style={{ fontSize:13, color:T.text, fontWeight:500 }}>{c.category}</span>
+                        <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                          <span style={{ fontSize:11, fontFamily:"'DM Mono',monospace", color:T.muted }}>${Number(c.budgeted).toLocaleString()}</span>
+                          <span style={{ fontSize:12, fontFamily:"'DM Mono',monospace", fontWeight:700, color:diff>0?T.red:T.green }}>${Number(c.actual).toLocaleString()}</span>
+                          <button onClick={()=>setFinModal({type:"startup",item:c})} style={{ background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1 }}>✎</button>
+                          <button onClick={()=>setDelConfirm({label:c.category,onConfirm:()=>deleteRecord('startup_costs', c.id, c.category, setStartup)})} style={{ background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1 }}>✕</button>
                         </div>
                       </div>
-                      <div style={{ height:4, background:T.border, borderRadius:2 }}>
-                        <div style={{ height:"100%", width:`${Math.min((Number(c.actual)/Number(c.budgeted))*100,100)}%`, background:diff>0?T.red:T.green, borderRadius:2 }}/>
+                      <div style={{ height:5, background:T.border, borderRadius:3 }}>
+                        <div style={{ height:"100%", width:`${Math.min((Number(c.actual)/Number(c.budgeted))*100,100)}%`, background:diff>0?T.red:T.green, borderRadius:3 }}/>
                       </div>
                     </div>
                   );
                 })}
               </div>
-              <div>
-                <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, padding:22, marginBottom:14 }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-                    <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:T.muted, letterSpacing:.8 }}>MONTHLY OPERATING COSTS</span>
-                    <Btn onClick={()=>setFinModal({type:"operating",item:null})} variant="outline" small>+ Add</Btn>
-                  </div>
-                  {operatingCostsWithUtilities.map(c=>(
-                    <div key={c.id} style={{ display:"flex", justifyContent:"space-between", padding:"7px 0", borderBottom:`1px solid ${T.border}`, alignItems:"center" }}>
-                      <div>
-                        <span style={{ fontSize:12, color:T.text }}>{c.category}</span>
-                        {c.category === "Utilities" && (
-                          <div style={{ fontSize:9, color:T.blue, marginTop:2 }}>Calculated from active Service Accounts</div>
-                        )}
-                      </div>
-                      <div style={{ display:"flex", gap:10, alignItems:"center" }}>
-                        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:T.muted }}>${Number(c.monthly).toLocaleString()}</span>
-                        <button onClick={()=>setFinModal({type:"operating",item:c})} style={{ background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:11 }}>✎</button>
-                        <button onClick={()=>setDelConfirm({label:c.category,onConfirm:()=>deleteRecord('operating_costs', c.id, c.category, setOp)})} style={{ background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:11 }}>✕</button>
-                      </div>
-                    </div>
-                  ))}
+              {/* Operating Costs */}
+              <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, padding: isMobile ? 16 : 22 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:T.muted, letterSpacing:.8 }}>MONTHLY OPERATING COSTS</span>
+                  <Btn onClick={()=>setFinModal({type:"operating",item:null})} variant="outline" small>+ Add</Btn>
                 </div>
+                {operating.length === 0 && <p style={{ fontSize:13, color:T.muted, textAlign:"center", padding:"20px 0" }}>No operating costs yet. Tap + Add to begin.</p>}
+                {operatingCostsWithUtilities.map(c=>(
+                  <div key={c.id} style={{ display:"flex", justifyContent:"space-between", padding:"10px 0", borderBottom:`1px solid ${T.border}`, alignItems:"center" }}>
+                    <div>
+                      <span style={{ fontSize:13, color:T.text, fontWeight:500 }}>{c.category}</span>
+                      {c.category === "Utilities" && (
+                        <div style={{ fontSize:9, color:T.blue, marginTop:2 }}>Auto from Service Accounts</div>
+                      )}
+                    </div>
+                    <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+                      <span style={{ fontFamily:"'DM Mono',monospace", fontSize:13, fontWeight:600, color:T.text }}>${Number(c.monthly).toLocaleString()}</span>
+                      <button onClick={()=>setFinModal({type:"operating",item:c})} style={{ background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:14,padding:"2px 4px" }}>✎</button>
+                      <button onClick={()=>setDelConfirm({label:c.category,onConfirm:()=>deleteRecord('operating_costs', c.id, c.category, setOp)})} style={{ background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:14,padding:"2px 4px" }}>✕</button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
