@@ -194,97 +194,100 @@ export function ChangePinModal({ currentPin, onSave, onClose, userRole, userEmai
   );
 }
 
-export function ChangePasswordModal({ onSave, onClose, isLoading = false }: { onSave: (oldPassword: string, newPassword: string) => Promise<void>, onClose: () => void, isLoading?: boolean }) {
-  const [oldPassword, setOldPassword] = React.useState("");
+export function ChangePasswordModal({ userEmail, onSendCode, onConfirm, onClose }: {
+  userEmail: string;
+  onSendCode: () => Promise<void>;
+  onConfirm: (otp: string, newPassword: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [step, setStep] = React.useState<'send' | 'confirm'>('send');
+  const [otp, setOtp] = React.useState("");
   const [newPassword, setNewPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
   const [error, setError] = React.useState("");
   const [loading, setLoading] = React.useState(false);
+  const [codeSent, setCodeSent] = React.useState(false);
 
-  const handleSave = async () => {
+  const handleSendCode = async () => {
     setError("");
-    
-    if (!oldPassword) {
-      setError("Current password is required");
-      return;
-    }
-    if (newPassword.length < 8) {
-      setError("New password must be at least 8 characters");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setError("New passwords do not match");
-      return;
-    }
-    if (newPassword === oldPassword) {
-      setError("New password must be different from current password");
-      return;
-    }
-
     setLoading(true);
     try {
-      await onSave(oldPassword, newPassword);
-      onClose();
+      await onSendCode();
+      setCodeSent(true);
+      setStep('confirm');
     } catch (err: any) {
-      setError(err?.message || "Failed to update password. Please try again.");
+      setError(err?.message || "Failed to send reset code. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirm = async () => {
+    setError("");
+    if (!otp.trim()) { setError("Enter the code from your email"); return; }
+    if (newPassword.length < 8) { setError("Password must be at least 8 characters"); return; }
+    if (newPassword !== confirmPassword) { setError("Passwords do not match"); return; }
+    setLoading(true);
+    try {
+      await onConfirm(otp.trim(), newPassword);
+    } catch (err: any) {
+      setError(err?.message || "Failed to update password. Check the code and try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Modal title="Change Sign-In Password" onClose={onClose} width={400}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <Field label="CURRENT PASSWORD">
-          <input 
-            type="password" 
-            value={oldPassword} 
-            onChange={e => setOldPassword(e.target.value)} 
-            style={inpStyle} 
-            placeholder="••••••••" 
-            disabled={loading || isLoading}
-          />
-        </Field>
-        <Field label="NEW PASSWORD (MIN 8 CHARACTERS)">
-          <input 
-            type="password" 
-            value={newPassword} 
-            onChange={e => setNewPassword(e.target.value)} 
-            style={inpStyle} 
-            placeholder="••••••••" 
-            disabled={loading || isLoading}
-          />
-        </Field>
-        <Field label="CONFIRM NEW PASSWORD">
-          <input 
-            type="password" 
-            value={confirmPassword} 
-            onChange={e => setConfirmPassword(e.target.value)} 
-            style={inpStyle} 
-            placeholder="••••••••" 
-            disabled={loading || isLoading}
-          />
-        </Field>
-        {error && <p style={{ color: T.red, fontSize: 12, margin: 0, fontWeight: 500 }}>{error}</p>}
-        <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-          <Btn 
-            onClick={onClose} 
-            variant="ghost" 
-            style={{ flex: 1, justifyContent: "center" }}
-            disabled={loading || isLoading}
-          >
-            Cancel
-          </Btn>
-          <Btn 
-            onClick={handleSave} 
-            variant="primary" 
-            style={{ flex: 1, justifyContent: "center" }}
-            disabled={loading || isLoading}
-          >
-            {loading || isLoading ? "Updating..." : "Update Password"}
-          </Btn>
+    <Modal title="Change Sign-In Password" onClose={onClose} width={420}>
+      {step === 'send' ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ background: T.bg, borderRadius: 10, padding: "14px 16px", fontSize: 13, color: T.text, lineHeight: 1.5 }}>
+            A one-time reset code will be sent to:<br />
+            <strong style={{ color: T.gold }}>{userEmail}</strong>
+          </div>
+          <p style={{ fontSize: 12, color: T.muted, margin: 0 }}>
+            Check your inbox (and spam folder) for the code, then enter it on the next screen along with your new password.
+          </p>
+          {error && <p style={{ color: T.red, fontSize: 12, margin: 0, fontWeight: 500 }}>{error}</p>}
+          <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+            <Btn onClick={onClose} variant="ghost" style={{ flex: 1, justifyContent: "center" }} disabled={loading}>Cancel</Btn>
+            <Btn onClick={handleSendCode} variant="primary" style={{ flex: 1, justifyContent: "center" }} disabled={loading}>
+              {loading ? "Sending..." : "Send Reset Code"}
+            </Btn>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ background: T.goldLight, border: `1px solid ${T.goldBorder}`, borderRadius: 10, padding: "12px 16px", fontSize: 12, color: T.text }}>
+            ✉️ Code sent to <strong>{userEmail}</strong>. Check your inbox.
+          </div>
+          <Field label="RESET CODE FROM EMAIL">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={otp}
+              onChange={e => setOtp(e.target.value)}
+              style={{ ...inpStyle, letterSpacing: 4, fontSize: 18, textAlign: "center" }}
+              placeholder="Enter code"
+              autoFocus
+            />
+          </Field>
+          <Field label="NEW PASSWORD (MIN 8 CHARACTERS)">
+            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ ...inpStyle, fontSize: 16 }} placeholder="••••••••" disabled={loading} />
+          </Field>
+          <Field label="CONFIRM NEW PASSWORD">
+            <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} style={{ ...inpStyle, fontSize: 16 }} placeholder="••••••••" disabled={loading} onKeyDown={e => e.key === 'Enter' && handleConfirm()} />
+          </Field>
+          {error && <p style={{ color: T.red, fontSize: 12, margin: 0, fontWeight: 500 }}>{error}</p>}
+          <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+            <Btn onClick={() => { setStep('send'); setError(''); }} variant="ghost" style={{ flex: 1, justifyContent: "center" }} disabled={loading}>Back</Btn>
+            <Btn onClick={handleConfirm} variant="primary" style={{ flex: 1, justifyContent: "center" }} disabled={loading}>
+              {loading ? "Updating..." : "Set New Password"}
+            </Btn>
+          </div>
+          <button onClick={handleSendCode} disabled={loading} style={{ background: "none", border: "none", color: T.muted, fontSize: 12, cursor: "pointer", textDecoration: "underline", textAlign: "center" }}>Resend code</button>
+        </div>
+      )}
     </Modal>
   );
 }

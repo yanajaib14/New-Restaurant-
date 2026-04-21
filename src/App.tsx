@@ -1985,35 +1985,21 @@ export default function App() {
       )}
 
       {isChangePasswordOpen && (
-        <ChangePasswordModal 
-          isLoading={isPasswordUpdating}
-          onSave={async (oldPassword: string, newPassword: string) => {
-            setIsPasswordUpdating(true);
-            try {
-              // Verify current password by attempting to sign in
-              const { error: verifyError } = await insforge.auth.signInWithPassword({
-                email: currentUserEmail,
-                password: oldPassword,
-              });
-              
-              if (verifyError) {
-                throw new Error("Current password is incorrect");
-              }
-              
-              // Note: Password update via InsForge SDK would require updatePassword method
-              // As a workaround, we log the change and ask user to contact support or use account management
-              setSettingsMsg("✅ Password change requested! For security, you'll need to complete this through your account settings or contact support.");
-              logActivity("Requested password change");
-              setTimeout(() => {
-                setIsChangePasswordOpen(false);
-              }, 3000);
-            } catch (err: any) {
-              throw new Error(err?.message || "Failed to verify password. Please check your current password and try again.");
-            } finally {
-              setIsPasswordUpdating(false);
-            }
+        <ChangePasswordModal
+          userEmail={currentUserEmail}
+          onSendCode={async () => {
+            const { error } = await insforge.auth.sendResetPasswordEmail({ email: currentUserEmail });
+            if (error) throw new Error(error.message || "Failed to send reset code");
           }}
-          onClose={() => setIsChangePasswordOpen(false)} 
+          onConfirm={async (otp: string, newPassword: string) => {
+            const { error } = await insforge.auth.resetPassword({ otp, newPassword });
+            if (error) throw new Error(error.message || "Incorrect code or expired. Please request a new one.");
+            setSettingsMsg("✅ Password updated! Please sign in again.");
+            logActivity("Changed sign-in password");
+            setIsChangePasswordOpen(false);
+            setTimeout(() => logout(), 1500);
+          }}
+          onClose={() => setIsChangePasswordOpen(false)}
         />
       )}
     </>
