@@ -23,7 +23,7 @@ import { VendorManager, VendorModal, InventoryTracker, InventoryModal, PermitTra
 import { MasterInventory } from "./components/MasterInventory";
 import { MarketingCalendar, MarketingModal, TrainingPortal, TrainingModal, DailyChecklistManager, ChecklistModal, DigitalAssetManager, DigitalAssetModal } from "./components/MarketingTraining";
 import { InvoicesSection, InvoiceModal } from "./components/Invoices";
-import { TalentHiring, PositionModal, CandidateModal } from "./components/Team";
+import { TalentHiring, TeamMap, PositionModal, CandidateModal } from "./components/Team";
 import { LaunchWindow, FullCalendar } from "./components/CalendarView";
 import { getGoogleAuthUrl, getGoogleDriveStatus, saveToGoogleDrive, fileToBase64 } from "./services/googleDriveService";
 import { exportToCSV } from "./lib/exportUtils";
@@ -1032,6 +1032,7 @@ export default function App() {
     { id: "training", label: "Training", icon: GraduationCap, group: "TEAM" },
     { id: "onboarding", label: "Team Onboarding", icon: UserPlus, group: "TEAM" },
     { id: "marketing", label: "Marketing", icon: Megaphone, group: "TEAM" },
+    { id: "teammap", label: "Team Map", icon: Users, group: "TEAM" },
   ];
 
   const GROUPS = ["DASHBOARD", "PLANNING", "KITCHEN", "OPERATIONS", "FINANCIALS", "TEAM"];
@@ -2052,6 +2053,15 @@ export default function App() {
                 onDeleteCan={(c: any) => setDelConfirm({ label: c.name, onConfirm: () => deleteRecord('candidates', c.id, c.name, setCandidates) })}
                 userRole={currentUser?.role}
               />
+            </div>
+          )
+        )}
+
+        {/* ══════ TEAM MAP ══════ */}
+        {tab === "teammap" && (
+          !isUnlocked ? <PinGate onUnlock={() => setIsUnlocked(true)} correctPin={securityPin} /> : (
+            <div className="fu">
+              <TeamMap positions={positions} candidates={candidates} />
             </div>
           )
         )}

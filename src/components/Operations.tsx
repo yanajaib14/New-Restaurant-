@@ -289,18 +289,31 @@ export function PermitModal({ permit, onSave, onClose }: { permit: Permit | null
   const [form, setForm] = useState<any>(permit ? { ...permit } : blank);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
+
+  const [isUploading, setIsUploading] = useState(false);
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > MAX_FILE_SIZE) {
+        alert("File size exceeds 5MB limit. Please compress or choose a smaller file.");
+        return;
+      }
+      setIsUploading(true);
       const reader = new FileReader();
       reader.onload = (event) => {
         const fileData = event.target?.result;
         set("fileUrl", fileData);
+        setIsUploading(false);
+      };
+      reader.onerror = () => {
+        alert("Error reading file. Please try again.");
+        setIsUploading(false);
       };
       reader.readAsDataURL(file);
     }
   };
-
   const getFileName = () => {
     if (!form.fileUrl) return null;
     if (form.fileUrl.startsWith("data:")) {
@@ -321,16 +334,30 @@ export function PermitModal({ permit, onSave, onClose }: { permit: Permit | null
           </select>
         </Field>
       </div>
-      <Field label="DOCUMENT UPLOAD">
+      <Field label="DOCUMENT UPLOAD (Max 5MB)">
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <input type="file" onChange={handleFileUpload} accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx" style={{ flex: 1, ...inpStyle, padding: "8px 12px" }} />
+          <input 
+            type="file" 
+            onChange={handleFileUpload} 
+            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx"
+            disabled={isUploading}
+            style={{ flex: 1, ...inpStyle, padding: "8px 12px", opacity: isUploading ? 0.6 : 1, cursor: isUploading ? "not-allowed" : "pointer" }} 
+          />
           {form.fileUrl && (
-            <button onClick={() => set("fileUrl", "")} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "6px 12px", color: T.red, cursor: "pointer", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>
+            <button 
+              onClick={() => set("fileUrl", "")} 
+              disabled={isUploading}
+              style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "6px 12px", color: T.red, cursor: isUploading ? "not-allowed" : "pointer", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", opacity: isUploading ? 0.5 : 1 }}>
               Clear
             </button>
           )}
         </div>
-        {getFileName() && (
+        {isUploading && (
+          <div style={{ fontSize: 11, color: T.blue, marginTop: 8, fontWeight: 600 }}>
+            ⏳ Processing file...
+          </div>
+        )}
+        {!isUploading && getFileName() && (
           <div style={{ fontSize: 11, color: T.green, marginTop: 8, fontWeight: 600 }}>
             ✓ {getFileName()}
           </div>

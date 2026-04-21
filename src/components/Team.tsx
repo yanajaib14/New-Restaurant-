@@ -388,3 +388,127 @@ export function TalentHiring({ positions, candidates, onAddPos, onEditPos, onDel
     </div>
   );
 }
+
+export function TeamMap({ positions, candidates }: { positions: Position[], candidates: Candidate[] }) {
+  const hiredCandidates = candidates.filter((c: Candidate) => c.stage === "Hired");
+  const filledTeam = hiredCandidates.map((c: Candidate) => {
+    const matchedPosition = positions.find((p: Position) => p.role === c.position);
+    return {
+      id: c.id,
+      name: c.name,
+      role: c.position,
+      responsibilities: matchedPosition?.compPlan || c.feedback || "Key team member",
+    };
+  });
+
+  const totOpenings = positions.reduce((s: number, p: any) => s + p.openings, 0);
+  const totHired = positions.reduce((s: number, p: any) => s + p.hired, 0);
+  const staffingProg = totOpenings > 0 ? Math.round((totHired / totOpenings) * 100) : 0;
+
+  return (
+    <div className="fu">
+      <SectionHeader 
+        title="Team Map" 
+        subtitle="View your complete hired team and their roles"
+      />
+
+      {/* Staffing Progress */}
+      <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 24, padding: 28, marginBottom: 32, boxShadow: "0 8px 24px rgba(0,0,0,0.02)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 40 }}>
+          <div>
+            <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Mono', monospace", marginBottom: 12, letterSpacing: 1.2, fontWeight: 600 }}>TEAM STAFFING</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 48, fontWeight: 700, color: T.green, letterSpacing: -2 }}>{totHired}</div>
+            <div style={{ fontSize: 14, color: T.muted, marginTop: 4 }}>of {totOpenings} positions filled</div>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, color: T.muted, fontWeight: 600, marginBottom: 12 }}>{staffingProg}% Complete</div>
+            <div style={{ width: "100%", height: 12, background: T.bg, borderRadius: 12, overflow: "hidden", border: `1px solid ${T.border}` }}>
+              <div style={{ height: "100%", width: `${staffingProg}%`, background: T.green, borderRadius: 12, transition: "width 1s cubic-bezier(0.4, 0, 0.2, 1)" }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Team Cards */}
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+          <Users size={20} color={T.green} />
+          <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 12, color: T.muted, letterSpacing: 1.2, fontWeight: 700 }}>HIRED TEAM MEMBERS</span>
+        </div>
+        
+        {filledTeam.length === 0 ? (
+          <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: 32, textAlign: "center", color: T.muted, fontSize: 14 }}>
+            <div style={{ fontSize: 24, marginBottom: 8 }}>👥</div>
+            <div>No hired team members yet. Start hiring to build your team!</div>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 20 }}>
+            {filledTeam.map((member: any) => (
+              <div key={member.id} style={{ 
+                background: "#FFF", 
+                border: `2px solid ${T.greenBorder}`, 
+                borderRadius: 16, 
+                padding: 24,
+                transition: "all .2s",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
+                display: "flex",
+                flexDirection: "column"
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLDivElement).style.boxShadow = "0 8px 24px rgba(90, 106, 90, 0.12)";
+                (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 12px rgba(0,0,0,0.03)";
+                (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
+              }}>
+                
+                {/* Header with avatar */}
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 16 }}>
+                  <div style={{ 
+                    width: 56, 
+                    height: 56, 
+                    borderRadius: 12, 
+                    background: T.greenLight, 
+                    border: `2px solid ${T.greenBorder}`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 28,
+                    flexShrink: 0
+                  }}>
+                    {member.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: T.text, marginBottom: 6 }}>
+                      {member.name}
+                    </div>
+                    <Pill 
+                      label={member.role || "Team Member"} 
+                      color={T.green} 
+                      bg={T.greenLight} 
+                      border={T.greenBorder}
+                    />
+                  </div>
+                </div>
+                
+                {/* Divider */}
+                <div style={{ height: "1px", background: T.border, margin: "16px 0" }} />
+                
+                {/* Responsibilities */}
+                <div>
+                  <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", letterSpacing: 1, color: T.subtle, marginBottom: 8, fontWeight: 700 }}>
+                    KEY RESPONSIBILITIES
+                  </div>
+                  <div style={{ fontSize: 13, lineHeight: 1.7, color: T.text, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                    {member.responsibilities}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
