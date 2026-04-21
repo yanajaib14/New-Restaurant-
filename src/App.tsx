@@ -7,7 +7,7 @@ import {
   InventoryItem, Permit, MarketingPost, TrainingModule, DailyChecklist, 
   UtilityAccount, DigitalAsset, User, ActivityLog, UserRole, Invoice, Position, Candidate
 } from "./types";
-import { Pill, Btn, SectionHeader, PinGate, ChangePinModal, ChangePasswordModal, inpStyle, ProgressRing } from "./components/UI";
+import { Pill, Btn, SectionHeader, PinGate, ChangePinModal, ChangePasswordModal, inpStyle, ProgressRing, Modal, Field } from "./components/UI";
 import { TaskModal, TaskRow } from "./components/TaskBoard";
 import { MenuModal } from "./components/MenuPlanner";
 import { FinModal } from "./components/Financials";
@@ -29,6 +29,19 @@ import { getGoogleAuthUrl, getGoogleDriveStatus, saveToGoogleDrive, fileToBase64
 import { exportToCSV } from "./lib/exportUtils";
 
 import { LayoutDashboard, CheckSquare, Utensils, ShoppingCart, Package, DollarSign, FileText, Box, Users, ShieldCheck, Megaphone, GraduationCap, ClipboardList, Calculator, UserPlus, Calendar, FileEdit, Sparkles } from "lucide-react";
+
+type ShoppingListItem = {
+  id: string;
+  sourceKey?: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  totalCost: number;
+  items: string[];
+  category: string;
+  department: string;
+  isManual?: boolean;
+};
 
 // ─── INITIAL DATA ─────────────────────────────────────────────────────────────
 const INIT_VENDORS: Vendor[] = [
@@ -508,6 +521,19 @@ export default function App() {
   const [menuSecF, setMenuSecF] = useState("All");
   const [shopCatF, setShopCatF] = useState("All");
   const [shopDeptF, setShopDeptF] = useState("All");
+  const [shopManualItems, setShopManualItems] = useState<ShoppingListItem[]>([]);
+  const [shopItemOverrides, setShopItemOverrides] = useState<Record<string, Partial<ShoppingListItem>>>({});
+  const [shopRemovedSourceKeys, setShopRemovedSourceKeys] = useState<string[]>([]);
+  const [shopItemModal, setShopItemModal] = useState<ShoppingListItem | "new" | null>(null);
+  const [shopItemDraft, setShopItemDraft] = useState({
+    name: "",
+    category: "Operating Supplies",
+    department: "Kitchen",
+    quantity: 0,
+    unit: "",
+    totalCost: 0,
+    items: "",
+  });
   const [noteSearch, setNoteSearch] = useState("");
   const [noteTagF, setNoteTagF] = useState("All");
 
@@ -1069,21 +1095,23 @@ export default function App() {
 
   // ── Shopping List Logic ──
   const aggregatedIngredients = useMemo(() => {
-    const map: Record<string, { name: string, quantity: number, unit: string, totalCost: number, items: string[], category: string, department: string }> = {};
+    const map: Record<string, ShoppingListItem> = {};
     menuItems.forEach(item => {
       (item.ingredients || []).forEach(ing => {
         const key = `${ing.name.toLowerCase()}-${ing.unit.toLowerCase()}`;
         if (!map[key]) {
-          // Try to find in inventory to get category/department
           const invItem = inventory.find(i => i.name.toLowerCase() === ing.name.toLowerCase());
-          map[key] = { 
-            name: ing.name, 
-            quantity: 0, 
-            unit: ing.unit, 
-            totalCost: 0, 
+          map[key] = {
+            id: `source-${key}`,
+            sourceKey: key,
+            name: ing.name,
+            quantity: 0,
+            unit: ing.unit,
+            totalCost: 0,
             items: [],
             category: invItem?.category || "Operating Supplies",
-            department: invItem?.department || "Kitchen"
+            department: invItem?.department || "Kitchen",
+            isManual: false,
           };
         }
         map[key].quantity += ing.quantity;
@@ -1091,10 +1119,119 @@ export default function App() {
         if (!map[key].items.includes(item.name)) map[key].items.push(item.name);
       });
     });
-    return Object.values(map)
-      .filter(ing => (shopCatF === "All" || ing.category === shopCatF) && (shopDeptF === "All" || ing.department === shopDeptF))
+    return Object.values(map).sort((a, b) => a.name.localeCompare(b.name));
+  }, [menuItems, inventory]);
+
+  const consolidatedShoppingRows = useMemo(() => {
+    const sourceRows = aggregatedIngredients
+      .filter(row => row.sourceKey && !shopRemovedSourceKeys.includes(row.sourceKey))
+      .map(row => {
+        const override = row.sourceKey ? shopItemOverrides[row.sourceKey] : undefined;
+        return {
+          ...row,
+          ...override,
+          id: row.id,
+          sourceKey: row.sourceKey,
+          isManual: false,
+          items: override?.items || row.items,
+        } as ShoppingListItem;
+      });
+
+    const allRows = [...sourceRows, ...shopManualItems]
+      .filter(row => (shopCatF === "All" || row.category === shopCatF) && (shopDeptF === "All" || row.department === shopDeptF))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [menuItems, inventory, shopCatF, shopDeptF]);
+
+    return allRows;
+  }, [aggregatedIngredients, shopRemovedSourceKeys, shopItemOverrides, shopManualItems, shopCatF, shopDeptF]);
+
+  const openNewShopItem = () => {
+    setShopItemDraft({
+      name: "",
+      category: "Operating Supplies",
+      department: "Kitchen",
+      quantity: 0,
+      unit: "",
+      totalCost: 0,
+      items: "",
+    });
+    setShopItemModal("new");
+  };
+
+  const openEditShopItem = (item: ShoppingListItem) => {
+    setShopItemDraft({
+      name: item.name,
+      category: item.category,
+      department: item.department,
+      quantity: item.quantity,
+      unit: item.unit,
+      totalCost: item.totalCost,
+      items: (item.items || []).join(", "),
+    });
+    setShopItemModal(item);
+  };
+
+  const saveShopItem = () => {
+    const name = shopItemDraft.name.trim();
+    if (!name) return;
+    const rowItems = shopItemDraft.items.split(",").map(v => v.trim()).filter(Boolean);
+
+    if (shopItemModal === "new") {
+      const newItem: ShoppingListItem = {
+        id: `manual-${Date.now()}`,
+        name,
+        category: shopItemDraft.category,
+        department: shopItemDraft.department,
+        quantity: Number(shopItemDraft.quantity) || 0,
+        unit: shopItemDraft.unit.trim(),
+        totalCost: Number(shopItemDraft.totalCost) || 0,
+        items: rowItems,
+        isManual: true,
+      };
+      setShopManualItems(prev => [...prev, newItem]);
+      setShopItemModal(null);
+      return;
+    }
+
+    if (!shopItemModal) return;
+
+    if (shopItemModal.isManual) {
+      setShopManualItems(prev => prev.map(item => item.id === shopItemModal.id ? {
+        ...item,
+        name,
+        category: shopItemDraft.category,
+        department: shopItemDraft.department,
+        quantity: Number(shopItemDraft.quantity) || 0,
+        unit: shopItemDraft.unit.trim(),
+        totalCost: Number(shopItemDraft.totalCost) || 0,
+        items: rowItems,
+      } : item));
+    } else if (shopItemModal.sourceKey) {
+      setShopItemOverrides(prev => ({
+        ...prev,
+        [shopItemModal.sourceKey as string]: {
+          name,
+          category: shopItemDraft.category,
+          department: shopItemDraft.department,
+          quantity: Number(shopItemDraft.quantity) || 0,
+          unit: shopItemDraft.unit.trim(),
+          totalCost: Number(shopItemDraft.totalCost) || 0,
+          items: rowItems,
+        },
+      }));
+    }
+
+    setShopItemModal(null);
+  };
+
+  const removeShopItem = (item: ShoppingListItem) => {
+    if (item.isManual) {
+      setShopManualItems(prev => prev.filter(row => row.id !== item.id));
+      return;
+    }
+    if (item.sourceKey) {
+      setShopRemovedSourceKeys(prev => prev.includes(item.sourceKey as string) ? prev : [...prev, item.sourceKey as string]);
+    }
+  };
 
   return (
     <div style={{ minHeight:"100dvh", background:T.bg, color:T.text, fontFamily:"'DM Sans',sans-serif", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
@@ -1255,6 +1392,33 @@ export default function App() {
       {vendorModal && <VendorModal vendor={vendorModal === "new" ? null : vendorModal} onSave={saveVendor} onClose={() => setVendorModal(null)} />}
       {invModal && <InventoryModal item={invModal === "new" ? null : invModal} vendors={vendors} onSave={saveInv} onClose={() => setInvModal(null)} />}
       {permitModal && <PermitModal permit={permitModal === "new" ? null : permitModal} onSave={savePermit} onClose={() => setPermitModal(null)} />}
+      {shopItemModal && (
+        <Modal title={shopItemModal === "new" ? "Add Shopping Item" : "Edit Shopping Item"} onClose={() => setShopItemModal(null)} width={460}>
+          <Field label="ITEM NAME"><input value={shopItemDraft.name} onChange={e => setShopItemDraft(d => ({ ...d, name: e.target.value }))} style={inpStyle} placeholder="e.g. Olive Oil" /></Field>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Field label="CATEGORY">
+              <select value={shopItemDraft.category} onChange={e => setShopItemDraft(d => ({ ...d, category: e.target.value }))} style={{ ...inpStyle, height: 42 }}>
+                {INV_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+              </select>
+            </Field>
+            <Field label="DEPARTMENT">
+              <select value={shopItemDraft.department} onChange={e => setShopItemDraft(d => ({ ...d, department: e.target.value }))} style={{ ...inpStyle, height: 42 }}>
+                {DEPARTMENTS.map(dep => <option key={dep} value={dep}>{dep}</option>)}
+              </select>
+            </Field>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Field label="TOTAL QUANTITY"><input type="number" min={0} step="0.01" value={shopItemDraft.quantity} onChange={e => setShopItemDraft(d => ({ ...d, quantity: Number(e.target.value) }))} style={inpStyle} /></Field>
+            <Field label="UNIT"><input value={shopItemDraft.unit} onChange={e => setShopItemDraft(d => ({ ...d, unit: e.target.value }))} style={inpStyle} placeholder="kg, lb, case" /></Field>
+          </div>
+          <Field label="TOTAL COST ($)"><input type="number" min={0} step="0.01" value={shopItemDraft.totalCost} onChange={e => setShopItemDraft(d => ({ ...d, totalCost: Number(e.target.value) }))} style={inpStyle} /></Field>
+          <Field label="USED IN DISHES (COMMA SEPARATED)"><input value={shopItemDraft.items} onChange={e => setShopItemDraft(d => ({ ...d, items: e.target.value }))} style={inpStyle} placeholder="Pasta, Salad, Special" /></Field>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
+            <Btn onClick={() => setShopItemModal(null)} variant="ghost">Cancel</Btn>
+            <Btn onClick={saveShopItem} variant="primary">Save Item</Btn>
+          </div>
+        </Modal>
+      )}
       {mktModal && <MarketingModal post={mktModal === "new" ? null : mktModal} onSave={saveMkt} onClose={() => setMktModal(null)} />}
       {trainModal && <TrainingModal module={trainModal === "new" ? null : trainModal} onSave={saveTrain} onClose={() => setTrainModal(null)} />}
       {posModal && <PositionModal position={posModal === "new" ? null : posModal} onSave={savePos} onClose={() => setPosModal(null)} userRole={currentUser?.role} />}
@@ -1591,7 +1755,7 @@ export default function App() {
         {tab === "shopping" && (
           <div className="fu">
             <SectionHeader title="Consolidated Shopping List" subtitle="All ingredients required for your current menu items"
-              action={<Btn onClick={() => window.print()} variant="outline">🖨️ Print List</Btn>} />
+              action={<div style={{ display: "flex", gap: 8 }}><Btn onClick={openNewShopItem} variant="primary">+ Add Item</Btn><Btn onClick={() => window.print()} variant="outline">🖨️ Print List</Btn></div>} />
             
             {/* Filters */}
             <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: "16px 20px", marginBottom: 18 }}>
@@ -1623,11 +1787,11 @@ export default function App() {
 
             {isMobile ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {aggregatedIngredients.length === 0 ? (
+                {consolidatedShoppingRows.length === 0 ? (
                   <div style={{ padding: 20, textAlign: "center", color: T.muted, background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12 }}>No ingredients found matching filters.</div>
                 ) : (
-                  aggregatedIngredients.map((ing, i) => (
-                    <div key={i} style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 12 }}>
+                  consolidatedShoppingRows.map((ing, i) => (
+                    <div key={ing.id} style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 12 }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{ing.name}</div>
                       <div style={{ marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap", fontSize: 11, color: T.muted }}>
                         <span>{ing.category}</span>
@@ -1643,22 +1807,26 @@ export default function App() {
                           <span key={dish} style={{ fontSize: 10, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 4, padding: "2px 6px", color: T.muted }}>{dish}</span>
                         ))}
                       </div>
+                      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                        <button onClick={() => openEditShopItem(ing)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>✎ Edit</button>
+                        <button onClick={() => removeShopItem(ing)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "5px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>✕ Remove</button>
+                      </div>
                     </div>
                   ))
                 )}
               </div>
             ) : (
               <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr 120px 120px 2fr", padding: "10px 18px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
-                  {["INGREDIENT", "CATEGORY", "DEPT", "TOTAL QTY", "TOTAL COST", "USED IN DISHES"].map(h => (
+                <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr 120px 120px 2fr 130px", padding: "10px 18px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
+                  {["INGREDIENT", "CATEGORY", "DEPT", "TOTAL QTY", "TOTAL COST", "USED IN DISHES", "ACTIONS"].map(h => (
                     <div key={h} style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: T.subtle, letterSpacing: .8 }}>{h}</div>
                   ))}
                 </div>
-                {aggregatedIngredients.length === 0 ? (
+                {consolidatedShoppingRows.length === 0 ? (
                   <div style={{ padding: 40, textAlign: "center", color: T.muted }}>No ingredients found matching filters.</div>
                 ) : (
-                  aggregatedIngredients.map((ing, i) => (
-                    <div key={i} style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr 120px 120px 2fr", padding: "14px 18px", borderBottom: `1px solid ${T.border}`, alignItems: "center" }}>
+                  consolidatedShoppingRows.map((ing) => (
+                    <div key={ing.id} style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr 120px 120px 2fr 130px", padding: "14px 18px", borderBottom: `1px solid ${T.border}`, alignItems: "center" }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{ing.name}</div>
                       <div style={{ fontSize: 11, color: T.muted }}>{ing.category}</div>
                       <div style={{ fontSize: 11, color: T.muted }}>{ing.department}</div>
@@ -1668,6 +1836,10 @@ export default function App() {
                         {ing.items.map(dish => (
                           <span key={dish} style={{ fontSize: 10, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 4, padding: "2px 6px", color: T.muted }}>{dish}</span>
                         ))}
+                      </div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button onClick={() => openEditShopItem(ing)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>✎</button>
+                        <button onClick={() => removeShopItem(ing)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>✕</button>
                       </div>
                     </div>
                   ))
