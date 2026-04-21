@@ -1074,16 +1074,16 @@ export default function App() {
   }, [menuItems, inventory, shopCatF, shopDeptF]);
 
   return (
-    <div style={{ minHeight:"100vh", background:T.bg, color:T.text, fontFamily:"'DM Sans',sans-serif" }}>
+    <div style={{ minHeight:"100dvh", background:T.bg, color:T.text, fontFamily:"'DM Sans',sans-serif", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
       {/* ── LOGIN SCREEN ── */}
       {isAuthLoading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: T.bg }}>Loading...</div>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100dvh', background: T.bg }}>Loading...</div>
       ) : !currentUser ? (
         <Login />
       ) : (
         <>
           {/* ── HEADER ── */}
-          <div className="glass" style={{ borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 100 }}>
+          <div className="glass" style={{ borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 100, paddingTop: "env(safe-area-inset-top, 0px)" }}>
             {/* Critical Banner */}
             {criticalOverdue > 0 && (
               <div style={{ 
@@ -1203,7 +1203,7 @@ export default function App() {
 
         {/* Mobile Menu Overlay */}
         {isMobile && isMenuOpen && (
-          <div style={{ position:"fixed", inset:0, top:60, background:"#FFF", zIndex:100, padding:20, display:"flex", flexDirection:"column", gap:4, overflowY:"auto" }}>
+          <div style={{ position:"fixed", inset:0, top:"calc(60px + env(safe-area-inset-top, 0px))", background:"#FFF", zIndex:100, padding:"20px 20px calc(20px + env(safe-area-inset-bottom, 0px))", display:"flex", flexDirection:"column", gap:4, overflowY:"auto", WebkitOverflowScrolling:"touch" }}>
             {GROUPS.map(group => (
               <div key={group} style={{ marginBottom:16 }}>
                 <div style={{ fontSize:10, fontFamily:"'DM Mono',monospace", color:T.subtle, letterSpacing:1, padding:"0 12px", marginBottom:8 }}>{group}</div>
@@ -1949,7 +1949,7 @@ export default function App() {
     </div>
 
       {/* Quick Add FAB */}
-      <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 100 }}>
+      <div style={{ position: "fixed", bottom: "calc(24px + env(safe-area-inset-bottom, 0px))", right: 24, zIndex: 100 }}>
         {quickAddOpen && (
           <div style={{ position: "absolute", bottom: 70, right: 0, display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end" }}>
             <Btn onClick={() => { setTaskModal("new"); setQuickAddOpen(false); }} variant="primary" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>+ New Task</Btn>
