@@ -389,7 +389,7 @@ export function TalentHiring({ positions, candidates, onAddPos, onEditPos, onDel
   );
 }
 
-export function TeamMap({ positions, candidates }: { positions: Position[], candidates: Candidate[] }) {
+export function TeamMap({ positions, candidates, onAddMember, onEditMember, onDeleteMember }: { positions: Position[], candidates: Candidate[], onAddMember: () => void, onEditMember: (member: Candidate) => void, onDeleteMember: (member: Candidate) => void }) {
   const hiredCandidates = candidates.filter((c: Candidate) => c.stage === "Hired");
   const filledTeam = hiredCandidates.map((c: Candidate) => {
     const matchedPosition = positions.find((p: Position) => p.role === c.position);
@@ -397,7 +397,8 @@ export function TeamMap({ positions, candidates }: { positions: Position[], cand
       id: c.id,
       name: c.name,
       role: c.position,
-      responsibilities: matchedPosition?.compPlan || c.feedback || "Key team member",
+      responsibilities: c.feedback || matchedPosition?.compPlan || "Key team member",
+      raw: c,
     };
   });
 
@@ -409,7 +410,8 @@ export function TeamMap({ positions, candidates }: { positions: Position[], cand
     <div className="fu">
       <SectionHeader 
         title="Team Map" 
-        subtitle="View your complete hired team and their roles"
+        subtitle="Manage hired and transferred team members"
+        action={<Btn onClick={onAddMember} variant="primary">+ Add Team Member</Btn>}
       />
 
       {/* Staffing Progress */}
@@ -439,7 +441,10 @@ export function TeamMap({ positions, candidates }: { positions: Position[], cand
         {filledTeam.length === 0 ? (
           <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: 32, textAlign: "center", color: T.muted, fontSize: 14 }}>
             <div style={{ fontSize: 24, marginBottom: 8 }}>👥</div>
-            <div>No hired team members yet. Start hiring to build your team!</div>
+            <div>No hired team members yet. Add transferred staff or move candidates to Hired.</div>
+            <div style={{ marginTop: 14 }}>
+              <Btn onClick={onAddMember} variant="outline">+ Add Transferred Team Member</Btn>
+            </div>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 20 }}>
@@ -454,17 +459,11 @@ export function TeamMap({ positions, candidates }: { positions: Position[], cand
                 display: "flex",
                 flexDirection: "column"
               }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLDivElement).style.boxShadow = "0 8px 24px rgba(90, 106, 90, 0.12)";
-                (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 12px rgba(0,0,0,0.03)";
-                (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
-              }}>
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
                 
                 {/* Header with avatar */}
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 16, flex: 1 }}>
                   <div style={{ 
                     width: 56, 
                     height: 56, 
@@ -491,14 +490,19 @@ export function TeamMap({ positions, candidates }: { positions: Position[], cand
                     />
                   </div>
                 </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => onEditMember(member.raw)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: "4px 8px", cursor: "pointer", color: T.muted, fontSize: 11 }}>✎</button>
+                    <button onClick={() => onDeleteMember(member.raw)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 8, padding: "4px 8px", cursor: "pointer", color: T.red, fontSize: 11 }}>✕</button>
+                  </div>
+                </div>
                 
                 {/* Divider */}
-                <div style={{ height: "1px", background: T.border, margin: "16px 0" }} />
+                <div style={{ height: "1px", background: T.border, margin: "4px 0 16px" }} />
                 
                 {/* Responsibilities */}
                 <div>
                   <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", letterSpacing: 1, color: T.subtle, marginBottom: 8, fontWeight: 700 }}>
-                    KEY RESPONSIBILITIES
+                    SHORT JOB DESCRIPTION
                   </div>
                   <div style={{ fontSize: 13, lineHeight: 1.7, color: T.text, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                     {member.responsibilities}
@@ -510,5 +514,48 @@ export function TeamMap({ positions, candidates }: { positions: Position[], cand
         )}
       </div>
     </div>
+  );
+}
+
+export function TeamMapMemberModal({ member, positions, onSave, onClose }: { member: Candidate | null, positions: Position[], onSave: (form: Candidate) => void, onClose: () => void }) {
+  const blank: Candidate = {
+    id: Date.now(),
+    name: "",
+    position: "",
+    stage: "Hired",
+    feedback: "",
+    date: "",
+    partnerNotes: ""
+  };
+  const [form, setForm] = useState<Candidate>(member ? { ...member } : blank);
+  const set = (k: keyof Candidate, v: any) => setForm(f => ({ ...f, [k]: v }));
+
+  return (
+    <Modal title={member ? "Edit Team Member" : "Add Team Member"} onClose={onClose} width={460}>
+      <Field label="NAME">
+        <input value={form.name} onChange={e => set("name", e.target.value)} style={inpStyle} placeholder="e.g. Maria Santos" />
+      </Field>
+      <Field label="TITLE / ROLE">
+        <input value={form.position} onChange={e => set("position", e.target.value)} list="team-role-options" style={inpStyle} placeholder="e.g. Sous Chef" />
+        <datalist id="team-role-options">
+          {positions.map(p => <option key={p.id} value={p.role} />)}
+        </datalist>
+      </Field>
+      <Field label="SHORT JOB DESCRIPTION">
+        <textarea
+          value={form.feedback}
+          onChange={e => set("feedback", e.target.value)}
+          style={{ ...inpStyle, height: 90, resize: "none", padding: "10px" }}
+          placeholder="Short summary of responsibilities..."
+        />
+      </Field>
+      <Field label="TRANSFER NOTE (OPTIONAL)">
+        <input value={form.partnerNotes || ""} onChange={e => set("partnerNotes", e.target.value)} style={inpStyle} placeholder="e.g. Transferred from Downtown location" />
+      </Field>
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
+        <Btn onClick={onClose} variant="ghost">Cancel</Btn>
+        <Btn onClick={() => onSave({ ...form, stage: "Hired" })} variant="primary">{member ? "Save Changes" : "Add Team Member"}</Btn>
+      </div>
+    </Modal>
   );
 }

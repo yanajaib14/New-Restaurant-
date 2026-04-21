@@ -23,7 +23,7 @@ import { VendorManager, VendorModal, InventoryTracker, InventoryModal, PermitTra
 import { MasterInventory } from "./components/MasterInventory";
 import { MarketingCalendar, MarketingModal, TrainingPortal, TrainingModal, DailyChecklistManager, ChecklistModal, DigitalAssetManager, DigitalAssetModal } from "./components/MarketingTraining";
 import { InvoicesSection, InvoiceModal } from "./components/Invoices";
-import { TalentHiring, TeamMap, PositionModal, CandidateModal } from "./components/Team";
+import { TalentHiring, TeamMap, TeamMapMemberModal, PositionModal, CandidateModal } from "./components/Team";
 import { LaunchWindow, FullCalendar } from "./components/CalendarView";
 import { getGoogleAuthUrl, getGoogleDriveStatus, saveToGoogleDrive, fileToBase64 } from "./services/googleDriveService";
 import { exportToCSV } from "./lib/exportUtils";
@@ -258,6 +258,7 @@ export default function App() {
   const [assets, setAssets]         = useState<DigitalAsset[]>(INIT_ASSETS);
   const [posModal, setPosModal]     = useState<Position | "new" | null>(null);
   const [canModal, setCanModal]     = useState<Candidate | "new" | null>(null);
+  const [teamMapModal, setTeamMapModal] = useState<Candidate | "new" | null>(null);
   const [assetModal, setAssetModal] = useState<DigitalAsset | "new" | null>(null);
   const [calDate, setCalDate]       = useState<string | null>(null);
   const [invoiceModal, setInvoiceModal] = useState<any>(null);
@@ -861,6 +862,27 @@ export default function App() {
     }
   };
 
+  const saveTeamMapMember = async (form: Candidate) => {
+    const { id, ...rest } = form as any;
+    const payload = { ...rest, stage: "Hired" };
+    try {
+      if (teamMapModal && teamMapModal !== "new") {
+        const { error } = await dbUpdate("candidates", (teamMapModal as any).id, payload);
+        if (error) throw error;
+        logActivity(`Updated team member: ${form.name}`);
+      } else {
+        const { error } = await dbInsert("candidates", payload);
+        if (error) throw error;
+        logActivity(`Added transferred team member: ${form.name}`);
+      }
+      await refetch("candidates", setCandidates);
+      setTeamMapModal(null);
+    } catch (e: any) {
+      console.error("Save Team Member Error:", e);
+      alert(`Failed to save team member: ${e.message || JSON.stringify(e)}`);
+    }
+  };
+
   const saveAsset = async (form: DigitalAsset & { _delete?: boolean }) => {
     const { id, _delete, ...rest } = form as any;
     try {
@@ -1237,6 +1259,7 @@ export default function App() {
       {trainModal && <TrainingModal module={trainModal === "new" ? null : trainModal} onSave={saveTrain} onClose={() => setTrainModal(null)} />}
       {posModal && <PositionModal position={posModal === "new" ? null : posModal} onSave={savePos} onClose={() => setPosModal(null)} userRole={currentUser?.role} />}
       {canModal && <CandidateModal candidate={canModal === "new" ? null : canModal} initialDate={calDate || undefined} positions={positions} onSave={saveCan} onClose={() => { setCanModal(null); setCalDate(null); }} userRole={currentUser?.role} />}
+      {teamMapModal && <TeamMapMemberModal member={teamMapModal === "new" ? null : teamMapModal} positions={positions} onSave={saveTeamMapMember} onClose={() => setTeamMapModal(null)} />}
       {assetModal && <DigitalAssetModal asset={assetModal === "new" ? null : assetModal} onSave={saveAsset} onClose={() => setAssetModal(null)} />}
       {utilityModal && <UtilityModal account={utilityModal === "new" ? null : utilityModal} onSave={saveUtility} onClose={() => setUtilityModal(null)} />}
       {chkModal && <ChecklistModal checklist={chkModal === "new" ? null : chkModal} onSave={saveChk} onClose={() => setChkModal(null)} />}
@@ -2061,7 +2084,13 @@ export default function App() {
         {tab === "teammap" && (
           !isUnlocked ? <PinGate onUnlock={() => setIsUnlocked(true)} correctPin={securityPin} /> : (
             <div className="fu">
-              <TeamMap positions={positions} candidates={candidates} />
+              <TeamMap
+                positions={positions}
+                candidates={candidates}
+                onAddMember={() => setTeamMapModal("new")}
+                onEditMember={(member: Candidate) => setTeamMapModal(member)}
+                onDeleteMember={(member: Candidate) => setDelConfirm({ label: member.name, onConfirm: () => deleteRecord("candidates", member.id, member.name, setCandidates) })}
+              />
             </div>
           )
         )}
