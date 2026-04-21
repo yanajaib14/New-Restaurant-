@@ -24,7 +24,7 @@ import { MasterInventory } from "./components/MasterInventory";
 import { MarketingCalendar, MarketingModal, TrainingPortal, TrainingModal, DailyChecklistManager, ChecklistModal, DigitalAssetManager, DigitalAssetModal } from "./components/MarketingTraining";
 import { InvoicesSection, InvoiceModal } from "./components/Invoices";
 import { TalentHiring, TeamMap, TeamMapMemberModal, PositionModal, CandidateModal } from "./components/Team";
-import { FullCalendar } from "./components/CalendarView";
+import { LaunchWindow, FullCalendar } from "./components/CalendarView";
 import { getGoogleAuthUrl, getGoogleDriveStatus, saveToGoogleDrive, fileToBase64 } from "./services/googleDriveService";
 import { exportToCSV } from "./lib/exportUtils";
 
@@ -1739,22 +1739,23 @@ export default function App() {
                 {/* At-a-glance */}
                 <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 24, marginBottom: isMobile ? 16 : 24 }}>
                   <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, marginBottom: 12, fontWeight: 600 }}>AT A GLANCE</div>
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10, marginBottom: 12 }}>
-                    <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
-                      <div style={{ fontSize: 10, color: T.subtle }}>Progress</div>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: T.text }}>{prog}%</div>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "160px 1fr", gap: 12, marginBottom: 12, alignItems: "center" }}>
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+                      <ProgressRing progress={prog} size={isMobile ? 110 : 120} stroke={8} />
                     </div>
-                    <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
-                      <div style={{ fontSize: 10, color: T.subtle }}>Overdue Tasks</div>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: overdue > 0 ? T.red : T.green }}>{overdue}</div>
-                    </div>
-                    <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
-                      <div style={{ fontSize: 10, color: T.subtle }}>Permit Risks ≤14d</div>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: permitAlerts.filter(x => (x.daysLeft as number) <= 14).length > 0 ? T.red : T.green }}>{permitAlerts.filter(x => (x.daysLeft as number) <= 14).length}</div>
-                    </div>
-                    <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
-                      <div style={{ fontSize: 10, color: T.subtle }}>Staffing Gap</div>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: (totOpenings - totHired) > 0 ? T.gold : T.green }}>{Math.max(0, totOpenings - totHired)}</div>
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 10 }}>
+                      <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
+                        <div style={{ fontSize: 10, color: T.subtle }}>Overdue Tasks</div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: overdue > 0 ? T.red : T.green }}>{overdue}</div>
+                      </div>
+                      <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
+                        <div style={{ fontSize: 10, color: T.subtle }}>Permit Risks ≤14d</div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: permitAlerts.filter(x => (x.daysLeft as number) <= 14).length > 0 ? T.red : T.green }}>{permitAlerts.filter(x => (x.daysLeft as number) <= 14).length}</div>
+                      </div>
+                      <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
+                        <div style={{ fontSize: 10, color: T.subtle }}>Staffing Gap</div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: (totOpenings - totHired) > 0 ? T.gold : T.green }}>{Math.max(0, totOpenings - totHired)}</div>
+                      </div>
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1763,6 +1764,12 @@ export default function App() {
                     <Btn onClick={() => setTab("talent")} variant="outline" small>Hiring</Btn>
                     <Btn onClick={() => setTab("shopping")} variant="outline" small>Shopping</Btn>
                   </div>
+                </div>
+
+                {/* 7-Day Overview */}
+                <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 24, marginBottom: isMobile ? 16 : 24 }}>
+                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, marginBottom: 12, fontWeight: 600 }}>7-DAY OVERVIEW</div>
+                  <LaunchWindow tasks={tasks} permits={permits} candidates={candidates} />
                 </div>
 
                 {/* Must Act Now */}
