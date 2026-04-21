@@ -515,6 +515,10 @@ export default function App() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // ── State: Database persistence ──
+  const [dbShoppingItems, setDbShoppingItems] = useState<any[]>([]);
+  const [dbCostCalcOverrides, setDbCostCalcOverrides] = useState<any[]>([]);
+
   // Sync database shopping items to UI state
   useEffect(() => {
     const manual = dbShoppingItems.filter(item => !item.sourceKey).map(item => ({
@@ -557,8 +561,6 @@ export default function App() {
   const [shopItemOverrides, setShopItemOverrides] = useState<Record<string, Partial<ShoppingListItem>>>({});
   const [shopRemovedSourceKeys, setShopRemovedSourceKeys] = useState<string[]>([]);
   const [shopItemModal, setShopItemModal] = useState<ShoppingListItem | "new" | null>(null);
-  const [dbShoppingItems, setDbShoppingItems] = useState<any[]>([]);
-  const [dbCostCalcOverrides, setDbCostCalcOverrides] = useState<any[]>([]);
   const [shopItemDraft, setShopItemDraft] = useState({
     name: "",
     category: "Operating Supplies",
