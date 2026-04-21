@@ -1142,7 +1142,7 @@ export default function App() {
               onClick={() => { logout(); setIsUnlocked(false); }}
               style={{ background: T.stone, border: `1px solid ${T.border}`, borderRadius: 12, padding: "6px 16px", fontSize: 11, fontWeight: 600, color: T.text, cursor: "pointer" }}
             >
-              Sign Out ({userRole || 'User'})
+              Sign Out ({isPartnerAccount ? 'Admin' : (userRole || 'User')})
             </button>
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: T.subtle, fontWeight: 500 }}>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Phoenix" })}</span>
           </div>
