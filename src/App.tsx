@@ -24,7 +24,7 @@ import { MasterInventory } from "./components/MasterInventory";
 import { MarketingCalendar, MarketingModal, TrainingPortal, TrainingModal, DailyChecklistManager, ChecklistModal, DigitalAssetManager, DigitalAssetModal } from "./components/MarketingTraining";
 import { InvoicesSection, InvoiceModal } from "./components/Invoices";
 import { TalentHiring, TeamMap, TeamMapMemberModal, PositionModal, CandidateModal } from "./components/Team";
-import { LaunchWindow, FullCalendar } from "./components/CalendarView";
+import { FullCalendar } from "./components/CalendarView";
 import { getGoogleAuthUrl, getGoogleDriveStatus, saveToGoogleDrive, fileToBase64 } from "./services/googleDriveService";
 import { exportToCSV } from "./lib/exportUtils";
 
@@ -639,10 +639,6 @@ export default function App() {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
-  const openingMilestone = timeline.find(m => /grand opening/i.test(m.milestone));
-  const openingDate = parsePlannerDate(openingMilestone?.date);
-  const daysToOpen = openingDate ? Math.ceil((openingDate.getTime() - startOfToday.getTime()) / (1000 * 60 * 60 * 24)) : null;
-
   const permitAlerts = permits
     .map(p => {
       const dt = parsePlannerDate(p.expiryDate);
@@ -652,77 +648,14 @@ export default function App() {
     .filter(x => x.daysLeft !== null && (x.daysLeft as number) <= 30)
     .sort((a, b) => (a.daysLeft as number) - (b.daysLeft as number));
 
-  const milestoneDueSoon = timeline
-    .filter(m => !m.done)
-    .map(m => {
-      const dt = parsePlannerDate(m.date);
-      const daysLeft = dt ? Math.ceil((dt.getTime() - startOfToday.getTime()) / (1000 * 60 * 60 * 24)) : null;
-      return { milestone: m, daysLeft };
-    })
-    .filter(x => x.daysLeft !== null && (x.daysLeft as number) <= 21)
-    .sort((a, b) => (a.daysLeft as number) - (b.daysLeft as number));
-
-  const criticalPathItems = [
+  const mustActNow = [
     ...tasks
       .filter(t => t.status === "Overdue" || t.priority === "Critical")
-      .map(t => ({
-        id: `task-${t.id}`,
-        title: t.task,
-        detail: `${t.category} · ${t.status}${t.due ? ` · Due ${t.due}` : ""}`,
-        severity: t.status === "Overdue" ? "high" : "med",
-      })),
-    ...milestoneDueSoon.map(x => ({
-      id: `milestone-${x.milestone.id}`,
-      title: x.milestone.milestone,
-      detail: `${x.milestone.phase} · ${x.daysLeft as number} days left`,
-      severity: (x.daysLeft as number) <= 7 ? "high" : "med",
-    })),
-    ...permitAlerts.map(x => ({
-      id: `permit-${x.permit.id}`,
-      title: x.permit.name,
-      detail: `Permit · ${x.daysLeft as number} days to expiry`,
-      severity: (x.daysLeft as number) <= 7 ? "high" : "med",
-    })),
-  ]
-    .sort((a, b) => (a.severity === "high" ? 0 : 1) - (b.severity === "high" ? 0 : 1))
-    .slice(0, 6);
-
-  const milestonesDonePct = timeline.length ? Math.round((timeline.filter(m => m.done).length / timeline.length) * 100) : 0;
-  const permitsHealthyPct = permits.length
-    ? Math.round((permits.filter(p => String(p.status).toLowerCase() === "active").length / permits.length) * 100)
-    : 0;
-  const trainingPct = training.length
-    ? Math.round((training.filter(m => m.completed).length / training.length) * 100)
-    : 0;
-
-  const readinessScore = Math.round(
-    (prog * 0.35) +
-    (milestonesDonePct * 0.2) +
-    (permitsHealthyPct * 0.2) +
-    (staffingProg * 0.15) +
-    (trainingPct * 0.1)
-  );
-
-  const weeklyExecutiveSummary = {
-    openingWindow: daysToOpen === null
-      ? "Set your Grand Opening milestone date to activate countdown"
-      : daysToOpen >= 0
-        ? `${daysToOpen} days until Grand Opening`
-        : `Grand Opening passed ${Math.abs(daysToOpen)} days ago`,
-    topRiskCount: criticalPathItems.filter(i => i.severity === "high").length,
-    permitRiskCount: permitAlerts.filter(x => (x.daysLeft as number) <= 14).length,
-    staffingGap: Math.max(0, totOpenings - totHired),
-    nextPriorities: criticalPathItems.slice(0, 4),
-  };
-
-  const countdownRunbook = [
-    { label: "T-30", note: "Lock vendor terms, staffing plan, and permit packet review" },
-    { label: "T-14", note: "Dry-run service, complete role-based training sign-off" },
-    { label: "T-7", note: "Final inspections, inventory preload, marketing countdown" },
-    { label: "T-3", note: "Soft-open drills, contingency owner assignments" },
-    { label: "T-1", note: "Final walkthrough and go/no-go checklist" },
-    { label: "Day 0", note: "Grand opening command center with live issue log" },
-  ];
+      .map(t => ({ id: `task-${t.id}`, title: t.task, meta: `${t.category} · ${t.status}` })),
+    ...permitAlerts
+      .filter(x => (x.daysLeft as number) <= 14)
+      .map(x => ({ id: `permit-${x.permit.id}`, title: `${x.permit.name} permit follow-up`, meta: `${x.daysLeft as number} days left` })),
+  ].slice(0, 4);
 
   // ── Helper: re-fetch a single table and update state ──
   const refetch = async (table: string, setter: (d: any[]) => void) => {
@@ -1803,102 +1736,50 @@ export default function App() {
             <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 20 : 32 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <SectionHeader title="Launch Overview" subtitle="Track your restaurant's journey from concept to opening day"/>
-                {/* Progress */}
-                <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "20px 16px" : 32, marginBottom: isMobile ? 20 : 40, display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "center" : "center", gap: isMobile ? 16 : 40, textAlign: isMobile ? "center" : "left" }}>
-                  <ProgressRing progress={prog} size={isMobile ? 120 : 160} stroke={isMobile ? 8 : 10} />
-                  <div style={{ flex: 1, width: "100%" }}>
-                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, marginBottom: 16, fontWeight: 600 }}>CUMULATIVE LAUNCH STATUS</div>
-                    <div style={{ display: "flex", justifyContent: isMobile ? "center" : "flex-start", flexWrap: "wrap", gap: isMobile ? 20 : 32 }}>
-                      {["In Progress", "Complete", "Overdue"].map(s => (
-                        <div key={s} style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <span style={{ width: 8, height: 8, borderRadius: "50%", background: (STATUS_COLORS as any)[s].text }} />
-                            <span style={{ fontSize: isMobile ? 28 : 22, fontWeight: 700, fontFamily: "'Playfair Display', serif", color: T.text }}>
-                              {tasks.filter(t => t.status === s).length}
-                            </span>
-                          </div>
-                          <span style={{ fontSize: 10, color: T.muted, fontFamily: "'Inter', sans-serif", fontWeight: 600, letterSpacing: 0.5 }}>{s.toUpperCase()}</span>
-                        </div>
-                      ))}
+                {/* At-a-glance */}
+                <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 24, marginBottom: isMobile ? 16 : 24 }}>
+                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, marginBottom: 12, fontWeight: 600 }}>AT A GLANCE</div>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10, marginBottom: 12 }}>
+                    <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
+                      <div style={{ fontSize: 10, color: T.subtle }}>Progress</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: T.text }}>{prog}%</div>
                     </div>
-                    <div style={{ marginTop: 20, height: 8, background: T.bg, borderRadius: 10, overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${prog}%`, background: T.gold, borderRadius: 10, transition: "width 1s cubic-bezier(0.4, 0, 0.2, 1)" }} />
+                    <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
+                      <div style={{ fontSize: 10, color: T.subtle }}>Overdue Tasks</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: overdue > 0 ? T.red : T.green }}>{overdue}</div>
                     </div>
+                    <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
+                      <div style={{ fontSize: 10, color: T.subtle }}>Permit Risks ≤14d</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: permitAlerts.filter(x => (x.daysLeft as number) <= 14).length > 0 ? T.red : T.green }}>{permitAlerts.filter(x => (x.daysLeft as number) <= 14).length}</div>
+                    </div>
+                    <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
+                      <div style={{ fontSize: 10, color: T.subtle }}>Staffing Gap</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: (totOpenings - totHired) > 0 ? T.gold : T.green }}>{Math.max(0, totOpenings - totHired)}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <Btn onClick={() => setTab("tasks")} variant="outline" small>Tasks</Btn>
+                    <Btn onClick={() => setTab("permits")} variant="outline" small>Permits</Btn>
+                    <Btn onClick={() => setTab("talent")} variant="outline" small>Hiring</Btn>
+                    <Btn onClick={() => setTab("shopping")} variant="outline" small>Shopping</Btn>
                   </div>
                 </div>
 
-                {/* Launch Window Calendar */}
-                <LaunchWindow tasks={tasks} permits={permits} candidates={candidates} />
-
-                {/* Readiness + Runbook */}
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 16 : 24, marginTop: isMobile ? 16 : 24 }}>
-                  <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 28 }}>
-                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, marginBottom: 14, fontWeight: 600 }}>OPENING READINESS SCORE</div>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
-                      <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 38, color: readinessScore >= 75 ? T.green : readinessScore >= 55 ? T.gold : T.red, fontWeight: 700 }}>{readinessScore}</span>
-                      <span style={{ fontSize: 13, color: T.muted }}>/ 100</span>
-                    </div>
-                    <div style={{ fontSize: 12, color: T.text, marginBottom: 12 }}>{weeklyExecutiveSummary.openingWindow}</div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                      <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px" }}>
-                        <div style={{ fontSize: 10, color: T.subtle }}>High Risks</div>
-                        <div style={{ fontSize: 14, color: T.red, fontWeight: 700 }}>{weeklyExecutiveSummary.topRiskCount}</div>
-                      </div>
-                      <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px" }}>
-                        <div style={{ fontSize: 10, color: T.subtle }}>Staffing Gap</div>
-                        <div style={{ fontSize: 14, color: T.text, fontWeight: 700 }}>{weeklyExecutiveSummary.staffingGap}</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 28 }}>
-                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, marginBottom: 14, fontWeight: 600 }}>COUNTDOWN RUNBOOK</div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                      {countdownRunbook.map(step => (
-                        <div key={step.label} style={{ display: "grid", gridTemplateColumns: "58px 1fr", gap: 10, alignItems: "start" }}>
-                          <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.blue, background: T.blueLight, border: `1px solid ${T.blueLight}`, borderRadius: 8, padding: "4px 8px", textAlign: "center" }}>{step.label}</div>
-                          <div style={{ fontSize: 12, color: T.text }}>{step.note}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Critical Path + Weekly Summary */}
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 16 : 24, marginTop: isMobile ? 16 : 24 }}>
+                {/* Must Act Now */}
+                <div style={{ marginTop: isMobile ? 16 : 24 }}>
                   <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 28 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                      <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>CRITICAL PATH BLOCKERS</div>
+                      <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>MUST ACT NOW</div>
                       <Btn onClick={() => setTab("tasks")} variant="ghost" small>Open Tasks →</Btn>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                      {criticalPathItems.length === 0 ? (
-                        <div style={{ fontSize: 12, color: T.muted, padding: "8px 0" }}>No immediate blockers detected in the next 3 weeks.</div>
-                      ) : criticalPathItems.map(item => (
-                        <div key={item.id} style={{ background: item.severity === "high" ? T.redLight : T.goldLight, border: `1px solid ${item.severity === "high" ? T.redBorder : T.goldBorder}`, borderRadius: 12, padding: "10px 12px" }}>
+                      {mustActNow.length === 0 ? (
+                        <div style={{ fontSize: 12, color: T.green, background: T.greenLight, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>No urgent actions right now.</div>
+                      ) : mustActNow.map(item => (
+                        <div key={`must-${item.id}`} style={{ border: `1px solid ${T.redBorder}`, background: T.redLight, borderRadius: 10, padding: "10px 12px" }}>
                           <div style={{ fontSize: 13, color: T.text, fontWeight: 700 }}>{item.title}</div>
-                          <div style={{ fontSize: 11, color: T.muted, marginTop: 3 }}>{item.detail}</div>
+                          <div style={{ fontSize: 11, color: T.muted, marginTop: 3 }}>{item.meta}</div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 28 }}>
-                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, marginBottom: 12, fontWeight: 600 }}>WEEKLY EXECUTIVE SUMMARY</div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-                      <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px" }}>
-                        <div style={{ fontSize: 10, color: T.subtle }}>Permit Risks (≤14d)</div>
-                        <div style={{ fontSize: 14, color: weeklyExecutiveSummary.permitRiskCount > 0 ? T.red : T.green, fontWeight: 700 }}>{weeklyExecutiveSummary.permitRiskCount}</div>
-                      </div>
-                      <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px" }}>
-                        <div style={{ fontSize: 10, color: T.subtle }}>Execution Progress</div>
-                        <div style={{ fontSize: 14, color: T.text, fontWeight: 700 }}>{prog}%</div>
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 12, color: T.text, marginBottom: 8, fontWeight: 600 }}>Next 7-Day Priorities</div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {weeklyExecutiveSummary.nextPriorities.length === 0 ? (
-                        <div style={{ fontSize: 12, color: T.muted }}>No urgent priorities for this week.</div>
-                      ) : weeklyExecutiveSummary.nextPriorities.map(p => (
-                        <div key={`summary-${p.id}`} style={{ fontSize: 12, color: T.text }}>• {p.title}</div>
                       ))}
                     </div>
                   </div>
@@ -1927,109 +1808,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* To-Do Overview */}
-                <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 32, marginTop: isMobile ? 20 : 40 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: isMobile ? 16 : 24 }}>
-                    <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>PRIORITY FOCUS</span>
-                    <Btn onClick={() => setTab("tasks")} variant="ghost" small>Full Board →</Btn>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {tasks.filter(t => t.status !== "Complete").slice(0, 4).map(t => (
-                      <div key={t.id} 
-                        className="todo-card"
-                        style={{ display: "flex", alignItems: "center", gap: 16, padding: 16, border: `1px solid ${T.border}`, borderRadius: 16, transition: "all .2s ease", cursor: "pointer" }}
-                        onMouseOver={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 24px rgba(0,0,0,0.06)"; e.currentTarget.style.borderColor = T.goldBorder; }}
-                        onMouseOut={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderColor = T.border; }}
-                      >
-                        <div style={{ width: 10, height: 10, borderRadius: "50%", background: (PRIORITY_COLORS as any)[t.priority].text }} />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 2 }}>{t.task}</div>
-                          <div style={{ fontSize: 11, color: T.muted, fontFamily: "'Inter', sans-serif" }}>Due {t.due} • {t.category}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Category breakdown + alerts */}
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 16 : 24, marginTop: isMobile ? 16 : 40 }}>
-                  <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 32 }}>
-                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, marginBottom: isMobile ? 16 : 24, fontWeight: 600 }}>DEPARTMENTAL SYNC</div>
-                    {CATEGORIES.map(cat => {
-                      const cc = CAT_COLORS[cat]; const ct = tasks.filter(t => t.category === cat);
-                      const d = ct.filter(t => t.status === "Complete").length; const p = ct.length ? Math.round((d / ct.length) * 100) : 0;
-                      return (
-                        <div key={cat} style={{ marginBottom: 16 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                            <span style={{ fontSize: 13, color: T.text, display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
-                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: cc.dot }} />
-                              {cat}
-                            </span>
-                            <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted }}>{d}/{ct.length}</span>
-                          </div>
-                          <div style={{ height: 6, background: T.bg, borderRadius: 10 }}>
-                            <div style={{ height: "100%", width: `${p}%`, background: cc.dot, borderRadius: 10, transition: "width .5s ease" }} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 32 }}>
-                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, marginBottom: isMobile ? 16 : 24, fontWeight: 600 }}>SYSTEM ALERTS</div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                      {tasks.filter(t => t.status === "Overdue" || t.priority === "Critical").slice(0, 3).map(t => (
-                        <div key={`alert-${t.id}`} style={{ background: T.redLight, border: `1px solid ${T.redBorder}`, borderRadius: 16, padding: "12px 16px" }}>
-                          <div style={{ fontSize: 13, color: T.red, fontWeight: 700 }}>{t.task}</div>
-                          <div style={{ fontSize: 11, color: "#8A4A4A", marginTop: 4, opacity: 0.8 }}>{t.category} · Due {t.due}</div>
-                        </div>
-                      ))}
-                      <button onClick={() => setTab("ai")} style={{ width: "100%", marginTop: 12, background: T.goldLight, border: `1px solid ${T.goldBorder}`, borderRadius: 12, padding: "12px", color: T.gold, cursor: "pointer", fontSize: 12, fontFamily: "'Inter',sans-serif", fontWeight: 700, transition: "all .2s" }}>✨ Ask Assistant for Remediation →</button>
-                    </div>
-                  </div>
-                </div>
-          </div>
-
-          <div style={{ width: isMobile ? "100%" : 320, flexShrink: 0 }}>
-            {/* Activity Feed */}
-            <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:16, padding: isMobile ? 16 : 20, marginBottom:16 }}>
-              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:T.muted, letterSpacing:.8, marginBottom:18, display: "flex", justifyContent: "space-between" }}>
-                <span>RECENT ACTIVITY</span>
-                <span style={{ color: T.gold }}>LIVE</span>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                {activity.map(a => (
-                  <div key={a.id} style={{ display: "flex", gap: 12 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: a.user === "Owner" ? T.gold : T.border, marginTop: 4 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>{a.action}</div>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                        <span style={{ fontSize: 11, color: T.muted }}>{a.user}</span>
-                        <span style={{ fontSize: 10, color: T.subtle }}>{a.timestamp}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Cloud Status */}
-            <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? 16 : 24, marginBottom: 16 }}>
-              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, marginBottom: 18, fontWeight: 700 }}>CLOUD SYNC ARCHITECTURE</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 8, background: isDriveConnected ? T.greenLight : T.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Package size={20} color={isDriveConnected ? T.green : T.muted} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>Google Drive</div>
-                  <div style={{ fontSize: 11, color: isDriveConnected ? T.green : T.red }}>
-                    {isDriveConnected ? "Connected & Syncing" : "Cloud Sync Disabled"}
-                  </div>
-                </div>
-                {!isDriveConnected && (
-                  <button onClick={handleGoogleConnect} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: isMobile ? "8px 12px" : "6px 10px", fontSize: isMobile ? 12 : 11, cursor: "pointer" }}>Fix</button>
-                )}
-              </div>
-            </div>
           </div>
         </div>
       </div>
