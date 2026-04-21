@@ -318,6 +318,8 @@ export default function App() {
         { table: "positions", set: setPositions as any },
         { table: "candidates", set: setCandidates as any },
         { table: "digital_assets", set: setAssets as any },
+        { table: "shopping_list_items", set: setDbShoppingItems as any },
+        { table: "cost_calculator_overrides", set: setDbCostCalcOverrides as any },
       ];
 
       await Promise.all(
@@ -513,6 +515,36 @@ export default function App() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // Sync database shopping items to UI state
+  useEffect(() => {
+    const manual = dbShoppingItems.filter(item => !item.sourceKey).map(item => ({
+      id: String(item.id),
+      name: item.name,
+      quantity: Number(item.quantity),
+      unit: item.unit,
+      totalCost: Number(item.totalCost),
+      items: Array.isArray(item.items) ? item.items : (typeof item.items === 'string' ? item.items.split(',').filter(s => s.trim()) : []),
+      category: item.category,
+      department: item.department,
+      isManual: true,
+    } as ShoppingListItem));
+    setShopManualItems(manual);
+
+    const overrides: Record<string, Partial<ShoppingListItem>> = {};
+    dbShoppingItems.filter(item => item.sourceKey).forEach(item => {
+      overrides[item.sourceKey] = {
+        name: item.name,
+        quantity: Number(item.quantity),
+        unit: item.unit,
+        totalCost: Number(item.totalCost),
+        items: Array.isArray(item.items) ? item.items : (typeof item.items === 'string' ? item.items.split(',').filter(s => s.trim()) : []),
+        category: item.category,
+        department: item.department,
+      };
+    });
+    setShopItemOverrides(overrides);
+  }, [dbShoppingItems]);
+
   const [delConfirm, setDelConfirm] = useState<any>(null); // {label, onConfirm}
 
   // Filters
@@ -525,6 +557,8 @@ export default function App() {
   const [shopItemOverrides, setShopItemOverrides] = useState<Record<string, Partial<ShoppingListItem>>>({});
   const [shopRemovedSourceKeys, setShopRemovedSourceKeys] = useState<string[]>([]);
   const [shopItemModal, setShopItemModal] = useState<ShoppingListItem | "new" | null>(null);
+  const [dbShoppingItems, setDbShoppingItems] = useState<any[]>([]);
+  const [dbCostCalcOverrides, setDbCostCalcOverrides] = useState<any[]>([]);
   const [shopItemDraft, setShopItemDraft] = useState({
     name: "",
     category: "Operating Supplies",
@@ -1170,7 +1204,7 @@ export default function App() {
     setShopItemModal(item);
   };
 
-  const saveShopItem = () => {
+  const saveShopItem = async () => {
     const name = shopItemDraft.name.trim();
     if (!name) return;
     const rowItems = shopItemDraft.items.split(",").map(v => v.trim()).filter(Boolean);
@@ -1187,7 +1221,25 @@ export default function App() {
         items: rowItems,
         isManual: true,
       };
-      setShopManualItems(prev => [...prev, newItem]);
+      
+      // Save to database
+      try {
+        await dbInsert("shopping_list_items", {
+          name,
+          category: shopItemDraft.category,
+          department: shopItemDraft.department,
+          quantity: Number(shopItemDraft.quantity) || 0,
+          unit: shopItemDraft.unit.trim(),
+          totalCost: Number(shopItemDraft.totalCost) || 0,
+          items: rowItems.join(","),
+          sourceKey: null,
+        });
+        await refetch("shopping_list_items", setDbShoppingItems);
+      } catch (e) {
+        console.error("Failed to save shopping item:", e);
+        alert("Failed to save shopping item");
+      }
+      
       setShopItemModal(null);
       return;
     }
@@ -1195,41 +1247,135 @@ export default function App() {
     if (!shopItemModal) return;
 
     if (shopItemModal.isManual) {
-      setShopManualItems(prev => prev.map(item => item.id === shopItemModal.id ? {
-        ...item,
-        name,
-        category: shopItemDraft.category,
-        department: shopItemDraft.department,
-        quantity: Number(shopItemDraft.quantity) || 0,
-        unit: shopItemDraft.unit.trim(),
-        totalCost: Number(shopItemDraft.totalCost) || 0,
-        items: rowItems,
-      } : item));
+      // Update manual item in DB
+      const dbItem = dbShoppingItems.find(item => 
+        item.name === shopItemModal.name && 
+        !item.sourceKey && 
+        item.category === shopItemModal.category
+      );
+      
+      if (dbItem) {
+        try {
+          await dbUpdate("shopping_list_items", dbItem.id, {
+            name,
+            category: shopItemDraft.category,
+            department: shopItemDraft.department,
+            quantity: Number(shopItemDraft.quantity) || 0,
+            unit: shopItemDraft.unit.trim(),
+            totalCost: Number(shopItemDraft.totalCost) || 0,
+            items: rowItems.join(","),
+          });
+          await refetch("shopping_list_items", setDbShoppingItems);
+        } catch (e) {
+          console.error("Failed to update shopping item:", e);
+          alert("Failed to update shopping item");
+        }
+      }
     } else if (shopItemModal.sourceKey) {
-      setShopItemOverrides(prev => ({
-        ...prev,
-        [shopItemModal.sourceKey as string]: {
-          name,
-          category: shopItemDraft.category,
-          department: shopItemDraft.department,
-          quantity: Number(shopItemDraft.quantity) || 0,
-          unit: shopItemDraft.unit.trim(),
-          totalCost: Number(shopItemDraft.totalCost) || 0,
-          items: rowItems,
-        },
-      }));
+      // Update override item in DB
+      const dbItem = dbShoppingItems.find(item => item.sourceKey === shopItemModal.sourceKey);
+      
+      if (dbItem) {
+        try {
+          await dbUpdate("shopping_list_items", dbItem.id, {
+            name,
+            category: shopItemDraft.category,
+            department: shopItemDraft.department,
+            quantity: Number(shopItemDraft.quantity) || 0,
+            unit: shopItemDraft.unit.trim(),
+            totalCost: Number(shopItemDraft.totalCost) || 0,
+            items: rowItems.join(","),
+          });
+          await refetch("shopping_list_items", setDbShoppingItems);
+        } catch (e) {
+          console.error("Failed to update shopping override:", e);
+          alert("Failed to update shopping override");
+        }
+      } else {
+        // Create new override item if not found
+        try {
+          await dbInsert("shopping_list_items", {
+            name,
+            category: shopItemDraft.category,
+            department: shopItemDraft.department,
+            quantity: Number(shopItemDraft.quantity) || 0,
+            unit: shopItemDraft.unit.trim(),
+            totalCost: Number(shopItemDraft.totalCost) || 0,
+            items: rowItems.join(","),
+            sourceKey: shopItemModal.sourceKey,
+          });
+          await refetch("shopping_list_items", setDbShoppingItems);
+        } catch (e) {
+          console.error("Failed to save shopping override:", e);
+          alert("Failed to save shopping override");
+        }
+      }
     }
 
     setShopItemModal(null);
   };
 
-  const removeShopItem = (item: ShoppingListItem) => {
+  const removeShopItem = async (item: ShoppingListItem) => {
     if (item.isManual) {
-      setShopManualItems(prev => prev.filter(row => row.id !== item.id));
+      // Delete manual item from DB
+      const dbItem = dbShoppingItems.find(dbItem => 
+        dbItem.name === item.name && 
+        !dbItem.sourceKey && 
+        dbItem.category === item.category
+      );
+      
+      if (dbItem) {
+        try {
+          await dbDelete("shopping_list_items", dbItem.id);
+          await refetch("shopping_list_items", setDbShoppingItems);
+        } catch (e) {
+          console.error("Failed to delete shopping item:", e);
+          alert("Failed to delete shopping item");
+        }
+      }
       return;
     }
+    
     if (item.sourceKey) {
-      setShopRemovedSourceKeys(prev => prev.includes(item.sourceKey as string) ? prev : [...prev, item.sourceKey as string]);
+      // Delete override item from DB
+      const dbItem = dbShoppingItems.find(dbItem => dbItem.sourceKey === item.sourceKey);
+      
+      if (dbItem) {
+        try {
+          await dbDelete("shopping_list_items", dbItem.id);
+          await refetch("shopping_list_items", setDbShoppingItems);
+        } catch (e) {
+          console.error("Failed to delete shopping override:", e);
+          alert("Failed to delete shopping override");
+        }
+      }
+    }
+  };
+
+  const saveCostCalcOverride = async (itemId: number, data: any) => {
+    try {
+      // Check if override already exists
+      const existing = dbCostCalcOverrides.find((o: any) => o.itemId === itemId);
+      
+      if (existing) {
+        // Update existing
+        await dbUpdate("cost_calculator_overrides", existing.id, {
+          price: data.price,
+          targetFoodCost: data.targetFoodCost,
+          ingredients: data.ingredients,
+        });
+      } else {
+        // Create new
+        await dbInsert("cost_calculator_overrides", {
+          itemId,
+          price: data.price,
+          targetFoodCost: data.targetFoodCost,
+          ingredients: data.ingredients,
+        });
+      }
+      await refetch("cost_calculator_overrides", setDbCostCalcOverrides);
+    } catch (e) {
+      console.error("Failed to save cost calculator override:", e);
     }
   };
 
@@ -1974,7 +2120,7 @@ export default function App() {
         )}
 
         {/* ══════ COST CALCULATOR ══════ */}
-        {tab==="costcalc" && <CostCalculator menuItems={menuItems} />}
+        {tab==="costcalc" && <CostCalculator menuItems={menuItems} dbCostCalcOverrides={dbCostCalcOverrides} onSaveOverride={saveCostCalcOverride} />}
 
         {/* ══════ TEAM ONBOARDING ══════ */}
         {tab==="onboarding" && <TeamOnboarding />}

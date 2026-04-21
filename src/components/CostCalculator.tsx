@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { T, MenuItem } from '../types';
 import { SectionHeader } from './UI';
 
@@ -13,9 +13,45 @@ type ManualItemState = {
   ingredients: Record<number, ManualIngredient>;
 };
 
-export function CostCalculator({ menuItems }: { menuItems: MenuItem[] }) {
+export function CostCalculator({ 
+  menuItems,
+  dbCostCalcOverrides,
+  onSaveOverride,
+}: { 
+  menuItems: MenuItem[],
+  dbCostCalcOverrides?: any[],
+  onSaveOverride?: (itemId: number, data: any) => Promise<void>,
+}) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [manualByItem, setManualByItem] = useState<Record<number, ManualItemState>>({});
+
+  // Load overrides from database on mount or when dbCostCalcOverrides changes
+  useEffect(() => {
+    if (!dbCostCalcOverrides || dbCostCalcOverrides.length === 0) return;
+    
+    const overrideMap: Record<number, ManualItemState> = {};
+    dbCostCalcOverrides.forEach((override: any) => {
+      const itemId = override.itemId;
+      const ingredients: Record<number, ManualIngredient> = {};
+      
+      if (override.ingredients && typeof override.ingredients === 'object') {
+        Object.entries(override.ingredients).forEach(([ingId, data]: [string, any]) => {
+          ingredients[Number(ingId)] = {
+            quantity: Number(data.quantity || 0),
+            cost: Number(data.cost || 0),
+          };
+        });
+      }
+      
+      overrideMap[itemId] = {
+        price: Number(override.price || 0),
+        targetFoodCost: Number(override.targetFoodCost || 0),
+        ingredients,
+      };
+    });
+    
+    setManualByItem(overrideMap);
+  }, [dbCostCalcOverrides]);
 
   const selected = useMemo(
     () => menuItems.find((item) => item.id === selectedId) || null,
@@ -38,11 +74,26 @@ export function CostCalculator({ menuItems }: { menuItems: MenuItem[] }) {
     };
   };
 
-  const updateManualItem = (item: MenuItem, updater: (prev: ManualItemState) => ManualItemState) => {
+  const updateManualItem = async (item: MenuItem, updater: (prev: ManualItemState) => ManualItemState) => {
     setManualByItem((prev) => {
       const current = prev[item.id] || ensureManualItem(item);
       return { ...prev, [item.id]: updater(current) };
     });
+    
+    // Auto-save to database
+    if (onSaveOverride) {
+      const current = manualByItem[item.id] || ensureManualItem(item);
+      const updated = updater(current);
+      try {
+        await onSaveOverride(item.id, {
+          price: updated.price,
+          targetFoodCost: updated.targetFoodCost,
+          ingredients: updated.ingredients,
+        });
+      } catch (e) {
+        console.error("Failed to save cost calculator override:", e);
+      }
+    }
   };
 
   const getManualPrice = (item: MenuItem) => {
