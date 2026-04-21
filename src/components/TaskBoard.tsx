@@ -101,8 +101,8 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange, onToggleCheck 
           <span style={{ fontSize: 10, fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, padding: "3px 10px", borderRadius: 24, background: pc.bg, color: pc.text, border: `1px solid ${pc.border}` }}>{task.priority.toUpperCase()}</span>
         </div>
         <div style={{ display: "flex", gap: 5, justifyContent: "flex-end" }}>
-          <button onClick={() => onEdit(task)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 12 }}>�S}</button>
-          <button onClick={() => onDelete(task)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 12 }}>�S"</button>
+          <button onClick={() => onEdit(task)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 12 }}>Edit</button>
+          <button onClick={() => onDelete(task)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 12 }}>Delete</button>
         </div>
       </div>
       {open && total > 0 && (

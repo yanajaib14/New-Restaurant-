@@ -3,7 +3,7 @@ import { T, WHEN_COLORS } from '../types';
 import { Btn } from './UI';
 
 const INIT_HOUSE_RULES = [
-  { id: 1, category: "Attendance & Punctuality", icon: "�x"�", rules: [
+  { id: 1, category: "Attendance & Punctuality", icon: "A", rules: [
     { id: 101, title: "Arrive 15 Minutes Early", detail: "All staff must clock in ready to work � not arriving � 15 minutes before their scheduled shift. Lateness without prior notice is subject to disciplinary action." },
     { id: 102, title: "Call-Out Policy", detail: "If you cannot make your shift, you must notify management at least 4 hours in advance by phone call � texts alone are not accepted. Failure to show without notice (no-call/no-show) may result in termination." },
     { id: 103, title: "Shift Swaps", detail: "All shift swaps must be approved by a manager in writing (text or email). You are responsible for your shift until a manager confirms the swap." },
@@ -288,9 +288,9 @@ export function TeamOnboarding() {
                           <button onClick={() => setExpandedTask(isExp ? null : task.id)}
                             style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 8px", color: T.muted, cursor: "pointer", fontSize: 11, transform: isExp ? "rotate(180deg)" : "none", transition: "transform .15s" }}>��</button>
                           <button onClick={() => setEditingTask(isEdit ? null : { ...task, roleId: role.id })}
-                            style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
+                            style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
                           <button onClick={() => deleteTask(role.id, task.id)}
-                            style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "3px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
+                            style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "3px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>Delete</button>
                         </div>
                       </div>
                       {/* Expanded detail */}
@@ -383,9 +383,9 @@ export function TeamOnboarding() {
                           <button onClick={() => setExpandedRule(isExp ? null : `${cat.id}:${rule.id}`)}
                             style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 7px", color: T.muted, cursor: "pointer", fontSize: 11, transform: isExp ? "rotate(180deg)" : "none", transition: "transform .15s" }}>��</button>
                           <button onClick={() => setEditingRule(isEdit ? null : { ...rule, catId: cat.id })}
-                            style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 7px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
+                            style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 7px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
                           <button onClick={() => deleteRule(cat.id, rule.id)}
-                            style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "3px 7px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
+                            style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "3px 7px", color: T.red, cursor: "pointer", fontSize: 11 }}>Delete</button>
                         </div>
                       </div>
                       {isExp && !isEdit && (

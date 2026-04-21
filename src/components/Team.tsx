@@ -491,8 +491,8 @@ export function TeamMap({ positions, candidates, onAddMember, onEditMember, onDe
                   </div>
                 </div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => onEditMember(member.raw)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: "4px 8px", cursor: "pointer", color: T.muted, fontSize: 11 }}>�S}</button>
-                    <button onClick={() => onDeleteMember(member.raw)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 8, padding: "4px 8px", cursor: "pointer", color: T.red, fontSize: 11 }}>�S"</button>
+                    <button onClick={() => onEditMember(member.raw)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: "4px 8px", cursor: "pointer", color: T.muted, fontSize: 11 }}>Edit</button>
+                    <button onClick={() => onDeleteMember(member.raw)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 8, padding: "4px 8px", cursor: "pointer", color: T.red, fontSize: 11 }}>Delete</button>
                   </div>
                 </div>
                 

@@ -17,8 +17,8 @@ export function VendorManager({ vendors, onAdd, onEdit, onDelete }: { vendors: V
                 <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 16, fontWeight: 700, color: T.text }}>{v.name}</div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={() => onEdit(v)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
-                <button onClick={() => onDelete(v.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
+                <button onClick={() => onEdit(v)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
+                <button onClick={() => onDelete(v.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>Delete</button>
               </div>
             </div>
             <div style={{ fontSize: 13, color: T.text, marginBottom: 8 }}>
@@ -127,8 +127,8 @@ export function InventoryTracker({ items, onUpdateStock, onAdd, onEdit, onDelete
               <div style={{ fontSize: 12, fontFamily: "'IBM Plex Mono',monospace", color: T.text }}>{item.parLevel} {item.unit}</div>
               <div style={{ fontSize: 11, color: T.muted }}>{item.lastOrdered}</div>
               <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                <button onClick={() => onEdit(item)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
-                <button onClick={() => onDelete(item.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
+                <button onClick={() => onEdit(item)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
+                <button onClick={() => onDelete(item.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>Delete</button>
               </div>
             </div>
           );
@@ -259,8 +259,8 @@ export function PermitTracker({ permits, onAdd, onEdit, onDelete }: { permits: P
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <Pill label={p.status} color={sc.text} bg={sc.bg} border={sc.border} />
                 <div style={{ display: "flex", gap: 6 }}>
-                  <button onClick={() => onEdit(p)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
-                  <button onClick={() => onDelete(p.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
+                  <button onClick={() => onEdit(p)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
+                  <button onClick={() => onDelete(p.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>Delete</button>
                 </div>
               </div>
               <div>
@@ -393,8 +393,8 @@ export function UtilityTracker({ utilities, onAdd, onEdit, onDelete }: { utiliti
                 <div style={{ fontSize: 11, color: T.muted }}>Started: {u.startDate}</div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={() => onEdit(u)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
-                <button onClick={() => onDelete(u.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
+                <button onClick={() => onEdit(u)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
+                <button onClick={() => onDelete(u.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>Delete</button>
               </div>
             </div>
 
@@ -458,7 +458,7 @@ export function UtilityModal({ account, onSave, onClose }: { account: UtilityAcc
       
       <div style={{ marginTop: 12 }}>
         <button onClick={handleMockUpload} style={{ width: "100%", background: T.bg, border: `1px dashed ${T.borderStrong}`, borderRadius: 8, padding: "12px", color: T.muted, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-          <span>�x}</span> {form.fileUrl ? "Document Uploaded" : "Upload Document"}
+          <span>Attach</span> {form.fileUrl ? "Document Uploaded" : "Upload Document"}
         </button>
         {form.fileUrl && <div style={{ fontSize: 11, color: T.green, textAlign: "center", marginTop: 6 }}>�S Mock document stored successfully</div>}
       </div>

@@ -148,8 +148,8 @@ export function MasterInventory({ items, vendors, onEdit, onDelete, onAdd }: {
                       <div style={{ marginTop: 8, fontSize: 11, color: T.muted }}>Vendor: {getVendorName(item.vendorId)} ⬢ Lead time: {item.leadTime || "N/A"}</div>
                     </div>
                     <div style={{ display: "flex", gap: 6 }}>
-                      <button onClick={() => onEdit(item)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
-                      <button onClick={() => onDelete(item.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
+                      <button onClick={() => onEdit(item)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
+                      <button onClick={() => onDelete(item.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>Delete</button>
                     </div>
                   </div>
                   {item.notes && (
@@ -196,8 +196,8 @@ export function MasterInventory({ items, vendors, onEdit, onDelete, onAdd }: {
                     </div>
                     <div style={{ fontSize: 13, fontFamily: "'IBM Plex Mono',monospace", fontWeight: 600, color: T.text }}>${(Number(item.price) || 0).toLocaleString()}</div>
                     <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                      <button onClick={() => onEdit(item)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
-                      <button onClick={() => onDelete(item.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
+                      <button onClick={() => onEdit(item)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
+                      <button onClick={() => onDelete(item.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>Delete</button>
                     </div>
                   </div>
                   {item.notes && (

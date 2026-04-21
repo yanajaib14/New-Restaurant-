@@ -151,8 +151,8 @@ export function InvoicesSection({ invoices, onEdit, onDelete, onAdd }: { invoice
                 />
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => onEdit(inv)} style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 14 }}>�S}</button>
-                <button onClick={() => onDelete(inv)} style={{ background: "none", border: "none", color: T.red, cursor: "pointer", fontSize: 14 }}>�S"</button>
+                <button onClick={() => onEdit(inv)} style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 14 }}>Edit</button>
+                <button onClick={() => onDelete(inv)} style={{ background: "none", border: "none", color: T.red, cursor: "pointer", fontSize: 14 }}>Delete</button>
               </div>
             </div>
           ))

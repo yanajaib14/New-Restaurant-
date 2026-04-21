@@ -48,7 +48,7 @@ export function NoteModal({ note, onSave, onClose }: { note: Note | null, onSave
       <Field label="ATTACHMENTS">
         <div style={{ border: `2px dashed ${T.border}`, borderRadius: 10, padding: "18px 16px", textAlign: "center", cursor: "pointer", background: T.bg }}
           onClick={() => fileRef.current?.click()}>
-          <div style={{ fontSize: 22, marginBottom: 6 }}>�x}</div>
+          <div style={{ fontSize: 22, marginBottom: 6 }}>Attach</div>
           <div style={{ fontSize: 13, color: T.muted, fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}>Click to upload or drag & drop</div>
           <div style={{ fontSize: 11, color: T.subtle, marginTop: 4, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600 }}>Photos, PDFs, docs</div>
           <input ref={fileRef} type="file" multiple accept="image/*,.pdf,.doc,.docx,.txt" onChange={handleFiles} style={{ display: "none" }} />

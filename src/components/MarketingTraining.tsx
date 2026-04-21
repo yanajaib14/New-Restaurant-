@@ -22,8 +22,8 @@ export function MarketingCalendar({ posts, onAdd, onEdit, onDelete }: { posts: M
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <Pill label={p.status} color={sc.text} bg={sc.bg} border={sc.border} />
                 <div style={{ display: "flex", gap: 6 }}>
-                  <button onClick={() => onEdit(p)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
-                  <button onClick={() => onDelete(p.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
+                  <button onClick={() => onEdit(p)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
+                  <button onClick={() => onDelete(p.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>Delete</button>
                 </div>
               </div>
               <div>
@@ -90,8 +90,8 @@ export function TrainingPortal({ modules, onToggleStep, onAdd, onEdit, onDelete 
                   <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 17, fontWeight: 700, color: T.text, marginTop: 8 }}>{m.title}</div>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <button onClick={() => onEdit(m)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
-                  <button onClick={() => onDelete(m.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
+                  <button onClick={() => onEdit(m)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
+                  <button onClick={() => onDelete(m.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>Delete</button>
                 </div>
               </div>
               <div style={{ marginBottom: 18 }}>
@@ -116,7 +116,7 @@ export function TrainingPortal({ modules, onToggleStep, onAdd, onEdit, onDelete 
               </div>
               {m.videoUrl && (
                 <button onClick={() => window.open(m.videoUrl, "_blank")} style={{ width: "100%", marginTop: 20, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px", color: T.text, cursor: "pointer", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                  �x}� Watch Training Video
+                  Watch Training Video
                 </button>
               )}
             </div>
@@ -183,8 +183,8 @@ export function DigitalAssetManager({ assets, onAdd, onEdit, onDelete }: { asset
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <Pill label={a.category} color={T.blue} bg={T.blueLight} border={T.blueBorder} />
               <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={() => onEdit(a)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
-                <button onClick={() => onDelete(a.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
+                <button onClick={() => onEdit(a)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
+                <button onClick={() => onDelete(a.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>Delete</button>
               </div>
             </div>
             <div>
@@ -278,8 +278,8 @@ export function DailyChecklistManager({ checklists, onToggleItem, onAdd, onEdit,
                 <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 16, fontWeight: 700, color: T.text, marginTop: 8 }}>{c.title}</div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={() => onEdit(c)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
-                <button onClick={() => onDelete(c.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
+                <button onClick={() => onEdit(c)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
+                <button onClick={() => onDelete(c.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>Delete</button>
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

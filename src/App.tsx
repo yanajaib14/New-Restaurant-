@@ -1876,8 +1876,8 @@ export default function App() {
                             </div>
                           </div>
                           <div style={{ display: "flex", gap: 6 }}>
-                            <button onClick={() => setTaskModal(t)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 12 }}>�S}</button>
-                            <button onClick={() => setDelConfirm({ label: t.task, onConfirm: () => deleteRecord('tasks', t.id, t.task, setTasks) })} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 12 }}>�S"</button>
+                            <button onClick={() => setTaskModal(t)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 12 }}>Edit</button>
+                            <button onClick={() => setDelConfirm({ label: t.task, onConfirm: () => deleteRecord('tasks', t.id, t.task, setTasks) })} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 12 }}>Delete</button>
                           </div>
                         </div>
                       </div>
@@ -1957,8 +1957,8 @@ export default function App() {
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 6, marginTop: 10, justifyContent: "flex-end" }}>
-                      <button onClick={() => setMenuModal(item)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 12 }}>�S}</button>
-                      <button onClick={() => setDelConfirm({ label: item.name, onConfirm: () => deleteRecord('menu_items', item.id, item.name, setMenuItems) })} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 12 }}>�S"</button>
+                      <button onClick={() => setMenuModal(item)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 12 }}>Edit</button>
+                      <button onClick={() => setDelConfirm({ label: item.name, onConfirm: () => deleteRecord('menu_items', item.id, item.name, setMenuItems) })} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 12 }}>Delete</button>
                     </div>
                   </div>
                 ))}
@@ -1990,8 +1990,8 @@ export default function App() {
                     <div style={{ textAlign:"center", fontSize:14 }}>{item.hero?"⭐":"�"}</div>
                     <div style={{ fontSize:11, color:T.muted }}>{item.notes||"�"}</div>
                     <div style={{ display:"flex", gap:5 }}>
-                      <button onClick={()=>setMenuModal(item)} style={{ background:"none",border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 7px",color:T.muted,cursor:"pointer",fontSize:11 }}>�S}</button>
-                      <button onClick={()=>setDelConfirm({label:item.name,onConfirm:()=>deleteRecord('menu_items', item.id, item.name, setMenuItems)})} style={{ background:"none",border:`1px solid ${T.redBorder}`,borderRadius:6,padding:"3px 7px",color:T.red,cursor:"pointer",fontSize:11 }}>�S"</button>
+                      <button onClick={()=>setMenuModal(item)} style={{ background:"none",border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 7px",color:T.muted,cursor:"pointer",fontSize:11 }}>Edit</button>
+                      <button onClick={()=>setDelConfirm({label:item.name,onConfirm:()=>deleteRecord('menu_items', item.id, item.name, setMenuItems)})} style={{ background:"none",border:`1px solid ${T.redBorder}`,borderRadius:6,padding:"3px 7px",color:T.red,cursor:"pointer",fontSize:11 }}>Delete</button>
                     </div>
                   </div>
                 ))}
@@ -2087,8 +2087,8 @@ export default function App() {
                         ))}
                       </div>
                       <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                        <button onClick={() => openEditShopItem(ing)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S} Edit</button>
-                        <button onClick={() => removeShopItem(ing)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "5px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S" Remove</button>
+                        <button onClick={() => openEditShopItem(ing)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
+                        <button onClick={() => removeShopItem(ing)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "5px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>Remove</button>
                       </div>
                     </div>
                   ))
@@ -2123,8 +2123,8 @@ export default function App() {
                         ))}
                       </div>
                       <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => openEditShopItem(ing)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
-                        <button onClick={() => removeShopItem(ing)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
+                        <button onClick={() => openEditShopItem(ing)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
+                        <button onClick={() => removeShopItem(ing)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>Delete</button>
                       </div>
                     </div>
                   ))
@@ -2219,8 +2219,8 @@ export default function App() {
                         <div style={{ display:"flex", gap:8, alignItems:"center" }}>
                           <span style={{ fontSize:11, fontFamily:"'IBM Plex Mono',monospace", color:T.muted }}>${Number(c.budgeted).toLocaleString()}</span>
                           <span style={{ fontSize:12, fontFamily:"'IBM Plex Mono',monospace", fontWeight:700, color:diff>0?T.red:T.green }}>${Number(c.actual).toLocaleString()}</span>
-                          <button onClick={()=>setFinModal({type:"startup",item:c})} style={{ background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1 }}>�S}</button>
-                          <button onClick={()=>setDelConfirm({label:c.category,onConfirm:()=>deleteRecord('startup_costs', c.id, c.category, setStartup)})} style={{ background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1 }}>�S"</button>
+                          <button onClick={()=>setFinModal({type:"startup",item:c})} style={{ background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1 }}>Edit</button>
+                          <button onClick={()=>setDelConfirm({label:c.category,onConfirm:()=>deleteRecord('startup_costs', c.id, c.category, setStartup)})} style={{ background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1 }}>Delete</button>
                         </div>
                       </div>
                       <div style={{ height:5, background:T.border, borderRadius:3 }}>
@@ -2247,8 +2247,8 @@ export default function App() {
                     </div>
                     <div style={{ display:"flex", gap:10, alignItems:"center" }}>
                       <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:13, fontWeight:600, color:T.text }}>${Number(c.monthly).toLocaleString()}</span>
-                      <button onClick={()=>setFinModal({type:"operating",item:c})} style={{ background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:14,padding:"2px 4px" }}>�S}</button>
-                      <button onClick={()=>setDelConfirm({label:c.category,onConfirm:()=>deleteRecord('operating_costs', c.id, c.category, setOp)})} style={{ background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:14,padding:"2px 4px" }}>�S"</button>
+                      <button onClick={()=>setFinModal({type:"operating",item:c})} style={{ background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:14,padding:"2px 4px" }}>Edit</button>
+                      <button onClick={()=>setDelConfirm({label:c.category,onConfirm:()=>deleteRecord('operating_costs', c.id, c.category, setOp)})} style={{ background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:14,padding:"2px 4px" }}>Delete</button>
                     </div>
                   </div>
                 ))}

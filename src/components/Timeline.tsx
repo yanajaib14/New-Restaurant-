@@ -25,8 +25,8 @@ export function Timeline({ timeline, onToggle, onEdit, onDelete, onAdd }: { time
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: T.muted }}>{item.date}</span>
-                  <button onClick={e => { e.stopPropagation(); onEdit(item); }} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 7px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
-                  <button onClick={e => { e.stopPropagation(); onDelete(item); }} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "3px 7px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
+                  <button onClick={e => { e.stopPropagation(); onEdit(item); }} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 7px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
+                  <button onClick={e => { e.stopPropagation(); onDelete(item); }} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "3px 7px", color: T.red, cursor: "pointer", fontSize: 11 }}>Delete</button>
                 </div>
               </div>
             </div>
