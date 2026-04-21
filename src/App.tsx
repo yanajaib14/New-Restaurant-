@@ -1386,7 +1386,7 @@ export default function App() {
                   </div>
                 </div>
                 {!isDriveConnected && (
-                  <button onClick={handleGoogleConnect} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: "6px 10px", fontSize: 11, cursor: "pointer" }}>Fix</button>
+                  <button onClick={handleGoogleConnect} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: isMobile ? "8px 12px" : "6px 10px", fontSize: isMobile ? 12 : 11, cursor: "pointer" }}>Fix</button>
                 )}
               </div>
             </div>
@@ -1493,7 +1493,7 @@ export default function App() {
             <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap" }}>
               {["All",...MENU_SECTIONS].map(s=>(
                 <button key={s} onClick={()=>setMenuSecF(s)}
-                  style={{ cursor:"pointer", borderRadius:24, padding:"6px 16px", fontSize:11, fontFamily:"'Inter', sans-serif", border:`1px solid ${menuSecF===s?T.gold:T.border}`, background:menuSecF===s?T.goldLight:"#FFF", color:menuSecF===s?T.gold:T.muted, fontWeight:menuSecF===s?700:500 }}>
+                  style={{ cursor:"pointer", borderRadius:24, padding:isMobile?"8px 14px":"6px 16px", fontSize:isMobile?12:11, fontFamily:"'Inter', sans-serif", border:`1px solid ${menuSecF===s?T.gold:T.border}`, background:menuSecF===s?T.goldLight:"#FFF", color:menuSecF===s?T.gold:T.muted, fontWeight:menuSecF===s?700:500 }}>
                   {s}
                 </button>
               ))}
@@ -1577,7 +1577,7 @@ export default function App() {
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {["All", ...INV_CATEGORIES].map(cat => (
                       <button key={cat} onClick={() => setShopCatF(cat)}
-                        style={{ cursor: "pointer", borderRadius: 20, padding: "4px 12px", fontSize: 11, border: `1px solid ${shopCatF === cat ? T.gold : T.border}`, background: shopCatF === cat ? T.goldLight : "#FFF", color: shopCatF === cat ? T.gold : T.muted, fontWeight: shopCatF === cat ? 600 : 400 }}>
+                        style={{ cursor: "pointer", borderRadius: 20, padding: isMobile ? "7px 12px" : "4px 12px", fontSize: isMobile ? 12 : 11, border: `1px solid ${shopCatF === cat ? T.gold : T.border}`, background: shopCatF === cat ? T.goldLight : "#FFF", color: shopCatF === cat ? T.gold : T.muted, fontWeight: shopCatF === cat ? 600 : 400 }}>
                         {cat}
                       </button>
                     ))}
@@ -1588,7 +1588,7 @@ export default function App() {
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {["All", ...DEPARTMENTS].map(dept => (
                       <button key={dept} onClick={() => setShopDeptF(dept)}
-                        style={{ cursor: "pointer", borderRadius: 20, padding: "4px 12px", fontSize: 11, border: `1px solid ${shopDeptF === dept ? T.blue : T.border}`, background: shopDeptF === dept ? T.blueLight : "#FFF", color: shopDeptF === dept ? T.blue : T.muted, fontWeight: shopDeptF === dept ? 600 : 400 }}>
+                        style={{ cursor: "pointer", borderRadius: 20, padding: isMobile ? "7px 12px" : "4px 12px", fontSize: isMobile ? 12 : 11, border: `1px solid ${shopDeptF === dept ? T.blue : T.border}`, background: shopDeptF === dept ? T.blueLight : "#FFF", color: shopDeptF === dept ? T.blue : T.muted, fontWeight: shopDeptF === dept ? 600 : 400 }}>
                         {dept}
                       </button>
                     ))}

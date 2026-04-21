@@ -3,19 +3,20 @@ import { T } from '../types';
 import { Lock } from 'lucide-react';
 
 export const Pill = ({ label, color, bg, border, size = 10 }: { label: string, color: string, bg: string, border: string, size?: number }) => (
-  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: bg, border: `1px solid ${border}`, color, borderRadius: 24, padding: "4px 12px", fontSize: size, fontFamily: "'Inter',sans-serif", fontWeight: 600, whiteSpace: "nowrap", letterSpacing: 0.3 }}>
+  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: bg, border: `1px solid ${border}`, color, borderRadius: 24, padding: "5px 12px", fontSize: size, fontFamily: "'Inter',sans-serif", fontWeight: 600, whiteSpace: "nowrap", letterSpacing: 0.3 }}>
     <span style={{ width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0 }} />
     {label}
   </span>
 );
 
 export const Btn = ({ children, onClick, variant = "ghost", small = false, style = {}, active = false, disabled = false }: { children: React.ReactNode, onClick?: () => void, variant?: "primary" | "danger" | "ghost" | "outline", small?: boolean, style?: React.CSSProperties, active?: boolean, disabled?: boolean }) => {
-  const base: React.CSSProperties = { cursor: disabled ? "not-allowed" : "pointer", borderRadius: 16, fontSize: small ? 11 : 12, fontFamily: "'Inter', sans-serif", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 8, transition: "all .3s cubic-bezier(0.4, 0, 0.2, 1)", opacity: disabled ? 0.6 : 1, ...style };
+  const isMobile = window.innerWidth < 1024;
+  const base: React.CSSProperties = { cursor: disabled ? "not-allowed" : "pointer", borderRadius: 16, fontSize: small ? (isMobile ? 12 : 11) : 12, fontFamily: "'Inter', sans-serif", fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: small ? (isMobile ? 38 : 34) : (isMobile ? 44 : 40), gap: 8, transition: "all .3s cubic-bezier(0.4, 0, 0.2, 1)", opacity: disabled ? 0.6 : 1, ...style };
   const variants = {
-    primary: { background: active ? T.stone : T.gold, border: `1px solid ${T.gold}`, color: active ? T.text : "#FFF", padding: small ? "8px 18px" : "12px 24px", boxShadow: active ? "none" : "0 8px 16px rgba(182, 137, 72, 0.15)" },
-    danger: { background: T.redLight, border: `1px solid ${T.redBorder}`, color: T.red, padding: small ? "8px 18px" : "12px 24px" },
-    ghost: { background: active ? T.champagne : "transparent", border: `1px solid ${T.border}`, color: T.muted, padding: small ? "8px 18px" : "12px 24px" },
-    outline: { background: active ? T.champagne : "#FFF", border: `1px solid ${T.borderStrong}`, color: T.text, padding: small ? "8px 18px" : "12px 24px" },
+    primary: { background: active ? T.stone : T.gold, border: `1px solid ${T.gold}`, color: active ? T.text : "#FFF", padding: small ? (isMobile ? "8px 14px" : "8px 18px") : "12px 24px", boxShadow: active ? "none" : "0 8px 16px rgba(182, 137, 72, 0.15)" },
+    danger: { background: T.redLight, border: `1px solid ${T.redBorder}`, color: T.red, padding: small ? (isMobile ? "8px 14px" : "8px 18px") : "12px 24px" },
+    ghost: { background: active ? T.champagne : "transparent", border: `1px solid ${T.border}`, color: T.muted, padding: small ? (isMobile ? "8px 14px" : "8px 18px") : "12px 24px" },
+    outline: { background: active ? T.champagne : "#FFF", border: `1px solid ${T.borderStrong}`, color: T.text, padding: small ? (isMobile ? "8px 14px" : "8px 18px") : "12px 24px" },
   };
   return <button 
     onClick={onClick}
@@ -27,11 +28,12 @@ export const Btn = ({ children, onClick, variant = "ghost", small = false, style
 };
 
 export function Modal({ title, onClose, children, width = 520 }: { title: string, onClose: () => void, children: React.ReactNode, width?: number }) {
+  const isMobile = window.innerWidth < 1024;
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(44, 54, 57, 0.4)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(8px)" }} onClick={onClose}>
-      <div style={{ background: "#FFF", borderRadius: 24, padding: "2.5rem", width, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 32px 80px rgba(0,0,0,.12)" }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: T.text, letterSpacing: -0.4 }}>{title}</span>
+      <div style={{ background: "#FFF", borderRadius: isMobile ? 16 : 24, padding: isMobile ? "1rem" : "2.5rem", width: isMobile ? "calc(100vw - 20px)" : width, maxWidth: isMobile ? "calc(100vw - 20px)" : width, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 32px 80px rgba(0,0,0,.12)" }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: isMobile ? 14 : 24 }}>
+          <span style={{ fontFamily: "'Playfair Display',serif", fontSize: isMobile ? 18 : 20, fontWeight: 700, color: T.text, letterSpacing: -0.4 }}>{title}</span>
           <button onClick={onClose} style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 24, lineHeight: 1 }}>×</button>
         </div>
         {children}
@@ -51,11 +53,12 @@ export const inpStyle: React.CSSProperties = { width: "100%", background: "#FDFD
 export const selStyle: React.CSSProperties = { ...inpStyle, cursor: "pointer" };
 
 export function SectionHeader({ title, subtitle, action }: { title: string, subtitle?: string, action?: React.ReactNode }) {
+  const isMobile = window.innerWidth < 1024;
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 40 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "flex-end", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 0, marginBottom: isMobile ? 20 : 40 }}>
       <div>
-        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, margin: "0 0 8px", fontWeight: 700, color: T.text, letterSpacing: -0.8 }}>{title}</h2>
-        {subtitle && <p style={{ fontFamily: "'Inter', sans-serif", color: T.muted, fontSize: 14, margin: 0, fontWeight: 400, opacity: 0.8 }}>{subtitle}</p>}
+        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 24 : 32, margin: "0 0 8px", fontWeight: 700, color: T.text, letterSpacing: -0.8 }}>{title}</h2>
+        {subtitle && <p style={{ fontFamily: "'Inter', sans-serif", color: T.muted, fontSize: isMobile ? 13 : 14, margin: 0, fontWeight: 400, opacity: 0.8 }}>{subtitle}</p>}
       </div>
       {action}
     </div>
