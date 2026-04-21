@@ -365,7 +365,7 @@ export function PermitModal({ permit, onSave, onClose }: { permit: Permit | null
       </Field>
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
         <Btn onClick={onClose} variant="ghost">Cancel</Btn>
-        <Btn onClick={() => { if (form.name.trim()) onSave(form); }} variant="primary">{permit ? "Save Changes" : "Add Permit"}</Btn>
+        <Btn onClick={() => { if (form.name.trim() && !isUploading) onSave(form); }} variant="primary">{isUploading ? "Uploading..." : permit ? "Save Changes" : "Add Permit"}</Btn>
       </div>
     </Modal>
   );

@@ -868,11 +868,17 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (permitModal && permitModal !== 'new') {
-        const { error } = await dbUpdate('permits', permitModal.id, rest);
+        const { data, error } = await dbUpdate('permits', permitModal.id, rest);
         if (error) throw error;
+        const updated = Array.isArray(data) && data[0] ? data[0] : { ...(permitModal as any), ...rest };
+        setPermits(prev => prev.map(p => p.id === (permitModal as any).id ? (updated as any) : p));
       } else {
-        const { error } = await dbInsert('permits', rest);
+        const { data, error } = await dbInsert('permits', rest);
         if (error) throw error;
+        const inserted = Array.isArray(data) && data[0]
+          ? data[0]
+          : { id: Date.now(), ...(rest as any) };
+        setPermits(prev => [inserted as any, ...prev]);
       }
       await refetch('permits', setPermits);
       setPermitModal(null);
@@ -930,11 +936,17 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (utilityModal && utilityModal !== 'new') {
-        const { error } = await dbUpdate('utility_accounts', utilityModal.id, rest);
+        const { data, error } = await dbUpdate('utility_accounts', utilityModal.id, rest);
         if (error) throw error;
+        const updated = Array.isArray(data) && data[0] ? data[0] : { ...(utilityModal as any), ...rest };
+        setUtilities(prev => prev.map(u => u.id === (utilityModal as any).id ? (updated as any) : u));
       } else {
-        const { error } = await dbInsert('utility_accounts', rest);
+        const { data, error } = await dbInsert('utility_accounts', rest);
         if (error) throw error;
+        const inserted = Array.isArray(data) && data[0]
+          ? data[0]
+          : { id: Date.now(), ...(rest as any) };
+        setUtilities(prev => [inserted as any, ...prev]);
       }
       await refetch('utility_accounts', setUtilities);
       setUtilityModal(null);
