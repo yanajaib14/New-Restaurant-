@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { GoogleGenAI } from "@google/genai";
 import { 
   T, CAT_COLORS, STATUS_COLORS, PRIORITY_COLORS, NOTE_TAG_COLORS, 
@@ -18,7 +18,7 @@ import { NoteModal, NoteCard } from "./components/Notes";
 import { AIAssistant } from "./components/AI";
 import { useAuth } from "./context/AuthContext";
 import { Login } from "./components/Login";
-import { insforge } from "./services/insforge";
+import { insforge, SYNC_CHANNEL, dbSelect, dbInsert, dbUpdate, dbDelete } from "./services/insforge";
 import { VendorManager, VendorModal, InventoryTracker, InventoryModal, PermitTracker, PermitModal, UtilityTracker, UtilityModal } from "./components/Operations";
 import { MasterInventory } from "./components/MasterInventory";
 import { MarketingCalendar, MarketingModal, TrainingPortal, TrainingModal, DailyChecklistManager, ChecklistModal, DigitalAssetManager, DigitalAssetModal } from "./components/MarketingTraining";
@@ -70,14 +70,14 @@ const INIT_CHECKLISTS: DailyChecklist[] = [
 ];
 
 const INIT_TASKS: Task[] = [
-  { id:1, category:"Lease & TI", task:"Sign Lease", due:"2026-04-15", status:"Not Started", priority:"High", checklist:[{id:101,text:"Confirm TI allowance amount",done:false},{id:102,text:"Schedule walk-through inspection",done:false},{id:103,text:"Approve final floor layout",done:false},{id:104,text:"Review lease terms with attorney",done:false}] },
-  { id:2, category:"Lease & TI", task:"TI Buildout Start", due:"2026-04-25", status:"Not Started", priority:"High", checklist:[{id:201,text:"Hire general contractor",done:false},{id:202,text:"Pull construction permits",done:false},{id:203,text:"Finalize design plans",done:false}] },
-  { id:3, category:"Menu & Bar", task:"Finalize Menu", due:"2026-04-20", status:"In Progress", priority:"High", checklist:[{id:301,text:"Test all recipes with kitchen team",done:true},{id:302,text:"Calculate food cost % per item",done:false},{id:303,text:"Order initial ingredients",done:false},{id:304,text:"Design and print menus",done:false}] },
-  { id:4, category:"Permits", task:"Liquor License", due:"2026-04-10", status:"Overdue", priority:"Critical", checklist:[{id:601,text:"File state application",done:true},{id:602,text:"Post public notice",done:true},{id:603,text:"Schedule hearing date",done:false},{id:604,text:"Submit supporting documents",done:false}] },
-  { id:5, category:"Permits", task:"Health Permit", due:"2026-04-18", status:"In Progress", priority:"High", checklist:[{id:701,text:"Gather required documents",done:true},{id:702,text:"Schedule health inspection",done:false},{id:703,text:"Submit application",done:false}] },
-  { id:6, category:"Staffing", task:"Hire FOH & Kitchen Staff", due:"2026-04-25", status:"Not Started", priority:"High", checklist:[{id:501,text:"Post job ads on Indeed",done:false},{id:502,text:"Screen applications",done:false},{id:503,text:"Schedule interviews",done:false}] },
-  { id:7, category:"Financials", task:"Finalize Budget", due:"2026-04-20", status:"In Progress", priority:"High", checklist:[{id:901,text:"Record all startup costs",done:true},{id:902,text:"Forecast monthly expenses",done:false},{id:903,text:"Set up accounting software",done:false}] },
-  { id:8, category:"Operations", task:"Set Up POS", due:"2026-04-25", status:"Not Started", priority:"High", checklist:[{id:1001,text:"Choose and purchase POS system",done:false},{id:1002,text:"Configure menu in system",done:false},{id:1003,text:"Train staff on POS",done:false}] },
+  { id:1, category:"Lease & TI", task:"Sign Lease", due:"", status:"Not Started", priority:"High", checklist:[{id:101,text:"Confirm TI allowance amount",done:false},{id:102,text:"Schedule walk-through inspection",done:false},{id:103,text:"Approve final floor layout",done:false},{id:104,text:"Review lease terms with attorney",done:false}] },
+  { id:2, category:"Lease & TI", task:"TI Buildout Start", due:"", status:"Not Started", priority:"High", checklist:[{id:201,text:"Hire general contractor",done:false},{id:202,text:"Pull construction permits",done:false},{id:203,text:"Finalize design plans",done:false}] },
+  { id:3, category:"Menu & Bar", task:"Finalize Menu", due:"", status:"In Progress", priority:"High", checklist:[{id:301,text:"Test all recipes with kitchen team",done:true},{id:302,text:"Calculate food cost % per item",done:false},{id:303,text:"Order initial ingredients",done:false},{id:304,text:"Design and print menus",done:false}] },
+  { id:4, category:"Permits", task:"Liquor License", due:"", status:"Overdue", priority:"Critical", checklist:[{id:601,text:"File state application",done:true},{id:602,text:"Post public notice",done:true},{id:603,text:"Schedule hearing date",done:false},{id:604,text:"Submit supporting documents",done:false}] },
+  { id:5, category:"Permits", task:"Health Permit", due:"", status:"In Progress", priority:"High", checklist:[{id:701,text:"Gather required documents",done:true},{id:702,text:"Schedule health inspection",done:false},{id:703,text:"Submit application",done:false}] },
+  { id:6, category:"Staffing", task:"Hire FOH & Kitchen Staff", due:"", status:"Not Started", priority:"High", checklist:[{id:501,text:"Post job ads on Indeed",done:false},{id:502,text:"Screen applications",done:false},{id:503,text:"Schedule interviews",done:false}] },
+  { id:7, category:"Financials", task:"Finalize Budget", due:"", status:"In Progress", priority:"High", checklist:[{id:901,text:"Record all startup costs",done:true},{id:902,text:"Forecast monthly expenses",done:false},{id:903,text:"Set up accounting software",done:false}] },
+  { id:8, category:"Operations", task:"Set Up POS", due:"", status:"Not Started", priority:"High", checklist:[{id:1001,text:"Choose and purchase POS system",done:false},{id:1002,text:"Configure menu in system",done:false},{id:1003,text:"Train staff on POS",done:false}] },
 ];
 
 const INIT_MENU: MenuItem[] = [
@@ -211,6 +211,17 @@ const INIT_ASSETS: DigitalAsset[] = [
 ];
 
 export default function App() {
+  type AccessUser = {
+    id: number;
+    email: string;
+    name?: string;
+    role: string;
+    is_active: boolean;
+    last_login_at?: string;
+    revoked_at?: string;
+    revoked_by?: string;
+  };
+
   const [tab, setTab] = useState("overview");
 
   // Data states
@@ -228,27 +239,6 @@ export default function App() {
   const [marketing, setMarketing] = useState<MarketingPost[]>(INIT_MARKETING);
   const [training, setTraining]   = useState<TrainingModule[]>(INIT_TRAINING);
   const [checklists, setChecklists] = useState<DailyChecklist[]>(INIT_CHECKLISTS);
-
-  useEffect(() => {
-    async function loadInsforge() {
-      try {
-        const fetchTable = async (t: string) => (await insforge.database.from(t).select('*')).data || [];
-        const [t, m, v, i, p, mkt, tr, c] = await Promise.all(['tasks', 'menu_items', 'vendors', 'inventory_items', 'permits', 'marketing_posts', 'training_modules', 'daily_checklists'].map(fetchTable));
-        
-        if (t.length) setTasks(t as any);
-        if (m.length) setMenuItems(m as any);
-        if (v.length) setVendors(v as any);
-        if (i.length) setInventory(i as any);
-        if (p.length) setPermits(p as any);
-        if (mkt.length) setMarketing(mkt as any);
-        if (tr.length) setTraining(tr as any);
-        if (c.length) setChecklists(c as any);
-      } catch (e) {
-        console.error("Insforge Sync Error:", e);
-      }
-    }
-    loadInsforge();
-  }, []);
 
   // Modal states
   const [taskModal, setTaskModal]   = useState<any>(null); // null | "new" | task obj
@@ -276,17 +266,163 @@ export default function App() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const { user: currentUser, role: userRole, logout, isLoading: isAuthLoading } = useAuth();
-  const [securityPin, setSecurityPin] = useState(() => localStorage.getItem("app_security_pin") || "1234");
+  const [securityPin, setSecurityPin] = useState(() => localStorage.getItem("app_security_pin") || "1379");
   const [activity, setActivity] = useState<ActivityLog[]>(INIT_ACTIVITY);
   const [isDriveConnected, setIsDriveConnected] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [isChangePinOpen, setIsChangePinOpen] = useState(false);
+  const [appTitle, setAppTitle] = useState("ไกลกังวล");
+  const [editTitle, setEditTitle] = useState("ไกลกังวล");
+  const [accessUsers, setAccessUsers] = useState<AccessUser[]>([]);
+  const [accessLoading, setAccessLoading] = useState(false);
+  const [settingsMsg, setSettingsMsg] = useState("");
+  const currentUserEmail = String(currentUser?.email || "").toLowerCase();
+  const isPartnerAccount = currentUserEmail === "yanajaib@gmail.com";
+  const canManageAccess = userRole === "Owner" || isPartnerAccount;
 
   const genAI = useMemo(() => new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' }), []);
 
+  const loadAllData = useCallback(async () => {
+    try {
+      const tableBindings: Array<{ table: string; set: (rows: any[]) => void }> = [
+        { table: "tasks", set: setTasks as any },
+        { table: "menu_items", set: setMenuItems as any },
+        { table: "startup_costs", set: setStartup as any },
+        { table: "operating_costs", set: setOp as any },
+        { table: "milestones", set: setTL as any },
+        { table: "notes", set: setNotes as any },
+        { table: "vendors", set: setVendors as any },
+        { table: "inventory_items", set: setInventory as any },
+        { table: "utility_accounts", set: setUtilities as any },
+        { table: "permits", set: setPermits as any },
+        { table: "marketing_posts", set: setMarketing as any },
+        { table: "training_modules", set: setTraining as any },
+        { table: "daily_checklists", set: setChecklists as any },
+        { table: "invoices", set: setInvoices as any },
+        { table: "positions", set: setPositions as any },
+        { table: "candidates", set: setCandidates as any },
+        { table: "digital_assets", set: setAssets as any },
+      ];
+
+      await Promise.all(
+        tableBindings.map(async ({ table, set }) => {
+          const { data, error } = await dbSelect(table);
+          if (!error) set(data as any);
+        })
+      );
+
+      const { data: activityRows, error: activityErr } = await dbSelect("activity_logs");
+      if (!activityErr) {
+        const rows = (activityRows as any[])
+          .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+          .slice(0, 10)
+          .map((a) => ({ id: Number(a.id), user: a.user, action: a.action, timestamp: a.timestamp }));
+        setActivity(rows as ActivityLog[]);
+      }
+    } catch (e) {
+      console.error("Insforge Sync Error:", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAllData();
+  }, [loadAllData]);
+
+  useEffect(() => {
+    const loadTitle = async () => {
+      try {
+        const res = await fetch("/api/settings/title");
+        const body = await res.json();
+        const title = body?.title || "ไกลกังวล";
+        setAppTitle(title);
+        setEditTitle(title);
+      } catch {
+        setAppTitle("ไกลกังวล");
+        setEditTitle("ไกลกังวล");
+      }
+    };
+    loadTitle();
+  }, []);
+
+  const refreshAccessUsers = useCallback(async () => {
+    setAccessLoading(true);
+    try {
+      const res = await fetch("/api/access/users");
+      const body = await res.json();
+      setAccessUsers((body?.users || []) as AccessUser[]);
+    } catch (e) {
+      console.error("Access list load failed", e);
+    } finally {
+      setAccessLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tab === "settings" && isUnlocked) {
+      refreshAccessUsers();
+    }
+  }, [tab, isUnlocked, refreshAccessUsers]);
+
+  useEffect(() => {
+    let active = true;
+
+    const handleSync = () => {
+      if (!active) return;
+      loadAllData();
+    };
+
+    const bootRealtime = async () => {
+      try {
+        await insforge.realtime.connect();
+        const sub = await insforge.realtime.subscribe(SYNC_CHANNEL);
+        if (!sub.ok) {
+          console.warn("Realtime subscribe failed", "error" in sub ? sub.error : sub);
+          return;
+        }
+        insforge.realtime.on("db_changed", handleSync);
+      } catch (e) {
+        console.warn("Realtime connect failed", e);
+      }
+    };
+
+    bootRealtime();
+
+    const poll = setInterval(() => {
+      loadAllData();
+    }, 20000);
+
+    const onFocus = () => loadAllData();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      active = false;
+      clearInterval(poll);
+      window.removeEventListener("focus", onFocus);
+      insforge.realtime.off("db_changed", handleSync);
+      insforge.realtime.unsubscribe(SYNC_CHANNEL);
+      insforge.realtime.disconnect();
+    };
+  }, [loadAllData]);
+
   const logActivity = (action: string) => {
-    const newLog = { id: Date.now(), user: userRole || "System", action, timestamp: "Just now" };
-    setActivity(p => [newLog, ...p.slice(0, 4)]);
+    const actor = isPartnerAccount
+      ? "Partner"
+      : (
+        (currentUser?.metadata as any)?.name ||
+        currentUser?.email ||
+        userRole ||
+        "System"
+      );
+
+    const timestamp = new Date().toLocaleString();
+    const optimisticLog = { id: Date.now(), user: actor, action, timestamp };
+    setActivity((p) => [optimisticLog, ...p.slice(0, 9)]);
+
+    void dbInsert("activity_logs", {
+      user: actor,
+      action,
+      timestamp,
+    });
   };
 
   // Auto-lock logic
@@ -396,14 +532,14 @@ export default function App() {
 
   // ── Helper: re-fetch a single table and update state ──
   const refetch = async (table: string, setter: (d: any[]) => void) => {
-    const { data } = await insforge.database.from(table).select('*');
+    const { data } = await dbSelect(table);
     if (data) setter(data as any);
   };
 
   // ── Centralized Database Handlers ──
   const deleteRecord = async (table: string, id: any, label: string, setter: (d: any[]) => void) => {
     try {
-      const { error } = await insforge.database.from(table).delete().eq('id', id);
+      const { error } = await dbDelete(table, id);
       if (error) throw error;
       logActivity(`Deleted ${label}`);
       await refetch(table, setter);
@@ -415,7 +551,7 @@ export default function App() {
 
   const updateRecord = async (table: string, id: any, patch: any, label: string, setter: (d: any[]) => void) => {
     try {
-      const { error } = await insforge.database.from(table).update(patch).eq('id', id);
+      const { error } = await dbUpdate(table, id, patch);
       if (error) throw error;
       await refetch(table, setter);
     } catch (e: any) {
@@ -451,15 +587,15 @@ export default function App() {
     const { id, _delete, ...rest } = form;
     try {
       if (_delete) {
-        const { error } = await insforge.database.from('tasks').delete().eq('id', id);
+        const { error } = await dbDelete('tasks', id);
         if (error) throw error;
         logActivity(`Deleted task: ${form.task}`);
       } else if (taskModal && taskModal !== 'new') {
-        const { error } = await insforge.database.from('tasks').update(rest).eq('id', taskModal.id);
+        const { error } = await dbUpdate('tasks', taskModal.id, rest);
         if (error) throw error;
         logActivity(`Updated task: ${form.task}`);
       } else {
-        const { error } = await insforge.database.from('tasks').insert([rest]);
+        const { error } = await dbInsert('tasks', rest);
         if (error) throw error;
         logActivity(`Added task: ${form.task}`);
       }
@@ -477,11 +613,11 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (menuModal && menuModal !== 'new') {
-        const { error } = await insforge.database.from('menu_items').update(rest).eq('id', menuModal.id);
+        const { error } = await dbUpdate('menu_items', menuModal.id, rest);
         if (error) throw error;
         logActivity(`Updated menu item: ${form.name}`);
       } else {
-        const { error } = await insforge.database.from('menu_items').insert([rest]);
+        const { error } = await dbInsert('menu_items', rest);
         if (error) throw error;
         logActivity(`Added menu item: ${form.name}`);
       }
@@ -501,11 +637,11 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (item) {
-        const { error } = await insforge.database.from(table).update(rest).eq('id', item.id);
+        const { error } = await dbUpdate(table, item.id, rest);
         if (error) throw error;
         logActivity(`Updated financial item: ${form.category}`);
       } else {
-        const { error } = await insforge.database.from(table).insert([rest]);
+        const { error } = await dbInsert(table, rest);
         if (error) throw error;
         logActivity(`Added financial item: ${form.category}`);
       }
@@ -522,10 +658,10 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (tlModal && tlModal !== 'new') {
-        const { error } = await insforge.database.from('milestones').update(rest).eq('id', tlModal.id);
+        const { error } = await dbUpdate('milestones', tlModal.id, rest);
         if (error) throw error;
       } else {
-        const { error } = await insforge.database.from('milestones').insert([rest]);
+        const { error } = await dbInsert('milestones', rest);
         if (error) throw error;
       }
       await refetch('milestones', setTL);
@@ -542,10 +678,10 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (noteModal && noteModal !== 'new') {
-        const { error } = await insforge.database.from('notes').update(rest).eq('id', noteModal.id);
+        const { error } = await dbUpdate('notes', noteModal.id, rest);
         if (error) throw error;
       } else {
-        const { error } = await insforge.database.from('notes').insert([{ ...rest, date: d }]);
+        const { error } = await dbInsert('notes', { ...rest, date: d });
         if (error) throw error;
       }
       await refetch('notes', setNotes);
@@ -567,10 +703,10 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (vendorModal && vendorModal !== 'new') {
-        const { error } = await insforge.database.from('vendors').update(rest).eq('id', vendorModal.id);
+        const { error } = await dbUpdate('vendors', vendorModal.id, rest);
         if (error) throw error;
       } else {
-        const { error } = await insforge.database.from('vendors').insert([rest]);
+        const { error } = await dbInsert('vendors', rest);
         if (error) throw error;
       }
       await refetch('vendors', setVendors);
@@ -586,10 +722,10 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (invModal && invModal !== 'new') {
-        const { error } = await insforge.database.from('inventory_items').update(rest).eq('id', invModal.id);
+        const { error } = await dbUpdate('inventory_items', invModal.id, rest);
         if (error) throw error;
       } else {
-        const { error } = await insforge.database.from('inventory_items').insert([{ ...rest, lastOrdered: 'Just now' }]);
+        const { error } = await dbInsert('inventory_items', { ...rest, lastOrdered: 'Just now' });
         if (error) throw error;
       }
       await refetch('inventory_items', setInventory);
@@ -605,10 +741,10 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (permitModal && permitModal !== 'new') {
-        const { error } = await insforge.database.from('permits').update(rest).eq('id', permitModal.id);
+        const { error } = await dbUpdate('permits', permitModal.id, rest);
         if (error) throw error;
       } else {
-        const { error } = await insforge.database.from('permits').insert([rest]);
+        const { error } = await dbInsert('permits', rest);
         if (error) throw error;
       }
       await refetch('permits', setPermits);
@@ -624,13 +760,13 @@ export default function App() {
     const { id, _delete, ...rest } = form;
     try {
       if (_delete) {
-        const { error } = await insforge.database.from('marketing_posts').delete().eq('id', id);
+        const { error } = await dbDelete('marketing_posts', id);
         if (error) throw error;
       } else if (mktModal && mktModal !== 'new') {
-        const { error } = await insforge.database.from('marketing_posts').update(rest).eq('id', mktModal.id);
+        const { error } = await dbUpdate('marketing_posts', mktModal.id, rest);
         if (error) throw error;
       } else {
-        const { error } = await insforge.database.from('marketing_posts').insert([rest]);
+        const { error } = await dbInsert('marketing_posts', rest);
         if (error) throw error;
       }
       await refetch('marketing_posts', setMarketing);
@@ -646,13 +782,13 @@ export default function App() {
     const { id, _delete, ...rest } = form;
     try {
       if (_delete) {
-        const { error } = await insforge.database.from('training_modules').delete().eq('id', id);
+        const { error } = await dbDelete('training_modules', id);
         if (error) throw error;
       } else if (trainModal && trainModal !== 'new') {
-        const { error } = await insforge.database.from('training_modules').update(rest).eq('id', trainModal.id);
+        const { error } = await dbUpdate('training_modules', trainModal.id, rest);
         if (error) throw error;
       } else {
-        const { error } = await insforge.database.from('training_modules').insert([rest]);
+        const { error } = await dbInsert('training_modules', rest);
         if (error) throw error;
       }
       await refetch('training_modules', setTraining);
@@ -667,10 +803,10 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (utilityModal && utilityModal !== 'new') {
-        const { error } = await insforge.database.from('utility_accounts').update(rest).eq('id', utilityModal.id);
+        const { error } = await dbUpdate('utility_accounts', utilityModal.id, rest);
         if (error) throw error;
       } else {
-        const { error } = await insforge.database.from('utility_accounts').insert([rest]);
+        const { error } = await dbInsert('utility_accounts', rest);
         if (error) throw error;
       }
       await refetch('utility_accounts', setUtilities);
@@ -685,10 +821,10 @@ export default function App() {
     const { id, ...rest } = form as any;
     try {
       if (posModal && posModal !== 'new') {
-        const { error } = await insforge.database.from('positions').update(rest).eq('id', (posModal as any).id);
+        const { error } = await dbUpdate('positions', (posModal as any).id, rest);
         if (error) throw error;
       } else {
-        const { error } = await insforge.database.from('positions').insert([rest]);
+        const { error } = await dbInsert('positions', rest);
         if (error) throw error;
       }
       await refetch('positions', setPositions);
@@ -703,15 +839,15 @@ export default function App() {
     const { id, _delete, ...rest } = form as any;
     try {
       if (_delete) {
-        const { error } = await insforge.database.from('candidates').delete().eq('id', id);
+        const { error } = await dbDelete('candidates', id);
         if (error) throw error;
         logActivity(`Removed candidate: ${form.name}`);
       } else if (canModal && canModal !== 'new') {
-        const { error } = await insforge.database.from('candidates').update(rest).eq('id', (canModal as any).id);
+        const { error } = await dbUpdate('candidates', (canModal as any).id, rest);
         if (error) throw error;
         logActivity(`Updated candidate: ${form.name}`);
       } else {
-        const { error } = await insforge.database.from('candidates').insert([rest]);
+        const { error } = await dbInsert('candidates', rest);
         if (error) throw error;
         logActivity(`Added candidate: ${form.name}`);
       }
@@ -727,13 +863,13 @@ export default function App() {
     const { id, _delete, ...rest } = form as any;
     try {
       if (_delete) {
-        const { error } = await insforge.database.from('digital_assets').delete().eq('id', id);
+        const { error } = await dbDelete('digital_assets', id);
         if (error) throw error;
       } else if (assetModal && assetModal !== 'new') {
-        const { error } = await insforge.database.from('digital_assets').update(rest).eq('id', (assetModal as any).id);
+        const { error } = await dbUpdate('digital_assets', (assetModal as any).id, rest);
         if (error) throw error;
       } else {
-        const { error } = await insforge.database.from('digital_assets').insert([rest]);
+        const { error } = await dbInsert('digital_assets', rest);
         if (error) throw error;
       }
       await refetch('digital_assets', setAssets);
@@ -749,10 +885,10 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (invoiceModal && invoiceModal !== 'new') {
-        const { error } = await insforge.database.from('invoices').update(rest).eq('id', invoiceModal.id);
+        const { error } = await dbUpdate('invoices', invoiceModal.id, rest);
         if (error) throw error;
       } else {
-        const { error } = await insforge.database.from('invoices').insert([rest]);
+        const { error } = await dbInsert('invoices', rest);
         if (error) throw error;
       }
       await refetch('invoices', setInvoices);
@@ -768,10 +904,10 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (chkModal && chkModal !== 'new') {
-        const { error } = await insforge.database.from('daily_checklists').update(rest).eq('id', chkModal.id);
+        const { error } = await dbUpdate('daily_checklists', chkModal.id, rest);
         if (error) throw error;
       } else {
-        const { error } = await insforge.database.from('daily_checklists').insert([rest]);
+        const { error } = await dbInsert('daily_checklists', rest);
         if (error) throw error;
       }
       await refetch('daily_checklists', setChecklists);
@@ -804,7 +940,7 @@ export default function App() {
     try {
       const promptContext = `
         You are the AI Restaurant Launch Assistant.
-        Current Restaurant: Glai Gangwon
+        Current Restaurant: ${appTitle}
         Launch Progress: ${prog}%
         Overdue Tasks: ${overdue}
         Startup Budget: $${totBudget.toLocaleString()} (Actual: $${totActual.toLocaleString()})
@@ -855,7 +991,7 @@ export default function App() {
       files: []
     };
     try {
-      const { error } = await insforge.database.from('notes').insert([newNote]);
+      const { error } = await dbInsert('notes', newNote);
       if (error) throw error;
       await refetch('notes', setNotes);
       setTab("notes");
@@ -870,6 +1006,7 @@ export default function App() {
   const TABS = [
     { id: "overview", label: "Overview", icon: LayoutDashboard, group: "DASHBOARD" },
     { id: "ai", label: "AI Assistant", icon: Sparkles, group: "DASHBOARD" },
+    { id: "settings", label: "Settings", icon: ShieldCheck, group: "DASHBOARD" },
     
     { id: "calendar", label: "Calendar", icon: Calendar, group: "PLANNING" },
     { id: "timeline", label: "Timeline", icon: Calendar, group: "PLANNING" },
@@ -966,7 +1103,7 @@ export default function App() {
               </button>
             )}
             <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-              <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: T.text, letterSpacing: -0.8 }}>Glai Gangwon</span>
+              <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: T.text, letterSpacing: -0.8 }}>{appTitle}</span>
               {!isMobile && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: T.subtle, letterSpacing: 1, fontWeight: 600 }}>LAUNCH DASHBOARD</span>}
             </div>
             
@@ -1598,16 +1735,32 @@ export default function App() {
         )}
 
         {/* ══════ VENDORS ══════ */}
-        {tab === "vendors" && <VendorManager vendors={vendors} onAdd={() => setVendorModal("new")} onEdit={setVendorModal} onDelete={v => setDelConfirm({ label: v.name, onConfirm: () => deleteRecord('vendors', v.id, v.name, setVendors) })} />}
+        {tab === "vendors" && <VendorManager vendors={vendors} onAdd={() => setVendorModal("new")} onEdit={setVendorModal} onDelete={id => {
+          const v = vendors.find(x => x.id === id);
+          const label = v?.name || "Vendor";
+          setDelConfirm({ label, onConfirm: () => deleteRecord('vendors', id, label, setVendors) });
+        }} />}
 
         {/* ══════ INVENTORY ══════ */}
-        {tab === "inventory" && <InventoryTracker items={inventory} onUpdateStock={(id, val) => updateRecord('inventory_items', id, { currentStock: val }, 'Stock Level', setInventory)} onAdd={() => setInvModal("new")} onEdit={setInvModal} onDelete={item => setDelConfirm({ label: item.name, onConfirm: () => deleteRecord('inventory_items', item.id, item.name, setInventory) })} />}
+        {tab === "inventory" && <InventoryTracker items={inventory} onUpdateStock={(id, val) => updateRecord('inventory_items', id, { currentStock: val }, 'Stock Level', setInventory)} onAdd={() => setInvModal("new")} onEdit={setInvModal} onDelete={id => {
+          const item = inventory.find(x => x.id === id);
+          const label = item?.name || "Inventory Item";
+          setDelConfirm({ label, onConfirm: () => deleteRecord('inventory_items', id, label, setInventory) });
+        }} />}
 
         {/* ══════ PERMITS ══════ */}
         {tab === "permits" && (
           <>
-            <PermitTracker permits={permits} onAdd={() => setPermitModal("new")} onEdit={setPermitModal} onDelete={p => setDelConfirm({ label: p.name, onConfirm: () => deleteRecord('permits', p.id, p.name, setPermits) })} />
-            <UtilityTracker utilities={utilities} onAdd={() => setUtilityModal("new")} onEdit={setUtilityModal} onDelete={u => setDelConfirm({ label: u.name, onConfirm: () => deleteRecord('utility_accounts', u.id, u.name, setUtilities) })} />
+            <PermitTracker permits={permits} onAdd={() => setPermitModal("new")} onEdit={setPermitModal} onDelete={id => {
+              const p = permits.find(x => x.id === id);
+              const label = p?.name || "Permit";
+              setDelConfirm({ label, onConfirm: () => deleteRecord('permits', id, label, setPermits) });
+            }} />
+            <UtilityTracker utilities={utilities} onAdd={() => setUtilityModal("new")} onEdit={setUtilityModal} onDelete={id => {
+              const u = utilities.find(x => x.id === id);
+              const label = u?.name || "Utility Account";
+              setDelConfirm({ label, onConfirm: () => deleteRecord('utility_accounts', id, label, setUtilities) });
+            }} />
           </>
         )}
 
@@ -1629,21 +1782,123 @@ export default function App() {
         {/* ══════ MARKETING ══════ */}
         {tab === "marketing" && (
           <>
-            <MarketingCalendar posts={marketing} onAdd={() => setMktModal("new")} onEdit={setMktModal} onDelete={p => setDelConfirm({ label: p.title, onConfirm: () => deleteRecord('marketing_posts', p.id, p.title, setMarketing) })} />
+            <MarketingCalendar posts={marketing} onAdd={() => setMktModal("new")} onEdit={setMktModal} onDelete={id => {
+              const p = marketing.find(x => x.id === id);
+              const label = p?.title || "Marketing Post";
+              setDelConfirm({ label, onConfirm: () => deleteRecord('marketing_posts', id, label, setMarketing) });
+            }} />
             {!isUnlocked ? <PinGate onUnlock={() => setIsUnlocked(true)} correctPin={securityPin} /> : (
-              <DigitalAssetManager assets={assets} onAdd={() => setAssetModal("new")} onEdit={setAssetModal} onDelete={a => setDelConfirm({ label: a.name, onConfirm: () => deleteRecord('digital_assets', a.id, a.name, setAssets) })} />
+              <DigitalAssetManager assets={assets} onAdd={() => setAssetModal("new")} onEdit={setAssetModal} onDelete={id => {
+                const a = assets.find(x => x.id === id);
+                const label = a?.name || "Digital Asset";
+                setDelConfirm({ label, onConfirm: () => deleteRecord('digital_assets', id, label, setAssets) });
+              }} />
             )}
           </>
         )}
 
         {/* ══════ TRAINING ══════ */}
-        {tab === "training" && <TrainingPortal modules={training} onToggleStep={toggleTrainingStep} onAdd={() => setTrainModal("new")} onEdit={setTrainModal} onDelete={m => setDelConfirm({ label: m.title, onConfirm: () => deleteRecord('training_modules', m.id, m.title, setTraining) })} />}
+        {tab === "training" && <TrainingPortal modules={training} onToggleStep={toggleTrainingStep} onAdd={() => setTrainModal("new")} onEdit={setTrainModal} onDelete={id => {
+          const m = training.find(x => x.id === id);
+          const label = m?.title || "Training Module";
+          setDelConfirm({ label, onConfirm: () => deleteRecord('training_modules', id, label, setTraining) });
+        }} />}
 
         {/* ══════ CHECKLISTS ══════ */}
-        {tab === "checklists" && <DailyChecklistManager checklists={checklists} onToggleItem={toggleChecklistItem} onAdd={() => setChkModal("new")} onEdit={setChkModal} onDelete={c => setDelConfirm({ label: c.title, onConfirm: () => deleteRecord('daily_checklists', c.id, c.title, setChecklists) })} />}
+        {tab === "checklists" && <DailyChecklistManager checklists={checklists} onToggleItem={toggleChecklistItem} onAdd={() => setChkModal("new")} onEdit={setChkModal} onDelete={id => {
+          const c = checklists.find(x => x.id === id);
+          const label = c?.title || "Checklist";
+          setDelConfirm({ label, onConfirm: () => deleteRecord('daily_checklists', id, label, setChecklists) });
+        }} />}
 
         {/* ══════ AI ══════ */}
         {tab==="ai" && <AIAssistant messages={aiMsgs} onSend={sendAi} loading={aiLoad} onSaveToNotes={saveAiToNotes} />}
+
+        {/* ══════ SETTINGS ══════ */}
+        {tab === "settings" && (
+          !isUnlocked ? <PinGate onUnlock={() => setIsUnlocked(true)} correctPin={securityPin} /> : (
+            <div className="fu">
+              <SectionHeader title="Settings" subtitle="Locked controls for title and account access" />
+
+              <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 20, marginBottom: 18 }}>
+                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: .8, marginBottom: 10 }}>APP TITLE</div>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    style={{ ...inpStyle, flex: 1 }}
+                    placeholder="Restaurant name"
+                  />
+                  <Btn onClick={async () => {
+                    const title = editTitle.trim();
+                    if (!title) return;
+                    const res = await fetch("/api/settings/title", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ title }),
+                    });
+                    const body = await res.json();
+                    if (body?.ok) {
+                      setAppTitle(body.title || title);
+                      setSettingsMsg("Title updated.");
+                      logActivity(`Updated app title to ${title}`);
+                    } else {
+                      setSettingsMsg(body?.error || "Failed to update title");
+                    }
+                  }} variant="primary">Save Title</Btn>
+                </div>
+              </div>
+
+              <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 20 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: .8 }}>ACCESS CONTROL</div>
+                  <Btn onClick={refreshAccessUsers} variant="outline" small>Refresh</Btn>
+                </div>
+
+                {!canManageAccess ? (
+                  <div style={{ color: T.muted, fontSize: 13 }}>Only owner-level accounts can manage access.</div>
+                ) : accessLoading ? (
+                  <div style={{ color: T.muted, fontSize: 13 }}>Loading users...</div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {accessUsers.map((u) => (
+                      <div key={u.id} style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: 12, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                        <div>
+                          <div style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{String(u.email || "").toLowerCase() === "yanajaib@gmail.com" ? "Partner" : (u.name || "User")}</div>
+                          <div style={{ fontSize: 11, color: T.muted }}>{u.email} • {u.role} • {u.is_active ? "Active" : "Revoked"}</div>
+                        </div>
+                        {u.is_active ? (
+                          <Btn onClick={async () => {
+                            await fetch("/api/access/revoke", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ email: u.email, revokedBy: currentUser?.email || "Owner" }),
+                            });
+                            logActivity(`Revoked access for ${u.email}`);
+                            refreshAccessUsers();
+                          }} variant="danger" small>Revoke</Btn>
+                        ) : (
+                          <Btn onClick={async () => {
+                            await fetch("/api/access/restore", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ email: u.email }),
+                            });
+                            logActivity(`Restored access for ${u.email}`);
+                            refreshAccessUsers();
+                          }} variant="outline" small>Restore</Btn>
+                        )}
+                      </div>
+                    ))}
+                    {accessUsers.length === 0 && <div style={{ color: T.muted, fontSize: 13 }}>No users yet.</div>}
+                  </div>
+                )}
+
+                {!!settingsMsg && <div style={{ marginTop: 10, fontSize: 12, color: T.blue }}>{settingsMsg}</div>}
+              </div>
+            </div>
+          )
+        )}
 
         {/* ══════ INVOICES ══════ */}
         {tab === "invoices" && (
