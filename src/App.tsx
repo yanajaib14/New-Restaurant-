@@ -1131,11 +1131,11 @@ export default function App() {
           </div>
 
           {/* AI Search Bar */}
-          <div style={{ display: "flex", alignItems: "center", background: "#FFF", borderRadius: 24, padding: "4px 14px", border: `1px solid ${T.border}`, width: isMobile ? "100%" : 280, height: 36, marginLeft: isMobile ? 0 : 24, boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}>
-            <span style={{ fontSize: 12, marginRight: 8, opacity: 0.7 }}>✦</span>
+          <div style={{ display: "flex", alignItems: "center", background: T.goldLight, borderRadius: 24, padding: isMobile ? "6px 14px" : "8px 16px", border: `2px solid ${T.gold}`, width: isMobile ? "100%" : 300, height: isMobile ? 40 : 44, marginLeft: isMobile ? 0 : 24, boxShadow: `0 4px 16px rgba(192, 108, 71, 0.15)`, transition: "all .2s" }}>
+            <span style={{ fontSize: 14, marginRight: 10, opacity: 0.8 }}>✨</span>
             <input 
               placeholder="Ask assistant..." 
-              style={{ background: "none", border: "none", outline: "none", fontSize: 11, width: "100%", color: T.text, fontFamily: "'Inter', sans-serif" }}
+              style={{ background: "none", border: "none", outline: "none", fontSize: isMobile ? 12 : 13, width: "100%", color: T.text, fontFamily: "'Inter', sans-serif", fontWeight: 500 }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && e.currentTarget.value.trim()) {
                   const val = e.currentTarget.value;
