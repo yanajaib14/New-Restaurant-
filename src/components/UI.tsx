@@ -299,14 +299,15 @@ export function ChangePasswordModal({ userEmail, onSendCode, onConfirm, onClose 
           <div style={{ background: T.goldLight, border: `1px solid ${T.goldBorder}`, borderRadius: 10, padding: "12px 16px", fontSize: 12, color: T.text }}>
             ✉️ Code sent to <strong>{userEmail}</strong>. Check your inbox.
           </div>
-          <Field label="RESET CODE FROM EMAIL">
+          <Field label="6-DIGIT CODE FROM EMAIL">
             <input
               type="text"
               inputMode="numeric"
               value={otp}
-              onChange={e => setOtp(e.target.value)}
-              style={{ ...inpStyle, letterSpacing: 4, fontSize: 18, textAlign: "center" }}
-              placeholder="Enter code"
+              onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              style={{ ...inpStyle, letterSpacing: 6, fontSize: 22, textAlign: "center", fontFamily: "'DM Mono',monospace" }}
+              placeholder="000000"
+              maxLength={6}
               autoFocus
             />
           </Field>

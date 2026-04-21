@@ -2007,8 +2007,12 @@ export default function App() {
             if (error) throw new Error(error.message || "Failed to send reset code");
           }}
           onConfirm={async (otp: string, newPassword: string) => {
-            const { error } = await insforge.auth.resetPassword({ otp, newPassword });
-            if (error) throw new Error(error.message || "Incorrect code or expired. Please request a new one.");
+            // Step 1: exchange the 6-digit code for a reset token
+            const { data: exchangeData, error: exchangeError } = await insforge.auth.exchangeResetPasswordToken({ email: currentUserEmail, code: otp });
+            if (exchangeError || !exchangeData?.token) throw new Error(exchangeError?.message || "Invalid or expired code. Please request a new one.");
+            // Step 2: use the reset token to set the new password
+            const { error } = await insforge.auth.resetPassword({ otp: exchangeData.token, newPassword });
+            if (error) throw new Error(error.message || "Failed to update password. Please try again.");
             setSettingsMsg("✅ Password updated! Please sign in again.");
             logActivity("Changed sign-in password");
             setIsChangePasswordOpen(false);
