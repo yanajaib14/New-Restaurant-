@@ -68,7 +68,7 @@ export async function dbSelect(table: string) {
 
 export async function dbInsert(table: string, payload: Record<string, unknown>) {
   const res = await insforge.database.from(table).insert([payload]);
-  if (res.status === 404) {
+  if (res.status === 404 || res.status === 405) {
     const fb = await fallbackWrite(table, "insert", payload);
     if (!fb.error) {
       await publishDbChange(table, "insert");
@@ -83,7 +83,7 @@ export async function dbInsert(table: string, payload: Record<string, unknown>) 
 
 export async function dbUpdate(table: string, id: number | string, payload: Record<string, unknown>) {
   const res = await insforge.database.from(table).update(payload).eq("id", id);
-  if (res.status === 404) {
+  if (res.status === 404 || res.status === 405) {
     const fb = await fallbackWrite(table, "update", payload, id);
     if (!fb.error) {
       await publishDbChange(table, "update", id);
@@ -98,7 +98,7 @@ export async function dbUpdate(table: string, id: number | string, payload: Reco
 
 export async function dbDelete(table: string, id: number | string) {
   const res = await insforge.database.from(table).delete().eq("id", id);
-  if (res.status === 404) {
+  if (res.status === 404 || res.status === 405) {
     const fb = await fallbackWrite(table, "delete", void 0, id);
     if (!fb.error) {
       await publishDbChange(table, "delete", id);
