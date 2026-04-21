@@ -1252,25 +1252,25 @@ export default function App() {
         </div>
       )}
 
-      <div style={{ padding: "28px 32px", maxWidth: 1440, margin: "0 auto", display: "flex", gap: 32 }}>
+      <div style={{ padding: isMobile ? "16px" : "28px 32px", maxWidth: 1440, margin: "0 auto", display: "flex", gap: 32, paddingBottom: isMobile ? "96px" : undefined }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* ══════ OVERVIEW ══════ */}
         {tab==="overview" && (
           <div className="fu">
-            <div style={{ display: "flex", gap: 32 }}>
-              <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 20 : 32 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <SectionHeader title="Launch Overview" subtitle="Track your restaurant's journey from concept to opening day"/>
                 {/* Progress */}
-                <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 24, padding: 32, marginBottom: 40, display: "flex", alignItems: "center", gap: 40 }}>
-                  <ProgressRing progress={prog} size={160} stroke={10} />
-                  <div style={{ flex: 1 }}>
+                <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "20px 16px" : 32, marginBottom: isMobile ? 20 : 40, display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "center" : "center", gap: isMobile ? 16 : 40, textAlign: isMobile ? "center" : "left" }}>
+                  <ProgressRing progress={prog} size={isMobile ? 120 : 160} stroke={isMobile ? 8 : 10} />
+                  <div style={{ flex: 1, width: "100%" }}>
                     <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, marginBottom: 16, fontWeight: 600 }}>CUMULATIVE LAUNCH STATUS</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 32 }}>
+                    <div style={{ display: "flex", justifyContent: isMobile ? "center" : "flex-start", flexWrap: "wrap", gap: isMobile ? 20 : 32 }}>
                       {["In Progress", "Complete", "Overdue"].map(s => (
-                        <div key={s} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        <div key={s} style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <span style={{ width: 8, height: 8, borderRadius: "50%", background: (STATUS_COLORS as any)[s].text }} />
-                            <span style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Playfair Display', serif", color: T.text }}>
+                            <span style={{ fontSize: isMobile ? 28 : 22, fontWeight: 700, fontFamily: "'Playfair Display', serif", color: T.text }}>
                               {tasks.filter(t => t.status === s).length}
                             </span>
                           </div>
@@ -1278,7 +1278,7 @@ export default function App() {
                         </div>
                       ))}
                     </div>
-                    <div style={{ marginTop: 24, height: 8, background: T.bg, borderRadius: 10, overflow: "hidden" }}>
+                    <div style={{ marginTop: 20, height: 8, background: T.bg, borderRadius: 10, overflow: "hidden" }}>
                       <div style={{ height: "100%", width: `${prog}%`, background: T.gold, borderRadius: 10, transition: "width 1s cubic-bezier(0.4, 0, 0.2, 1)" }} />
                     </div>
                   </div>
@@ -1288,12 +1288,12 @@ export default function App() {
                 <LaunchWindow tasks={tasks} permits={permits} candidates={candidates} />
 
                 {/* To-Do Overview */}
-                <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 24, padding: 32, marginTop: 40 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+                <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 32, marginTop: isMobile ? 20 : 40 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: isMobile ? 16 : 24 }}>
                     <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>PRIORITY FOCUS</span>
                     <Btn onClick={() => setTab("tasks")} variant="ghost" small>Full Board →</Btn>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     {tasks.filter(t => t.status !== "Complete").slice(0, 4).map(t => (
                       <div key={t.id} 
                         className="todo-card"
@@ -1312,9 +1312,9 @@ export default function App() {
                 </div>
 
                 {/* Category breakdown + alerts */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 40 }}>
-                  <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 24, padding: 32 }}>
-                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, marginBottom: 24, fontWeight: 600 }}>DEPARTMENTAL SYNC</div>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 16 : 24, marginTop: isMobile ? 16 : 40 }}>
+                  <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 32 }}>
+                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, marginBottom: isMobile ? 16 : 24, fontWeight: 600 }}>DEPARTMENTAL SYNC</div>
                     {CATEGORIES.map(cat => {
                       const cc = CAT_COLORS[cat]; const ct = tasks.filter(t => t.category === cat);
                       const d = ct.filter(t => t.status === "Complete").length; const p = ct.length ? Math.round((d / ct.length) * 100) : 0;
@@ -1334,8 +1334,8 @@ export default function App() {
                       );
                     })}
                   </div>
-                  <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 24, padding: 32 }}>
-                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, marginBottom: 24, fontWeight: 600 }}>SYSTEM ALERTS</div>
+                  <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 32 }}>
+                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, marginBottom: isMobile ? 16 : 24, fontWeight: 600 }}>SYSTEM ALERTS</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                       {tasks.filter(t => t.status === "Overdue" || t.priority === "Critical").slice(0, 3).map(t => (
                         <div key={`alert-${t.id}`} style={{ background: T.redLight, border: `1px solid ${T.redBorder}`, borderRadius: 16, padding: "12px 16px" }}>
@@ -1349,9 +1349,9 @@ export default function App() {
                 </div>
           </div>
 
-          <div style={{ width: 320, flexShrink: 0 }}>
+          <div style={{ width: isMobile ? "100%" : 320, flexShrink: 0 }}>
             {/* Activity Feed */}
-            <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, padding:20, marginBottom:18 }}>
+            <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:16, padding: isMobile ? 16 : 20, marginBottom:16 }}>
               <div style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:T.muted, letterSpacing:.8, marginBottom:18, display: "flex", justifyContent: "space-between" }}>
                 <span>RECENT ACTIVITY</span>
                 <span style={{ color: T.gold }}>LIVE</span>
@@ -1373,7 +1373,7 @@ export default function App() {
             </div>
 
             {/* Cloud Status */}
-            <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 24, padding: 24, marginBottom: 20 }}>
+            <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? 16 : 24, marginBottom: 16 }}>
               <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, marginBottom: 18, fontWeight: 700 }}>CLOUD SYNC ARCHITECTURE</div>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 8, background: isDriveConnected ? T.greenLight : T.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1949,7 +1949,7 @@ export default function App() {
     </div>
 
       {/* Quick Add FAB */}
-      <div style={{ position: "fixed", bottom: "calc(24px + env(safe-area-inset-bottom, 0px))", right: 24, zIndex: 100 }}>
+      <div style={{ position: "fixed", bottom: isMobile ? "calc(16px + env(safe-area-inset-bottom, 0px))" : "calc(24px + env(safe-area-inset-bottom, 0px))", right: isMobile ? 16 : 24, zIndex: 100 }}>
         {quickAddOpen && (
           <div style={{ position: "absolute", bottom: 70, right: 0, display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end" }}>
             <Btn onClick={() => { setTaskModal("new"); setQuickAddOpen(false); }} variant="primary" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>+ New Task</Btn>
