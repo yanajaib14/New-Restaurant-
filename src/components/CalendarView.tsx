@@ -19,7 +19,7 @@ export function LaunchWindow({ tasks, permits, candidates }: { tasks: Task[], pe
     <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? "14px 16px" : 32, marginTop: isMobile ? 16 : 40 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: isMobile ? 12 : 24 }}>
         <CalendarIcon size={16} color={T.gold} />
-        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: isMobile ? 10 : 11, color: T.muted, letterSpacing: 1.2, fontWeight: 700 }}>NEXT 7 DAYS</span>
+        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: isMobile ? 10 : 11, color: T.muted, letterSpacing: 1.2, fontWeight: 700 }}>NEXT 7 DAYS</span>
       </div>
       
       <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" as any, marginLeft: -2, paddingBottom: 4 }}>
@@ -39,7 +39,7 @@ export function LaunchWindow({ tasks, permits, candidates }: { tasks: Task[], pe
 
             return (
               <div key={dateStr} style={{ border: `1px solid ${isToday ? T.gold : T.border}`, borderRadius: 12, padding: isMobile ? 8 : 12, background: isToday ? T.goldLight : "none", minHeight: isMobile ? 90 : 140, transition: "all .3s ease" }}>
-                <div style={{ fontSize: isMobile ? 9 : 10, color: T.muted, marginBottom: 4, textAlign: "center", fontFamily: "'Inter', sans-serif", fontWeight: 700, letterSpacing: 0.5 }}>
+                <div style={{ fontSize: isMobile ? 9 : 10, color: T.muted, marginBottom: 4, textAlign: "center", fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, letterSpacing: 0.5 }}>
                   {date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'America/Phoenix' }).slice(0, isMobile ? 1 : 3).toUpperCase()}
                 </div>
                 <div style={{ 
@@ -134,7 +134,7 @@ export function FullCalendar({
         action={
           <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12 }}>
             <button onClick={prevMonth} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: isMobile ? 8 : 6, cursor: "pointer" }}><ChevronLeft size={16} /></button>
-            <span style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: isMobile ? 14 : 16, minWidth: isMobile ? 110 : 140, textAlign: "center" }}>
+            <span style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 700, fontSize: isMobile ? 14 : 16, minWidth: isMobile ? 110 : 140, textAlign: "center" }}>
               {currentDate.toLocaleDateString('en-US', { month: isMobile ? 'short' : 'long', year: 'numeric', timeZone: 'America/Phoenix' })}
             </span>
             <button onClick={nextMonth} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: isMobile ? 8 : 6, cursor: "pointer" }}><ChevronRight size={16} /></button>
@@ -146,7 +146,7 @@ export function FullCalendar({
         <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden", boxShadow: "0 4px 16px rgba(0,0,0,0.02)", minWidth: isMobile ? 350 : "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
             {dayLabels.map(d => (
-              <div key={d} style={{ padding: isMobile ? "10px 4px" : "16px", textAlign: "center", fontSize: isMobile ? 10 : 10, fontFamily: "'DM Mono', monospace", color: T.muted, letterSpacing: isMobile ? 0 : 1.2, fontWeight: 700 }}>{d}</div>
+              <div key={d} style={{ padding: isMobile ? "10px 4px" : "16px", textAlign: "center", fontSize: isMobile ? 10 : 10, fontFamily: "'IBM Plex Mono', monospace", color: T.muted, letterSpacing: isMobile ? 0 : 1.2, fontWeight: 700 }}>{d}</div>
             ))}
           </div>
           
@@ -206,3 +206,4 @@ export function FullCalendar({
     </div>
   );
 }
+

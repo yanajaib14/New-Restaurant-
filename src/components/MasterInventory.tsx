@@ -69,7 +69,7 @@ export function MasterInventory({ items, vendors, onEdit, onDelete, onAdd }: {
       <SectionHeader title="Master Inventory List" subtitle="Consolidated view of all assets and supplies"
         action={
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Btn onClick={handleExport} variant="outline" small>📥 Export CSV</Btn>
+            <Btn onClick={handleExport} variant="outline" small>�x� Export CSV</Btn>
             <Btn onClick={onAdd} variant="primary">+ Add Item</Btn>
           </div>
         } 
@@ -78,17 +78,17 @@ export function MasterInventory({ items, vendors, onEdit, onDelete, onAdd }: {
       {/* Summary Cards */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 12, marginBottom: 18 }}>
         <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 20 }}>
-          <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: T.muted, letterSpacing: .8, marginBottom: 8 }}>TOTAL STARTUP SPEND</div>
+          <div style={{ fontSize: 10, fontFamily: "'IBM Plex Mono',monospace", color: T.muted, letterSpacing: .8, marginBottom: 8 }}>TOTAL STARTUP SPEND</div>
           <div style={{ fontSize: 24, fontWeight: 700, color: T.text }}>${stats.totalStartupSpend.toLocaleString()}</div>
           <div style={{ fontSize: 11, color: T.muted, marginTop: 4 }}>Ordered or Arrived assets</div>
         </div>
         <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 20 }}>
-          <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: T.muted, letterSpacing: .8, marginBottom: 8 }}>PENDING DELIVERIES</div>
+          <div style={{ fontSize: 10, fontFamily: "'IBM Plex Mono',monospace", color: T.muted, letterSpacing: .8, marginBottom: 8 }}>PENDING DELIVERIES</div>
           <div style={{ fontSize: 24, fontWeight: 700, color: T.blue }}>{stats.pendingDeliveries}</div>
           <div style={{ fontSize: 11, color: T.muted, marginTop: 4 }}>Items marked as 'Ordered'</div>
         </div>
         <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 20 }}>
-          <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: T.muted, letterSpacing: .8, marginBottom: 8 }}>LOW STOCK ALERTS</div>
+          <div style={{ fontSize: 10, fontFamily: "'IBM Plex Mono',monospace", color: T.muted, letterSpacing: .8, marginBottom: 8 }}>LOW STOCK ALERTS</div>
           <div style={{ fontSize: 24, fontWeight: 700, color: T.red }}>{stats.lowStockAlerts}</div>
           <div style={{ fontSize: 11, color: T.muted, marginTop: 4 }}>Operating supplies below par</div>
         </div>
@@ -98,7 +98,7 @@ export function MasterInventory({ items, vendors, onEdit, onDelete, onAdd }: {
       <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: isMobile ? "12px 14px" : "16px 20px", marginBottom: 18 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", flexDirection: isMobile ? "column" : "row", gap: 10 }}>
-            <span style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: T.muted, width: isMobile ? "auto" : 100 }}>CATEGORY:</span>
+            <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono',monospace", color: T.muted, width: isMobile ? "auto" : 100 }}>CATEGORY:</span>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {["All", ...categories].map(cat => (
                 <button key={cat} onClick={() => setCatFilter(cat)}
@@ -109,7 +109,7 @@ export function MasterInventory({ items, vendors, onEdit, onDelete, onAdd }: {
             </div>
           </div>
           <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", flexDirection: isMobile ? "column" : "row", gap: 10 }}>
-            <span style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: T.muted, width: isMobile ? "auto" : 100 }}>DEPARTMENT:</span>
+            <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono',monospace", color: T.muted, width: isMobile ? "auto" : 100 }}>DEPARTMENT:</span>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {["All", ...departments].map(dept => (
                 <button key={dept} onClick={() => setDeptFilter(dept)}
@@ -138,18 +138,18 @@ export function MasterInventory({ items, vendors, onEdit, onDelete, onAdd }: {
                       <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{item.name}</div>
                       <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 6 }}>
                         <span style={{ fontSize: 10, color: T.muted }}>{item.category}</span>
-                        <span style={{ fontSize: 10, color: T.muted }}>•</span>
+                        <span style={{ fontSize: 10, color: T.muted }}>⬢</span>
                         <span style={{ fontSize: 10, color: T.muted }}>{item.department}</span>
                       </div>
                       <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
                         <Pill label={item.procurementStatus} color={sc.text} bg={sc.bg} border={sc.border} />
-                        <span style={{ fontSize: 12, fontFamily: "'DM Mono',monospace", fontWeight: 700, color: T.text }}>${(Number(item.price) || 0).toLocaleString()}</span>
+                        <span style={{ fontSize: 12, fontFamily: "'IBM Plex Mono',monospace", fontWeight: 700, color: T.text }}>${(Number(item.price) || 0).toLocaleString()}</span>
                       </div>
-                      <div style={{ marginTop: 8, fontSize: 11, color: T.muted }}>Vendor: {getVendorName(item.vendorId)} • Lead time: {item.leadTime || "N/A"}</div>
+                      <div style={{ marginTop: 8, fontSize: 11, color: T.muted }}>Vendor: {getVendorName(item.vendorId)} ⬢ Lead time: {item.leadTime || "N/A"}</div>
                     </div>
                     <div style={{ display: "flex", gap: 6 }}>
-                      <button onClick={() => onEdit(item)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>✎</button>
-                      <button onClick={() => onDelete(item.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>✕</button>
+                      <button onClick={() => onEdit(item)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
+                      <button onClick={() => onDelete(item.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
                     </div>
                   </div>
                   {item.notes && (
@@ -172,7 +172,7 @@ export function MasterInventory({ items, vendors, onEdit, onDelete, onAdd }: {
         <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 100px 80px", padding: "10px 18px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
             {["ITEM", "CATEGORY", "DEPARTMENT", "VENDOR", "STATUS", "PRICE", ""].map(h => (
-              <div key={h} style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: T.subtle, letterSpacing: .8 }}>{h}</div>
+              <div key={h} style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, color: T.subtle, letterSpacing: .8 }}>{h}</div>
             ))}
           </div>
           {filteredItems.length === 0 ? (
@@ -194,10 +194,10 @@ export function MasterInventory({ items, vendors, onEdit, onDelete, onAdd }: {
                     <div>
                       <Pill label={item.procurementStatus} color={sc.text} bg={sc.bg} border={sc.border} />
                     </div>
-                    <div style={{ fontSize: 13, fontFamily: "'DM Mono',monospace", fontWeight: 600, color: T.text }}>${(Number(item.price) || 0).toLocaleString()}</div>
+                    <div style={{ fontSize: 13, fontFamily: "'IBM Plex Mono',monospace", fontWeight: 600, color: T.text }}>${(Number(item.price) || 0).toLocaleString()}</div>
                     <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                      <button onClick={() => onEdit(item)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>✎</button>
-                      <button onClick={() => onDelete(item.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>✕</button>
+                      <button onClick={() => onEdit(item)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
+                      <button onClick={() => onDelete(item.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
                     </div>
                   </div>
                   {item.notes && (
@@ -228,3 +228,4 @@ export function MasterInventory({ items, vendors, onEdit, onDelete, onAdd }: {
     </div>
   );
 }
+

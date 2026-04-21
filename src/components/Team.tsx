@@ -63,7 +63,7 @@ export function PositionModal({ position, onSave, onClose, userRole }: { positio
             <Upload size={14} style={{ marginRight: 6 }} />
             {isUploading ? "Uploading..." : form.offerLetterUrl ? "Change Offer Letter" : "Upload Offer Letter"}
           </Btn>
-          {form.offerLetterUrl && <span style={{ fontSize: 11, color: T.green }}>✓ Attached</span>}
+          {form.offerLetterUrl && <span style={{ fontSize: 11, color: T.green }}>�S Attached</span>}
         </div>
       </Field>
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
@@ -107,7 +107,7 @@ export function CandidateModal({ candidate, initialDate, positions, onSave, onCl
               cursor: "pointer", fontSize: 18, padding: 0, transition: "color .1s" 
             }}
           >
-            ★
+            ��&
           </button>
         ))}
       </div>
@@ -148,7 +148,7 @@ export function CandidateModal({ candidate, initialDate, positions, onSave, onCl
             <Upload size={14} style={{ marginRight: 6 }} />
             {isUploading ? "Uploading..." : form.resumeUrl ? "Change Resume" : "Upload Resume"}
           </Btn>
-          {form.resumeUrl && <span style={{ fontSize: 11, color: T.green }}>✓ Attached</span>}
+          {form.resumeUrl && <span style={{ fontSize: 11, color: T.green }}>�S Attached</span>}
         </div>
       </Field>
       <Field label="HIRING STAGE">
@@ -159,7 +159,7 @@ export function CandidateModal({ candidate, initialDate, positions, onSave, onCl
 
       {form.stage === "Trial Shift" && (
         <div style={{ background: T.goldLight, border: `1px solid ${T.goldBorder}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
-          <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", color: T.gold, letterSpacing: .8, marginBottom: 12 }}>TRIAL SHIFT SCORECARD</div>
+          <div style={{ fontSize: 10, fontFamily: "'IBM Plex Mono',monospace", color: T.gold, letterSpacing: .8, marginBottom: 12 }}>TRIAL SHIFT SCORECARD</div>
           <StarRating label="TECHNIQUE" value={form.trialScores?.technique || 0} field="technique" />
           <StarRating label="SPEED" value={form.trialScores?.speed || 0} field="speed" />
           <StarRating label="VIBE" value={form.trialScores?.vibe || 0} field="vibe" />
@@ -233,9 +233,9 @@ export function TalentHiring({ positions, candidates, onAddPos, onEditPos, onDel
       {/* Staffing Completion Card */}
       <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 24, padding: 24, marginBottom: 32, display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 8px 24px rgba(0,0,0,0.02)" }}>
         <div>
-          <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Mono', monospace", marginBottom: 6, letterSpacing: 1.2, fontWeight: 600 }}>STAFFING ARCHITECTURE</div>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 36, fontWeight: 700, color: T.purple, letterSpacing: -1 }}>{staffingProg}%</div>
-          <div style={{ fontSize: 13, color: T.muted, marginTop: 6, fontFamily: "'Inter', sans-serif" }}>{totHired} of {totOpenings} strategic roles filled</div>
+          <div style={{ fontSize: 11, color: T.muted, fontFamily: "'IBM Plex Mono', monospace", marginBottom: 6, letterSpacing: 1.2, fontWeight: 600 }}>STAFFING ARCHITECTURE</div>
+          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 36, fontWeight: 700, color: T.purple, letterSpacing: -1 }}>{staffingProg}%</div>
+          <div style={{ fontSize: 13, color: T.muted, marginTop: 6, fontFamily: "'Cormorant Garamond', serif" }}>{totHired} of {totOpenings} strategic roles filled</div>
         </div>
         <div style={{ width: 240, height: 10, background: T.bg, borderRadius: 12, overflow: "hidden", border: `1px solid ${T.border}` }}>
           <div style={{ height: "100%", width: `${staffingProg}%`, background: T.purple, borderRadius: 12, transition: "width 1s cubic-bezier(0.4, 0, 0.2, 1)" }} />
@@ -246,16 +246,16 @@ export function TalentHiring({ positions, candidates, onAddPos, onEditPos, onDel
       <div style={{ marginBottom: 32 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
           <Users size={18} color={T.gold} />
-          <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1 }}>POSITIONS TRACKER</span>
+          <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1 }}>POSITIONS TRACKER</span>
         </div>
         <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 24, overflow: "hidden" }}>
           <div style={{ display: "grid", gridTemplateColumns: isManager ? "2fr 1fr 1fr 1fr 100px" : "2fr 1fr 1fr 1.5fr 1fr 100px", padding: "14px 24px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
             {isManager 
               ? ["ROLE", "OPENINGS", "HIRED", "STATUS", ""].map((h, i) => (
-                <div key={i} style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: T.subtle, letterSpacing: 1.2, fontWeight: 700 }}>{h}</div>
+                <div key={i} style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: T.subtle, letterSpacing: 1.2, fontWeight: 700 }}>{h}</div>
               ))
               : ["ROLE", "OPENINGS", "HIRED", "SALARY", "STATUS", ""].map((h, i) => (
-                <div key={i} style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: T.subtle, letterSpacing: 1.2, fontWeight: 700 }}>{h}</div>
+                <div key={i} style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: T.subtle, letterSpacing: 1.2, fontWeight: 700 }}>{h}</div>
               ))
             }
           </div>
@@ -266,11 +266,11 @@ export function TalentHiring({ positions, candidates, onAddPos, onEditPos, onDel
               <div key={p.id} style={{ display: "grid", gridTemplateColumns: isManager ? "2fr 1fr 1fr 1fr 100px" : "2fr 1fr 1fr 1.5fr 1fr 100px", padding: "14px 18px", borderBottom: `1px solid ${T.border}`, alignItems: "center" }}>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>{p.role}</div>
-                  {p.offerLetterUrl && <div style={{ fontSize: 9, color: T.green, marginTop: 2 }}>📄 Offer Letter Attached</div>}
+                  {p.offerLetterUrl && <div style={{ fontSize: 9, color: T.green, marginTop: 2 }}>�x Offer Letter Attached</div>}
                 </div>
-                <div style={{ fontSize: 13, fontFamily: "'DM Mono',monospace" }}>{p.openings}</div>
-                <div style={{ fontSize: 13, fontFamily: "'DM Mono',monospace" }}>{p.hired}</div>
-                {!isManager && <div style={{ fontSize: 12, color: T.text, fontWeight: 500 }}>{p.salary || "—"}</div>}
+                <div style={{ fontSize: 13, fontFamily: "'IBM Plex Mono',monospace" }}>{p.openings}</div>
+                <div style={{ fontSize: 13, fontFamily: "'IBM Plex Mono',monospace" }}>{p.hired}</div>
+                {!isManager && <div style={{ fontSize: 12, color: T.text, fontWeight: 500 }}>{p.salary || "�"}</div>}
                 <div>
                   <Pill 
                     label={p.status} 
@@ -293,7 +293,7 @@ export function TalentHiring({ positions, candidates, onAddPos, onEditPos, onDel
       <div style={{ marginBottom: 32 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
           <Users size={18} color={T.green} />
-          <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1 }}>FILLED TEAM OVERVIEW</span>
+          <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1 }}>FILLED TEAM OVERVIEW</span>
         </div>
 
         {filledTeam.length === 0 ? (
@@ -308,7 +308,7 @@ export function TalentHiring({ positions, candidates, onAddPos, onEditPos, onDel
                 <div style={{ fontSize: 11, color: T.blue, background: T.blueLight, border: `1px solid ${T.blueBorder}`, display: "inline-block", padding: "3px 8px", borderRadius: 999, marginBottom: 10 }}>
                   {m.role || "Unassigned Role"}
                 </div>
-                <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", letterSpacing: .8, color: T.subtle, marginBottom: 6 }}>
+                <div style={{ fontSize: 10, fontFamily: "'IBM Plex Mono',monospace", letterSpacing: .8, color: T.subtle, marginBottom: 6 }}>
                   RESPONSIBILITIES
                 </div>
                 <div style={{ fontSize: 12, lineHeight: 1.6, color: T.muted }}>{m.responsibilities}</div>
@@ -322,14 +322,14 @@ export function TalentHiring({ positions, candidates, onAddPos, onEditPos, onDel
       <div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
           <FileText size={18} color={T.blue} />
-          <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1 }}>CANDIDATE PIPELINE</span>
+          <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1 }}>CANDIDATE PIPELINE</span>
         </div>
         
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, alignItems: "start" }}>
           {stages.map(stage => (
             <div key={stage} style={{ background: T.bg, borderRadius: 24, padding: 16, minHeight: 440, border: `1px solid ${T.border}` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, padding: "0 8px" }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: T.muted, letterSpacing: 1.2, fontFamily: "'DM Mono', monospace" }}>{stage.toUpperCase()}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: T.muted, letterSpacing: 1.2, fontFamily: "'IBM Plex Mono', monospace" }}>{stage.toUpperCase()}</span>
                 <span style={{ fontSize: 11, background: "#FFF", padding: "2px 8px", borderRadius: 12, border: `1px solid ${T.border}`, color: T.muted, fontWeight: 600 }}>
                   {candidates.filter((c: Candidate) => c.stage === stage).length}
                 </span>
@@ -418,8 +418,8 @@ export function TeamMap({ positions, candidates, onAddMember, onEditMember, onDe
       <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 24, padding: 28, marginBottom: 32, boxShadow: "0 8px 24px rgba(0,0,0,0.02)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 40 }}>
           <div>
-            <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Mono', monospace", marginBottom: 12, letterSpacing: 1.2, fontWeight: 600 }}>TEAM STAFFING</div>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 48, fontWeight: 700, color: T.green, letterSpacing: -2 }}>{totHired}</div>
+            <div style={{ fontSize: 11, color: T.muted, fontFamily: "'IBM Plex Mono', monospace", marginBottom: 12, letterSpacing: 1.2, fontWeight: 600 }}>TEAM STAFFING</div>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 48, fontWeight: 700, color: T.green, letterSpacing: -2 }}>{totHired}</div>
             <div style={{ fontSize: 14, color: T.muted, marginTop: 4 }}>of {totOpenings} positions filled</div>
           </div>
           <div style={{ flex: 1 }}>
@@ -435,12 +435,12 @@ export function TeamMap({ positions, candidates, onAddMember, onEditMember, onDe
       <div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
           <Users size={20} color={T.green} />
-          <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 12, color: T.muted, letterSpacing: 1.2, fontWeight: 700 }}>HIRED TEAM MEMBERS</span>
+          <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, color: T.muted, letterSpacing: 1.2, fontWeight: 700 }}>HIRED TEAM MEMBERS</span>
         </div>
         
         {filledTeam.length === 0 ? (
           <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: 32, textAlign: "center", color: T.muted, fontSize: 14 }}>
-            <div style={{ fontSize: 24, marginBottom: 8 }}>👥</div>
+            <div style={{ fontSize: 24, marginBottom: 8 }}>�x�</div>
             <div>No hired team members yet. Add transferred staff or move candidates to Hired.</div>
             <div style={{ marginTop: 14 }}>
               <Btn onClick={onAddMember} variant="outline">+ Add Transferred Team Member</Btn>
@@ -491,8 +491,8 @@ export function TeamMap({ positions, candidates, onAddMember, onEditMember, onDe
                   </div>
                 </div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => onEditMember(member.raw)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: "4px 8px", cursor: "pointer", color: T.muted, fontSize: 11 }}>✎</button>
-                    <button onClick={() => onDeleteMember(member.raw)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 8, padding: "4px 8px", cursor: "pointer", color: T.red, fontSize: 11 }}>✕</button>
+                    <button onClick={() => onEditMember(member.raw)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: "4px 8px", cursor: "pointer", color: T.muted, fontSize: 11 }}>�S}</button>
+                    <button onClick={() => onDeleteMember(member.raw)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 8, padding: "4px 8px", cursor: "pointer", color: T.red, fontSize: 11 }}>�S"</button>
                   </div>
                 </div>
                 
@@ -501,7 +501,7 @@ export function TeamMap({ positions, candidates, onAddMember, onEditMember, onDe
                 
                 {/* Responsibilities */}
                 <div>
-                  <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", letterSpacing: 1, color: T.subtle, marginBottom: 8, fontWeight: 700 }}>
+                  <div style={{ fontSize: 10, fontFamily: "'IBM Plex Mono',monospace", letterSpacing: 1, color: T.subtle, marginBottom: 8, fontWeight: 700 }}>
                     SHORT JOB DESCRIPTION
                   </div>
                   <div style={{ fontSize: 13, lineHeight: 1.7, color: T.text, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
@@ -559,3 +559,4 @@ export function TeamMapMemberModal({ member, positions, onSave, onClose }: { mem
     </Modal>
   );
 }
+

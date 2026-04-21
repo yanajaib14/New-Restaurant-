@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { T, Vendor, InventoryItem, Permit, UtilityAccount } from '../types';
 import { SectionHeader, Btn, Modal, Field, inpStyle, Pill } from './UI';
 
-// ─── VENDORS ───
+// ������ VENDORS ������
 export function VendorManager({ vendors, onAdd, onEdit, onDelete }: { vendors: Vendor[], onAdd: () => void, onEdit: (v: Vendor) => void, onDelete: (id: number) => void }) {
   return (
     <div className="fu">
@@ -13,27 +13,27 @@ export function VendorManager({ vendors, onAdd, onEdit, onDelete }: { vendors: V
           <div key={v.id} style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
               <div>
-                <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Mono',monospace", marginBottom: 4 }}>{v.category.toUpperCase()}</div>
-                <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: T.text }}>{v.name}</div>
+                <div style={{ fontSize: 11, color: T.muted, fontFamily: "'IBM Plex Mono',monospace", marginBottom: 4 }}>{v.category.toUpperCase()}</div>
+                <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 16, fontWeight: 700, color: T.text }}>{v.name}</div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={() => onEdit(v)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>✎</button>
-                <button onClick={() => onDelete(v.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>✕</button>
+                <button onClick={() => onEdit(v)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
+                <button onClick={() => onDelete(v.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
               </div>
             </div>
             <div style={{ fontSize: 13, color: T.text, marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: 14 }}>👤</span> {v.contact}
+                <span style={{ fontSize: 14 }}>�x�</span> {v.contact}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: 14 }}>📧</span> {v.email}
+                <span style={{ fontSize: 14 }}>�x�</span> {v.email}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 14 }}>📞</span> {v.phone}
+                <span style={{ fontSize: 14 }}>�x~</span> {v.phone}
               </div>
             </div>
             <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 12, marginTop: 12 }}>
-              <div style={{ fontSize: 10, color: T.muted, fontFamily: "'DM Mono',monospace", marginBottom: 6 }}>DELIVERY DAYS</div>
+              <div style={{ fontSize: 10, color: T.muted, fontFamily: "'IBM Plex Mono',monospace", marginBottom: 6 }}>DELIVERY DAYS</div>
               <div style={{ display: "flex", gap: 4 }}>
                 {["M", "T", "W", "Th", "F", "S", "Su"].map(day => {
                   const active = v.deliveryDays.includes(day);
@@ -93,7 +93,7 @@ export function VendorModal({ vendor, onSave, onClose }: { vendor: Vendor | null
   );
 }
 
-// ─── INVENTORY ───
+// ������ INVENTORY ������
 export function InventoryTracker({ items, onUpdateStock, onAdd, onEdit, onDelete }: { items: InventoryItem[], onUpdateStock: (id: number, val: number) => void, onAdd: () => void, onEdit: (i: InventoryItem) => void, onDelete: (id: number) => void }) {
   return (
     <div className="fu">
@@ -102,7 +102,7 @@ export function InventoryTracker({ items, onUpdateStock, onAdd, onEdit, onDelete
       <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 180px 100px 120px 80px", padding: "10px 18px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
           {["ITEM", "CATEGORY", "STOCK LEVEL", "PAR", "LAST ORDERED", ""].map(h => (
-            <div key={h} style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: T.subtle, letterSpacing: .8 }}>{h}</div>
+            <div key={h} style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, color: T.subtle, letterSpacing: .8 }}>{h}</div>
           ))}
         </div>
         {items.map(item => {
@@ -124,11 +124,11 @@ export function InventoryTracker({ items, onUpdateStock, onAdd, onEdit, onDelete
                   <div style={{ height: "100%", width: `${pct}%`, background: isLow ? T.red : T.green, borderRadius: 2 }} />
                 </div>
               </div>
-              <div style={{ fontSize: 12, fontFamily: "'DM Mono',monospace", color: T.text }}>{item.parLevel} {item.unit}</div>
+              <div style={{ fontSize: 12, fontFamily: "'IBM Plex Mono',monospace", color: T.text }}>{item.parLevel} {item.unit}</div>
               <div style={{ fontSize: 11, color: T.muted }}>{item.lastOrdered}</div>
               <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                <button onClick={() => onEdit(item)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>✎</button>
-                <button onClick={() => onDelete(item.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>✕</button>
+                <button onClick={() => onEdit(item)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
+                <button onClick={() => onDelete(item.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
               </div>
             </div>
           );
@@ -239,7 +239,7 @@ export function InventoryModal({ item, vendors, onSave, onClose }: { item: Inven
   );
 }
 
-// ─── PERMITS ───
+// ������ PERMITS ������
 export function PermitTracker({ permits, onAdd, onEdit, onDelete }: { permits: Permit[], onAdd: () => void, onEdit: (p: Permit) => void, onDelete: (id: number) => void }) {
   return (
     <div className="fu">
@@ -259,21 +259,21 @@ export function PermitTracker({ permits, onAdd, onEdit, onDelete }: { permits: P
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <Pill label={p.status} color={sc.text} bg={sc.bg} border={sc.border} />
                 <div style={{ display: "flex", gap: 6 }}>
-                  <button onClick={() => onEdit(p)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>✎</button>
-                  <button onClick={() => onDelete(p.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>✕</button>
+                  <button onClick={() => onEdit(p)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
+                  <button onClick={() => onDelete(p.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
                 </div>
               </div>
               <div>
-                <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 4 }}>{p.name}</div>
+                <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 4 }}>{p.name}</div>
                 <div style={{ fontSize: 12, color: T.muted }}>Issuer: {p.issuer}</div>
               </div>
               <div style={{ background: T.bg, borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Mono',monospace" }}>EXPIRY DATE</div>
+                <div style={{ fontSize: 11, color: T.muted, fontFamily: "'IBM Plex Mono',monospace" }}>EXPIRY DATE</div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: p.status === "Expired" ? T.red : T.text }}>{p.expiryDate}</div>
               </div>
               {p.fileUrl && (
                 <button onClick={() => window.open(p.fileUrl, "_blank")} style={{ width: "100%", background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: "8px", color: T.blue, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
-                  📄 View Document
+                  �x View Document
                 </button>
               )}
             </div>
@@ -359,7 +359,7 @@ export function PermitModal({ permit, onSave, onClose }: { permit: Permit | null
         )}
         {!isUploading && getFileName() && (
           <div style={{ fontSize: 11, color: T.green, marginTop: 8, fontWeight: 600 }}>
-            ✓ {getFileName()}
+            �S {getFileName()}
           </div>
         )}
       </Field>
@@ -371,7 +371,7 @@ export function PermitModal({ permit, onSave, onClose }: { permit: Permit | null
   );
 }
 
-// ─── UTILITIES ───
+// ������ UTILITIES ������
 export function UtilityTracker({ utilities, onAdd, onEdit, onDelete }: { utilities: UtilityAccount[], onAdd: () => void, onEdit: (u: UtilityAccount) => void, onDelete: (id: number) => void }) {
   const [showLogin, setShowLogin] = useState<Record<number, boolean>>({});
 
@@ -389,40 +389,40 @@ export function UtilityTracker({ utilities, onAdd, onEdit, onDelete }: { utiliti
           <div key={u.id} style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
-                <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 2 }}>{u.name}</div>
+                <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 2 }}>{u.name}</div>
                 <div style={{ fontSize: 11, color: T.muted }}>Started: {u.startDate}</div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={() => onEdit(u)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>✎</button>
-                <button onClick={() => onDelete(u.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>✕</button>
+                <button onClick={() => onEdit(u)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
+                <button onClick={() => onDelete(u.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
               </div>
             </div>
 
             <div style={{ background: T.bg, borderRadius: 8, padding: "12px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <div>
-                  <div style={{ fontSize: 9, color: T.muted, fontFamily: "'DM Mono',monospace", marginBottom: 2 }}>ACCOUNT NUMBER</div>
+                  <div style={{ fontSize: 9, color: T.muted, fontFamily: "'IBM Plex Mono',monospace", marginBottom: 2 }}>ACCOUNT NUMBER</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{u.accountNumber}</div>
                 </div>
                 <button onClick={() => copyToClipboard(u.accountNumber)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 10, color: T.blue, cursor: "pointer" }}>Copy</button>
               </div>
               <div style={{ cursor: "pointer" }} onClick={() => setShowLogin(p => ({ ...p, [u.id]: !p[u.id] }))}>
-                <div style={{ fontSize: 9, color: T.muted, fontFamily: "'DM Mono',monospace", marginBottom: 2 }}>LOGIN INFO</div>
-                <div style={{ fontSize: 12, color: T.text, fontFamily: "'DM Mono',monospace" }}>
-                  {showLogin[u.id] ? u.loginInfo : "••••••••••••"}
+                <div style={{ fontSize: 9, color: T.muted, fontFamily: "'IBM Plex Mono',monospace", marginBottom: 2 }}>LOGIN INFO</div>
+                <div style={{ fontSize: 12, color: T.text, fontFamily: "'IBM Plex Mono',monospace" }}>
+                  {showLogin[u.id] ? u.loginInfo : "⬢⬢⬢⬢⬢⬢⬢⬢⬢⬢⬢⬢"}
                 </div>
               </div>
             </div>
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <div style={{ fontSize: 9, color: T.muted, fontFamily: "'DM Mono',monospace", marginBottom: 2 }}>MONTHLY COST</div>
+                <div style={{ fontSize: 9, color: T.muted, fontFamily: "'IBM Plex Mono',monospace", marginBottom: 2 }}>MONTHLY COST</div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: T.green }}>${u.monthlyCost.toFixed(2)}</div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 {u.fileUrl ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 4, color: T.green, fontSize: 11, fontWeight: 600 }}>
-                    <span>✓</span>
+                    <span>�S</span>
                     <button onClick={() => window.open(u.fileUrl, "_blank")} style={{ background: "none", border: "none", color: T.blue, cursor: "pointer", fontSize: 11, textDecoration: "underline", padding: 0 }}>View Bill</button>
                   </div>
                 ) : (
@@ -453,14 +453,14 @@ export function UtilityModal({ account, onSave, onClose }: { account: UtilityAcc
         <Field label="ACCOUNT NUMBER"><input value={form.accountNumber} onChange={e => set("accountNumber", e.target.value)} placeholder="000-000-000" style={inpStyle} /></Field>
         <Field label="MONTHLY COST ($)"><input type="number" value={form.monthlyCost} onChange={e => set("monthlyCost", +e.target.value)} style={inpStyle} /></Field>
       </div>
-      <Field label="LOGIN INFO"><input value={form.loginInfo} onChange={e => set("loginInfo", e.target.value)} placeholder="User: admin / Pass: ••••" style={inpStyle} /></Field>
+      <Field label="LOGIN INFO"><input value={form.loginInfo} onChange={e => set("loginInfo", e.target.value)} placeholder="User: admin / Pass: ⬢⬢⬢⬢" style={inpStyle} /></Field>
       <Field label="SERVICE START DATE"><input type="date" value={form.startDate} onChange={e => set("startDate", e.target.value)} style={inpStyle} /></Field>
       
       <div style={{ marginTop: 12 }}>
         <button onClick={handleMockUpload} style={{ width: "100%", background: T.bg, border: `1px dashed ${T.borderStrong}`, borderRadius: 8, padding: "12px", color: T.muted, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-          <span>📎</span> {form.fileUrl ? "Document Uploaded" : "Upload Document"}
+          <span>�x}</span> {form.fileUrl ? "Document Uploaded" : "Upload Document"}
         </button>
-        {form.fileUrl && <div style={{ fontSize: 11, color: T.green, textAlign: "center", marginTop: 6 }}>✓ Mock document stored successfully</div>}
+        {form.fileUrl && <div style={{ fontSize: 11, color: T.green, textAlign: "center", marginTop: 6 }}>�S Mock document stored successfully</div>}
       </div>
 
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
@@ -470,3 +470,4 @@ export function UtilityModal({ account, onSave, onClose }: { account: UtilityAcc
     </Modal>
   );
 }
+

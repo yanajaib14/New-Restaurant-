@@ -134,7 +134,7 @@ export function CostCalculator({
         <div style={{ width: 350, flexShrink: 0 }}>
           <div style={{ background: '#FFF', border: `1px solid ${T.border}`, borderRadius: 24, overflow: 'hidden' }}>
             <div style={{ padding: '18px 24px', borderBottom: `1px solid ${T.border}`, background: T.bg }}>
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>MENU SELECTIONS</span>
+              <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>MENU SELECTIONS</span>
             </div>
             <div style={{ maxHeight: 640, overflowY: 'auto' }}>
               {menuItems.map((item) => {
@@ -162,11 +162,11 @@ export function CostCalculator({
                   >
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 2 }}>{item.name}</div>
-                      <div style={{ fontSize: 11, color: T.muted, fontFamily: "'Inter', sans-serif" }}>{item.section}</div>
+                      <div style={{ fontSize: 11, color: T.muted, fontFamily: "'Cormorant Garamond', serif" }}>{item.section}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: isWarning ? T.red : T.green }}>{actualFoodCost}%</div>
-                      <div style={{ fontSize: 9, color: T.subtle, fontFamily: "'DM Mono', monospace", fontWeight: 700 }}>ACTUAL</div>
+                      <div style={{ fontSize: 9, color: T.subtle, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700 }}>ACTUAL</div>
                     </div>
                   </button>
                 );
@@ -180,9 +180,9 @@ export function CostCalculator({
             <div style={{ background: '#FFF', border: `1px solid ${T.border}`, borderRadius: 24, padding: 28, boxShadow: '0 8px 32px rgba(0,0,0,0.02)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, gap: 20 }}>
                 <div>
-                  <div style={{ fontSize: 11, color: T.gold, fontWeight: 700, letterSpacing: 1.5, marginBottom: 8, fontFamily: "'DM Mono', monospace" }}>{selected.section.toUpperCase()}</div>
-                  <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 30, margin: 0, color: T.text, letterSpacing: -1 }}>{selected.name}</h2>
-                  <p style={{ fontSize: 14, color: T.muted, marginTop: 10, maxWidth: 520, lineHeight: 1.6, fontFamily: "'Inter', sans-serif" }}>{selected.desc}</p>
+                  <div style={{ fontSize: 11, color: T.gold, fontWeight: 700, letterSpacing: 1.5, marginBottom: 8, fontFamily: "'IBM Plex Mono', monospace" }}>{selected.section.toUpperCase()}</div>
+                  <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 30, margin: 0, color: T.text, letterSpacing: -1 }}>{selected.name}</h2>
+                  <p style={{ fontSize: 14, color: T.muted, marginTop: 10, maxWidth: 520, lineHeight: 1.6, fontFamily: "'Cormorant Garamond', serif" }}>{selected.desc}</p>
                 </div>
               </div>
 
@@ -214,20 +214,20 @@ export function CostCalculator({
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20, marginBottom: 30 }}>
                 <div style={{ background: T.bg, padding: 18, borderRadius: 14 }}>
                   <div style={{ fontSize: 10, color: T.muted, marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>ACTUAL FOOD COST</div>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: T.text, fontFamily: "'Playfair Display', serif" }}>{calculateFoodCostPct(selected)}%</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: T.text, fontFamily: "'Cormorant Garamond', serif" }}>{calculateFoodCostPct(selected)}%</div>
                 </div>
                 <div style={{ background: T.bg, padding: 18, borderRadius: 14 }}>
                   <div style={{ fontSize: 10, color: T.muted, marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>PLATE COST</div>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: T.text, fontFamily: "'Playfair Display', serif" }}>${calculateTotalCost(selected).toFixed(2)}</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: T.text, fontFamily: "'Cormorant Garamond', serif" }}>${calculateTotalCost(selected).toFixed(2)}</div>
                 </div>
                 <div style={{ background: T.bg, padding: 18, borderRadius: 14 }}>
                   <div style={{ fontSize: 10, color: T.muted, marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>GROSS MARGIN</div>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: T.green, fontFamily: "'Playfair Display', serif" }}>${(getManualPrice(selected) - calculateTotalCost(selected)).toFixed(2)}</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: T.green, fontFamily: "'Cormorant Garamond', serif" }}>${(getManualPrice(selected) - calculateTotalCost(selected)).toFixed(2)}</div>
                 </div>
               </div>
 
               <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 24 }}>
-                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: T.muted, letterSpacing: 1.5, marginBottom: 16, fontWeight: 700 }}>RECIPE INPUTS</div>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: T.muted, letterSpacing: 1.5, marginBottom: 16, fontWeight: 700 }}>RECIPE INPUTS</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '2.2fr 1fr 1fr 1fr', gap: 12, paddingBottom: 10, borderBottom: `1px solid ${T.border}` }}>
                   {['COMPONENT', 'QTY', 'UNIT COST', 'SUBTOTAL'].map((h) => (
                     <div key={h} style={{ fontSize: 10, color: T.subtle, fontWeight: 700, letterSpacing: 1 }}>{h}</div>
@@ -277,8 +277,8 @@ export function CostCalculator({
           ) : (
             <div style={{ height: '100%', minHeight: 400, border: `2px dashed ${T.border}`, borderRadius: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: T.subtle, background: '#FFF' }}>
               <div style={{ fontSize: 36, marginBottom: 12 }}>Scale</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: T.text, fontFamily: "'Playfair Display', serif" }}>Select a menu item to analyze</div>
-              <div style={{ fontSize: 14, marginTop: 8, fontFamily: "'Inter', sans-serif" }}>You can manually edit costs, quantities, and targets.</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: T.text, fontFamily: "'Cormorant Garamond', serif" }}>Select a menu item to analyze</div>
+              <div style={{ fontSize: 14, marginTop: 8, fontFamily: "'Cormorant Garamond', serif" }}>You can manually edit costs, quantities, and targets.</div>
             </div>
           )}
         </div>
@@ -286,3 +286,4 @@ export function CostCalculator({
     </div>
   );
 }
+

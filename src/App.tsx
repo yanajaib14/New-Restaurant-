@@ -47,7 +47,7 @@ type ShoppingListItem = {
   isManual?: boolean;
 };
 
-// ─── INITIAL DATA ─────────────────────────────────────────────────────────────
+// ������ INITIAL DATA ��������������������������������������������������������������������������������������������������������������������������
 const INIT_VENDORS: Vendor[] = [
   { id: 1, name: "Green Valley Farms", contact: "Maria Garcia", email: "maria@greenvalley.com", phone: "555-0101", category: "Produce", deliveryDays: ["M", "W", "F"], notes: "" },
   { id: 2, name: "Ocean's Best", contact: "Dave Chen", email: "dave@oceansbest.com", phone: "555-0102", category: "Seafood", deliveryDays: ["T", "Th", "S"], notes: "" },
@@ -192,11 +192,11 @@ const INIT_TIMELINE: Milestone[] = [
   { id:6, milestone:"POS Live", date:"May 15", phase:"Operations", done:false },
   { id:7, milestone:"Staff Training", date:"May 18", phase:"Training", done:false },
   { id:8, milestone:"Soft Opening", date:"May 28", phase:"Launch", done:false },
-  { id:9, milestone:"🎉 Grand Opening", date:"Jun 7", phase:"Launch", done:false },
+  { id:9, milestone:"�x}0 Grand Opening", date:"Jun 7", phase:"Launch", done:false },
 ];
 
 const INIT_NOTES: Note[] = [
-  { id:1, tag:"Vendor", title:"Produce Supplier", body:"Green Valley Farms — ask about net-30 terms. Contact: Maria ext. 204", date:"Apr 8", files:[] },
+  { id:1, tag:"Vendor", title:"Produce Supplier", body:"Green Valley Farms � ask about net-30 terms. Contact: Maria ext. 204", date:"Apr 8", files:[] },
   { id:2, tag:"Menu", title:"Seasonal Additions", body:"Consider stone fruit for summer desserts. Peach cobbler or apricot tart?", date:"Apr 9", files:[] },
   { id:3, tag:"Operations", title:"Opening Checklists", body:"Need AM and PM opening/closing checklists. Check competitor templates.", date:"Apr 9", files:[] },
 ];
@@ -519,7 +519,7 @@ export default function App() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // ── State: Database persistence ──
+  // ���� State: Database persistence ����
   const [dbShoppingItems, setDbShoppingItems] = useState<any[]>([]);
   const [dbCostCalcOverrides, setDbCostCalcOverrides] = useState<any[]>([]);
 
@@ -593,10 +593,10 @@ export default function App() {
   const [noteTagF, setNoteTagF] = useState("All");
 
   // AI
-  const [aiMsgs, setAiMsgs] = useState([{ role: "assistant", content: "Welcome! I'm your restaurant launch assistant. Ask me anything — task status, budget, menu, or what needs attention.", suggestions: ["What tasks are due this week?", "Which permits are pending?", "What's over budget?"] }]);
+  const [aiMsgs, setAiMsgs] = useState([{ role: "assistant", content: "Welcome! I'm your restaurant launch assistant. Ask me anything � task status, budget, menu, or what needs attention.", suggestions: ["What tasks are due this week?", "Which permits are pending?", "What's over budget?"] }]);
   const [aiLoad, setAiLoad] = useState(false);
 
-  // ── Derived ──
+  // ���� Derived ����
   const completed = tasks.filter(t=>t.status==="Complete").length;
   const overdue   = tasks.filter(t=>t.status==="Overdue").length;
   const criticalOverdue = tasks.filter(t => t.isCritical && t.status === "Overdue").length;
@@ -657,13 +657,13 @@ export default function App() {
       .map(x => ({ id: `permit-${x.permit.id}`, title: `${x.permit.name} permit follow-up`, meta: `${x.daysLeft as number} days left` })),
   ].slice(0, 4);
 
-  // ── Helper: re-fetch a single table and update state ──
+  // ���� Helper: re-fetch a single table and update state ����
   const refetch = async (table: string, setter: (d: any[]) => void) => {
     const { data } = await dbSelect(table);
     if (data) setter(data as any);
   };
 
-  // ── Centralized Database Handlers ──
+  // ���� Centralized Database Handlers ����
   const deleteRecord = async (table: string, id: any, label: string, setter: (d: any[]) => void) => {
     try {
       const { error } = await dbDelete(table, id);
@@ -709,7 +709,7 @@ export default function App() {
   };
 
 
-  // ── Task CRUD ──
+  // ���� Task CRUD ����
   const saveTask = async (form: any) => {
     const { id, _delete, ...rest } = form;
     try {
@@ -735,7 +735,7 @@ export default function App() {
     }
   };
 
-  // ── Menu CRUD ──
+  // ���� Menu CRUD ����
   const saveMenu = async (form: any) => {
     const { id, ...rest } = form;
     try {
@@ -756,7 +756,7 @@ export default function App() {
     }
   };
 
-  // ── Financial CRUD ──
+  // ���� Financial CRUD ����
   const saveFin = async (form: any) => {
     const { type, item } = finModal;
     const table = type === 'startup' ? 'startup_costs' : 'operating_costs';
@@ -780,7 +780,7 @@ export default function App() {
     }
   };
 
-  // ── Timeline CRUD ──
+  // ���� Timeline CRUD ����
   const saveTL = async (form: any) => {
     const { id, ...rest } = form;
     try {
@@ -799,7 +799,7 @@ export default function App() {
     }
   };
 
-  // ── Notes CRUD ──
+  // ���� Notes CRUD ����
   const saveNote = async (form: any) => {
     const d = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Phoenix' });
     const { id, ...rest } = form;
@@ -825,7 +825,7 @@ export default function App() {
     return matchTag && matchSearch;
   });
 
-  // ── Vendor CRUD ──
+  // ���� Vendor CRUD ����
   const saveVendor = async (form: any) => {
     const { id, ...rest } = form;
     try {
@@ -844,7 +844,7 @@ export default function App() {
     }
   };
 
-  // ── Inventory CRUD ──
+  // ���� Inventory CRUD ����
   const saveInv = async (form: any) => {
     const { id, ...rest } = form;
     try {
@@ -863,7 +863,7 @@ export default function App() {
     }
   };
 
-  // ── Permit CRUD ──
+  // ���� Permit CRUD ����
   const savePermit = async (form: any) => {
     const { id, ...rest } = form;
     try {
@@ -888,7 +888,7 @@ export default function App() {
     }
   };
 
-  // ── Marketing CRUD ──
+  // ���� Marketing CRUD ����
   const saveMkt = async (form: any) => {
     const { id, _delete, ...rest } = form;
     try {
@@ -910,7 +910,7 @@ export default function App() {
     }
   };
 
-  // ── Training CRUD ──
+  // ���� Training CRUD ����
   const saveTrain = async (form: any) => {
     const { id, _delete, ...rest } = form;
     try {
@@ -1040,7 +1040,7 @@ export default function App() {
     }
   };
 
-  // ── Invoice CRUD ──
+  // ���� Invoice CRUD ����
   const saveInvoice = async (form: any) => {
     const { id, ...rest } = form;
     try {
@@ -1059,7 +1059,7 @@ export default function App() {
     }
   };
 
-  // ── Checklist CRUD ──
+  // ���� Checklist CRUD ����
   const saveChk = async (form: any) => {
     const { id, ...rest } = form;
     try {
@@ -1079,7 +1079,7 @@ export default function App() {
   };
 
 
-  // ── AI ──
+  // ���� AI ����
   const totalMonthlyUtilities = useMemo(() => {
     return utilities.reduce((sum, u) => sum + u.monthlyCost, 0);
   }, [utilities]);
@@ -1203,7 +1203,7 @@ export default function App() {
     }
   }, [tab]);
 
-  // ── Shopping List Logic ──
+  // ���� Shopping List Logic ����
   const aggregatedIngredients = useMemo(() => {
     const map: Record<string, ShoppingListItem> = {};
     menuItems.forEach(item => {
@@ -1509,15 +1509,15 @@ export default function App() {
   };
 
   return (
-    <div style={{ minHeight:"100dvh", background:T.bg, color:T.text, fontFamily:"'DM Sans',sans-serif", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-      {/* ── LOGIN SCREEN ── */}
+    <div style={{ minHeight:"100dvh", background:T.bg, color:T.text, fontFamily:"'Cormorant Garamond', serif", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+      {/* ���� LOGIN SCREEN ���� */}
       {isAuthLoading ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100dvh', background: T.bg }}>Loading...</div>
       ) : !currentUser ? (
         <Login />
       ) : (
         <>
-          {/* ── HEADER ── */}
+          {/* ���� HEADER ���� */}
           <div className="glass" style={{ borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 100, paddingTop: "env(safe-area-inset-top, 0px)" }}>
             {/* Critical Banner */}
             {criticalOverdue > 0 && (
@@ -1525,7 +1525,7 @@ export default function App() {
                 background: T.red, color: "#FFF", padding: "8px 32px", textAlign: "center", 
                 fontSize: 12, fontWeight: 700, letterSpacing: 0.5, animation: "pulse 2s infinite" 
               }}>
-                🚨 CRITICAL PATH ALERT: {criticalOverdue} MANDATORY TASKS ARE OVERDUE. LAUNCH DATE AT RISK.
+                �xa� CRITICAL PATH ALERT: {criticalOverdue} MANDATORY TASKS ARE OVERDUE. LAUNCH DATE AT RISK.
               </div>
             )}
             {/* Row 1: Logo, Search, Stats */}
@@ -1540,8 +1540,8 @@ export default function App() {
               </button>
             )}
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
-              <span style={{ fontFamily: "'Playfair Display',serif", fontSize: isMobile ? 20 : 24, fontWeight: 700, color: T.text, letterSpacing: -0.8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{appTitle}</span>
-              {!isMobile && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 10, color: T.subtle, letterSpacing: 1, fontWeight: 600 }}>LAUNCH DASHBOARD</span>}
+              <span style={{ fontFamily: appTitle === "ไกลกังวล" ? "var(--font-thai-display)" : "'Cormorant Garamond',serif", fontSize: isMobile ? 20 : 24, fontWeight: 700, color: T.text, letterSpacing: -0.8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{appTitle}</span>
+              {!isMobile && <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 10, color: T.subtle, letterSpacing: 1, fontWeight: 600 }}>LAUNCH DASHBOARD</span>}
             </div>
           </div>
           
@@ -1553,7 +1553,7 @@ export default function App() {
                 style={{ background: T.goldLight, border: `1px solid ${T.goldBorder}`, borderRadius: 10, padding: isMobile ? "6px 10px" : "6px 12px", cursor: "pointer", color: T.gold, display: "flex", alignItems: "center", gap: 6 }}
               >
                 <ShieldCheck size={14} />
-                <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "'Inter', sans-serif" }}>LOCK</span>
+                <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "'Cormorant Garamond', serif" }}>LOCK</span>
               </button>
             )}
             <button 
@@ -1562,15 +1562,15 @@ export default function App() {
             >
               Sign Out ({isPartnerAccount ? 'Admin' : (userRole || 'User')})
             </button>
-            {!isMobile && <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: T.subtle, fontWeight: 500 }}>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Phoenix" })}</span>}
+            {!isMobile && <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 11, color: T.subtle, fontWeight: 500 }}>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Phoenix" })}</span>}
           </div>
 
           {/* AI Search Bar */}
           <div style={{ display: "flex", alignItems: "center", background: T.goldLight, borderRadius: 24, padding: isMobile ? "6px 14px" : "8px 16px", border: `2px solid ${T.gold}`, width: isMobile ? "100%" : 300, height: isMobile ? 40 : 44, marginLeft: isMobile ? 0 : 24, boxShadow: `0 4px 16px rgba(192, 108, 71, 0.15)`, transition: "all .2s" }}>
-            <span style={{ fontSize: 14, marginRight: 10, opacity: 0.8 }}>✨</span>
+            <span style={{ fontSize: 14, marginRight: 10, opacity: 0.8 }}>�S�</span>
             <input 
               placeholder="Ask assistant..." 
-              style={{ background: "none", border: "none", outline: "none", fontSize: isMobile ? 12 : 13, width: "100%", color: T.text, fontFamily: "'Inter', sans-serif", fontWeight: 500 }}
+              style={{ background: "none", border: "none", outline: "none", fontSize: isMobile ? 12 : 13, width: "100%", color: T.text, fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && e.currentTarget.value.trim()) {
                   const val = e.currentTarget.value;
@@ -1596,7 +1596,7 @@ export default function App() {
                 }}
                 style={{ 
                   background: "none", border: "none", borderBottom: `2px solid ${activeGroup === g ? T.gold : "transparent"}`,
-                  padding: "16px 0", cursor: "pointer", fontSize: 14, fontFamily: "'Inter', sans-serif",
+                  padding: "16px 0", cursor: "pointer", fontSize: 14, fontFamily: "'Cormorant Garamond', serif",
                   color: activeGroup === g ? T.text : T.muted, fontWeight: activeGroup === g ? 700 : 500,
                   letterSpacing: 0.5, transition: "all .2s",
                   opacity: activeGroup === g ? 1 : 0.6
@@ -1641,7 +1641,7 @@ export default function App() {
           <div style={{ position:"fixed", inset:0, top:"calc(112px + env(safe-area-inset-top, 0px))", background:"#FFF", zIndex:100, padding:"16px 16px calc(20px + env(safe-area-inset-bottom, 0px))", display:"flex", flexDirection:"column", gap:4, overflowY:"auto", WebkitOverflowScrolling:"touch" }}>
             {GROUPS.map(group => (
               <div key={group} style={{ marginBottom:16 }}>
-                <div style={{ fontSize:10, fontFamily:"'DM Mono',monospace", color:T.subtle, letterSpacing:1, padding:"0 12px", marginBottom:8 }}>{group}</div>
+                <div style={{ fontSize:10, fontFamily:"'IBM Plex Mono',monospace", color:T.subtle, letterSpacing:1, padding:"0 12px", marginBottom:8 }}>{group}</div>
                 {TABS.filter(t => t.group === group).map(t => (
                   <button 
                     key={t.id} 
@@ -1657,7 +1657,7 @@ export default function App() {
           </div>
         )}
 
-      {/* ── MODALS ── */}
+      {/* ���� MODALS ���� */}
       {taskModal  && <TaskModal task={taskModal==="new"?null:taskModal} initialDate={calDate || undefined} onSave={saveTask} onClose={()=>{setTaskModal(null); setCalDate(null);}}/>}
       {menuModal  && <MenuModal item={menuModal==="new"?null:menuModal} onSave={saveMenu} onClose={()=>setMenuModal(null)}/>}
       {finModal   && <FinModal item={finModal.item||null} type={finModal.type} onSave={saveFin} onClose={()=>setFinModal(null)} userRole={currentUser?.role} />}
@@ -1730,7 +1730,7 @@ export default function App() {
       {delConfirm && (
         <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.3)",zIndex:998,display:"flex",alignItems:"center",justifyContent:"center" }} onClick={()=>setDelConfirm(null)}>
           <div style={{ background:"#FFF",borderRadius:14,padding:26,width:340,boxShadow:"0 16px 40px rgba(0,0,0,.12)" }} onClick={e=>e.stopPropagation()}>
-            <div style={{ fontFamily:"'Playfair Display',serif",fontSize:17,marginBottom:10 }}>Remove this item?</div>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:17,marginBottom:10 }}>Remove this item?</div>
             <div style={{ fontSize:13,color:T.muted,marginBottom:22 }}><strong style={{color:T.text}}>{delConfirm.label}</strong> will be permanently removed.</div>
             <div style={{ display:"flex",gap:10,justifyContent:"flex-end" }}>
               <Btn onClick={()=>setDelConfirm(null)} variant="ghost">Cancel</Btn>
@@ -1742,7 +1742,7 @@ export default function App() {
 
       <div style={{ padding: isMobile ? "16px" : "28px 32px", maxWidth: 1440, margin: "0 auto", display: "flex", gap: 32, paddingBottom: isMobile ? "96px" : undefined }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          {/* ══════ OVERVIEW ══════ */}
+          {/* �"��"��"��"��"��"� OVERVIEW �"��"��"��"��"��"� */}
         {tab==="overview" && (
           <div className="fu">
             <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 20 : 32 }}>
@@ -1750,7 +1750,7 @@ export default function App() {
                 <SectionHeader title="Launch Overview" subtitle="Track your restaurant's journey from concept to opening day"/>
                 {/* At-a-glance */}
                 <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 24, marginBottom: isMobile ? 16 : 24 }}>
-                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, marginBottom: 12, fontWeight: 600 }}>AT A GLANCE</div>
+                  <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, marginBottom: 12, fontWeight: 600 }}>AT A GLANCE</div>
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "160px 1fr", gap: 12, marginBottom: 12, alignItems: "center" }}>
                     <div style={{ display: "flex", justifyContent: "center" }}>
                       <ProgressRing progress={prog} size={isMobile ? 110 : 120} stroke={8} />
@@ -1761,7 +1761,7 @@ export default function App() {
                         <div style={{ fontSize: 18, fontWeight: 700, color: overdue > 0 ? T.red : T.green }}>{overdue}</div>
                       </div>
                       <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
-                        <div style={{ fontSize: 10, color: T.subtle }}>Permit Risks ≤14d</div>
+                        <div style={{ fontSize: 10, color: T.subtle }}>Permit Risks �0�14d</div>
                         <div style={{ fontSize: 18, fontWeight: 700, color: permitAlerts.filter(x => (x.daysLeft as number) <= 14).length > 0 ? T.red : T.green }}>{permitAlerts.filter(x => (x.daysLeft as number) <= 14).length}</div>
                       </div>
                       <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
@@ -1780,7 +1780,7 @@ export default function App() {
 
                 {/* 7-Day Overview */}
                 <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 24, marginBottom: isMobile ? 16 : 24 }}>
-                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, marginBottom: 12, fontWeight: 600 }}>7-DAY OVERVIEW</div>
+                  <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, marginBottom: 12, fontWeight: 600 }}>7-DAY OVERVIEW</div>
                   <LaunchWindow tasks={tasks} permits={permits} candidates={candidates} />
                 </div>
 
@@ -1788,8 +1788,8 @@ export default function App() {
                 <div style={{ marginTop: isMobile ? 16 : 24 }}>
                   <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 28 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                      <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>MUST ACT NOW</div>
-                      <Btn onClick={() => setTab("tasks")} variant="ghost" small>Open Tasks →</Btn>
+                      <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>MUST ACT NOW</div>
+                      <Btn onClick={() => setTab("tasks")} variant="ghost" small>Open Tasks � </Btn>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       {mustActNow.length === 0 ? (
@@ -1807,8 +1807,8 @@ export default function App() {
                 {/* Permit Alerts */}
                 <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 28, marginTop: isMobile ? 16 : 24 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>PERMIT COUNTDOWN ALERTS (30/14/7 DAYS)</div>
-                    <Btn onClick={() => setTab("permits")} variant="ghost" small>Open Permits →</Btn>
+                    <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>PERMIT COUNTDOWN ALERTS (30/14/7 DAYS)</div>
+                    <Btn onClick={() => setTab("permits")} variant="ghost" small>Open Permits � </Btn>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {permitAlerts.length === 0 ? (
@@ -1819,7 +1819,7 @@ export default function App() {
                           <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{permit.name}</div>
                           <div style={{ fontSize: 11, color: T.muted }}>{permit.issuer} · expires {permit.expiryDate}</div>
                         </div>
-                        <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 12, color: (daysLeft as number) <= 7 ? T.red : (daysLeft as number) <= 14 ? T.gold : T.text, fontWeight: 700 }}>
+                        <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, color: (daysLeft as number) <= 7 ? T.red : (daysLeft as number) <= 14 ? T.gold : T.text, fontWeight: 700 }}>
                           {(daysLeft as number) < 0 ? `${Math.abs(daysLeft as number)}d overdue` : `${daysLeft as number}d left`}
                         </div>
                       </div>
@@ -1832,10 +1832,10 @@ export default function App() {
       </div>
       )}
 
-        {/* ══════ TASKS ══════ */}
+        {/* �"��"��"��"��"��"� TASKS �"��"��"��"��"��"� */}
         {tab==="tasks" && (
           <div className="fu">
-            <SectionHeader title="Task Boards" subtitle={`${tasks.length} tasks · Click ▶ to expand subtask checklist`}
+            <SectionHeader title="Task Boards" subtitle={`${tasks.length} tasks · Click �� to expand subtask checklist`}
               action={
                 <div style={{ display: "flex", gap: 10 }}>
                   <Btn onClick={() => exportToCSV(tasks, 'Restaurant_Launch_Tasks', [
@@ -1845,7 +1845,7 @@ export default function App() {
                     { key: 'status', label: 'Status' },
                     { key: 'priority', label: 'Priority' },
                     { key: 'checklist', label: 'Checklist Details' }
-                  ])} variant="outline" small>📥 Export CSV</Btn>
+                  ])} variant="outline" small>�x� Export CSV</Btn>
                   <Btn onClick={()=>setTaskModal("new")} variant="primary">+ New Task</Btn>
                 </div>
               }/>
@@ -1872,12 +1872,12 @@ export default function App() {
                               <span style={{ fontSize: 10, color: sc.text, background: sc.bg, border: `1px solid ${sc.border}`, borderRadius: 10, padding: "2px 8px" }}>{t.status}</span>
                             </div>
                             <div style={{ marginTop: 8, fontSize: 11, color: T.muted }}>
-                              Due {t.due || "—"} • {t.assignedTo || "Unassigned"}
+                              Due {t.due || "�"} ⬢ {t.assignedTo || "Unassigned"}
                             </div>
                           </div>
                           <div style={{ display: "flex", gap: 6 }}>
-                            <button onClick={() => setTaskModal(t)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 12 }}>✎</button>
-                            <button onClick={() => setDelConfirm({ label: t.task, onConfirm: () => deleteRecord('tasks', t.id, t.task, setTasks) })} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 12 }}>✕</button>
+                            <button onClick={() => setTaskModal(t)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 12 }}>�S}</button>
+                            <button onClick={() => setDelConfirm({ label: t.task, onConfirm: () => deleteRecord('tasks', t.id, t.task, setTasks) })} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 12 }}>�S"</button>
                           </div>
                         </div>
                       </div>
@@ -1889,7 +1889,7 @@ export default function App() {
               <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, overflow:"hidden" }}>
                 <div style={{ display:"grid", gridTemplateColumns:"28px 1fr 120px 140px 100px 90px 70px", padding:"10px 18px", background:T.bg, borderBottom:`1px solid ${T.border}` }}>
                   {["","TASK / PROGRESS","DUE","STATUS","OWNER","PRIORITY",""] .map((h,i)=>(
-                    <div key={i} style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:T.subtle, letterSpacing:.8 }}>{h}</div>
+                    <div key={i} style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:T.subtle, letterSpacing:.8 }}>{h}</div>
                   ))}
                 </div>
                 {tasks.filter(t=>(catFilter==="All"||t.category===catFilter)&&(statFilter==="All"||t.status===statFilter)).length===0
@@ -1906,7 +1906,7 @@ export default function App() {
             <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, overflow:"hidden" }}>
               <div style={{ display:"grid", gridTemplateColumns:"28px 1fr 120px 140px 100px 90px 70px", padding:"10px 18px", background:T.bg, borderBottom:`1px solid ${T.border}` }}>
                 {["","TASK / PROGRESS","DUE","STATUS","OWNER","PRIORITY",""].map((h,i)=>(
-                  <div key={i} style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:T.subtle, letterSpacing:.8 }}>{h}</div>
+                  <div key={i} style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:T.subtle, letterSpacing:.8 }}>{h}</div>
                 ))}
               </div>
               {tasks.filter(t=>(catFilter==="All"||t.category===catFilter)&&(statFilter==="All"||t.status===statFilter)).length===0
@@ -1921,7 +1921,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ══════ MENU & BAR ══════ */}
+        {/* �"��"��"��"��"��"� MENU & BAR �"��"��"��"��"��"� */}
         {tab==="menu" && (
           <div className="fu">
             <SectionHeader title="Menu & Bar Planner" subtitle="Track items, costs, and hero dishes"
@@ -1930,7 +1930,7 @@ export default function App() {
             <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap" }}>
               {["All",...MENU_SECTIONS].map(s=>(
                 <button key={s} onClick={()=>setMenuSecF(s)}
-                  style={{ cursor:"pointer", borderRadius:24, padding:isMobile?"8px 14px":"6px 16px", fontSize:isMobile?12:11, fontFamily:"'Inter', sans-serif", border:`1px solid ${menuSecF===s?T.gold:T.border}`, background:menuSecF===s?T.goldLight:"#FFF", color:menuSecF===s?T.gold:T.muted, fontWeight:menuSecF===s?700:500 }}>
+                  style={{ cursor:"pointer", borderRadius:24, padding:isMobile?"8px 14px":"6px 16px", fontSize:isMobile?12:11, fontFamily:"'Cormorant Garamond', serif", border:`1px solid ${menuSecF===s?T.gold:T.border}`, background:menuSecF===s?T.goldLight:"#FFF", color:menuSecF===s?T.gold:T.muted, fontWeight:menuSecF===s?700:500 }}>
                   {s}
                 </button>
               ))}
@@ -1941,24 +1941,24 @@ export default function App() {
                   <div key={item.id} style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 12 }}>
                     <div style={{ display: "flex", gap: 10 }}>
                       <div style={{ width: 52, height: 52, borderRadius: 8, background: T.bg, border: `1px solid ${T.border}`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        {item.imageUrl ? <img src={item.imageUrl} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 18 }}>🍽️</span>}
+                        {item.imageUrl ? <img src={item.imageUrl} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 18 }}>�x��️</span>}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{item.name}</div>
                         <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{item.section}</div>
-                        <div style={{ fontSize: 11, color: T.muted, marginTop: 4 }}>{item.desc || "—"}</div>
+                        <div style={{ fontSize: 11, color: T.muted, marginTop: 4 }}>{item.desc || "�"}</div>
                         <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                          <span style={{ fontSize: 12, fontFamily: "'DM Mono',monospace", color: T.green, fontWeight: 700 }}>
+                          <span style={{ fontSize: 12, fontFamily: "'IBM Plex Mono',monospace", color: T.green, fontWeight: 700 }}>
                             {item.section === "Wine" ? `B ${item.sellPriceBottle} / G ${item.sellPriceGlass}` : `$${item.price}`}
                           </span>
-                          <span style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", fontWeight: 700, color: item.foodCost > 30 ? T.red : T.green, background: item.foodCost > 30 ? T.redLight : T.greenLight, padding: "2px 8px", borderRadius: 4 }}>{item.foodCost}%</span>
+                          <span style={{ fontSize: 10, fontFamily: "'IBM Plex Mono',monospace", fontWeight: 700, color: item.foodCost > 30 ? T.red : T.green, background: item.foodCost > 30 ? T.redLight : T.greenLight, padding: "2px 8px", borderRadius: 4 }}>{item.foodCost}%</span>
                           {item.hero && <span style={{ fontSize: 12 }}>⭐ Hero</span>}
                         </div>
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 6, marginTop: 10, justifyContent: "flex-end" }}>
-                      <button onClick={() => setMenuModal(item)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 12 }}>✎</button>
-                      <button onClick={() => setDelConfirm({ label: item.name, onConfirm: () => deleteRecord('menu_items', item.id, item.name, setMenuItems) })} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 12 }}>✕</button>
+                      <button onClick={() => setMenuModal(item)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 12 }}>�S}</button>
+                      <button onClick={() => setDelConfirm({ label: item.name, onConfirm: () => deleteRecord('menu_items', item.id, item.name, setMenuItems) })} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 12 }}>�S"</button>
                     </div>
                   </div>
                 ))}
@@ -1967,18 +1967,18 @@ export default function App() {
               <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, overflow:"hidden" }}>
                 <div style={{ display:"grid", gridTemplateColumns:"110px 44px 1fr 1.8fr 70px 80px 52px 1fr 70px", padding:"10px 18px", background:T.bg, borderBottom:`1px solid ${T.border}` }}>
                   {["SECTION","","NAME","DESCRIPTION","PRICE / B&G","COST %","HERO","NOTES",""] .map((h,i)=>(
-                    <div key={i} style={{ fontFamily:"'DM Mono',monospace", fontSize:9, color:T.subtle, letterSpacing:.8 }}>{h}</div>
+                    <div key={i} style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:T.subtle, letterSpacing:.8 }}>{h}</div>
                   ))}
                 </div>
                 {menuItems.filter(m=>menuSecF==="All"||m.section===menuSecF).map((item,i)=>(
                   <div key={item.id} style={{ display:"grid", gridTemplateColumns:"110px 44px 1fr 1.8fr 70px 80px 52px 1fr 70px", padding:"13px 18px", borderBottom:`1px solid ${T.border}`, background:i%2===0?"#FFF":T.bg, alignItems:"center" }}>
-                    <div style={{ fontSize:10, color:T.muted, fontFamily:"'DM Mono',monospace" }}>{item.section}</div>
+                    <div style={{ fontSize:10, color:T.muted, fontFamily:"'IBM Plex Mono',monospace" }}>{item.section}</div>
                     <div style={{ width:32, height:32, borderRadius:6, background:T.bg, border:`1px solid ${T.border}`, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      {item.imageUrl ? <img src={item.imageUrl} alt={item.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ fontSize:12 }}>🍽️</span>}
+                      {item.imageUrl ? <img src={item.imageUrl} alt={item.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ fontSize:12 }}>�x��️</span>}
                     </div>
-                    <div style={{ fontSize:13, fontFamily:"'Playfair Display',serif", fontWeight:600, color:T.text }}>{item.name}</div>
+                    <div style={{ fontSize:13, fontFamily:"'Cormorant Garamond',serif", fontWeight:600, color:T.text }}>{item.name}</div>
                     <div style={{ fontSize:11, color:T.muted, fontStyle:"italic" }}>{item.desc}</div>
-                    <div style={{ fontSize:13, fontFamily:"'DM Mono',monospace", color:T.green, fontWeight:600 }}>
+                    <div style={{ fontSize:13, fontFamily:"'IBM Plex Mono',monospace", color:T.green, fontWeight:600 }}>
                       {item.section === "Wine" ? (
                         <div style={{ lineHeight: 1.2 }}>
                           <div style={{ fontSize:10, color:T.muted }}>B: ${item.sellPriceBottle}</div>
@@ -1986,12 +1986,12 @@ export default function App() {
                         </div>
                       ) : `$${item.price}`}
                     </div>
-                    <div><span style={{ fontSize:11, fontFamily:"'DM Mono',monospace", fontWeight:600, color:item.foodCost>30?T.red:T.green, background:item.foodCost>30?T.redLight:T.greenLight, padding:"2px 8px", borderRadius:4 }}>{item.foodCost}%</span></div>
-                    <div style={{ textAlign:"center", fontSize:14 }}>{item.hero?"⭐":"—"}</div>
-                    <div style={{ fontSize:11, color:T.muted }}>{item.notes||"—"}</div>
+                    <div><span style={{ fontSize:11, fontFamily:"'IBM Plex Mono',monospace", fontWeight:600, color:item.foodCost>30?T.red:T.green, background:item.foodCost>30?T.redLight:T.greenLight, padding:"2px 8px", borderRadius:4 }}>{item.foodCost}%</span></div>
+                    <div style={{ textAlign:"center", fontSize:14 }}>{item.hero?"⭐":"�"}</div>
+                    <div style={{ fontSize:11, color:T.muted }}>{item.notes||"�"}</div>
                     <div style={{ display:"flex", gap:5 }}>
-                      <button onClick={()=>setMenuModal(item)} style={{ background:"none",border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 7px",color:T.muted,cursor:"pointer",fontSize:11 }}>✎</button>
-                      <button onClick={()=>setDelConfirm({label:item.name,onConfirm:()=>deleteRecord('menu_items', item.id, item.name, setMenuItems)})} style={{ background:"none",border:`1px solid ${T.redBorder}`,borderRadius:6,padding:"3px 7px",color:T.red,cursor:"pointer",fontSize:11 }}>✕</button>
+                      <button onClick={()=>setMenuModal(item)} style={{ background:"none",border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 7px",color:T.muted,cursor:"pointer",fontSize:11 }}>�S}</button>
+                      <button onClick={()=>setDelConfirm({label:item.name,onConfirm:()=>deleteRecord('menu_items', item.id, item.name, setMenuItems)})} style={{ background:"none",border:`1px solid ${T.redBorder}`,borderRadius:6,padding:"3px 7px",color:T.red,cursor:"pointer",fontSize:11 }}>�S"</button>
                     </div>
                   </div>
                 ))}
@@ -2000,17 +2000,17 @@ export default function App() {
           </div>
         )}
 
-        {/* ══════ SHOPPING LIST ══════ */}
+        {/* �"��"��"��"��"��"� SHOPPING LIST �"��"��"��"��"��"� */}
         {tab === "shopping" && (
           <div className="fu">
             <SectionHeader title="Consolidated Shopping List" subtitle="All ingredients required for your current menu items"
-              action={<div style={{ display: "flex", gap: 8 }}><Btn onClick={openNewShopItem} variant="primary">+ Add Item</Btn><Btn onClick={() => window.print()} variant="outline">🖨️ Print List</Btn></div>} />
+              action={<div style={{ display: "flex", gap: 8 }}><Btn onClick={openNewShopItem} variant="primary">+ Add Item</Btn><Btn onClick={() => window.print()} variant="outline">�x�️ Print List</Btn></div>} />
             
             {/* Filters */}
             <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: "16px 20px", marginBottom: 18 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: T.muted, width: 100 }}>CATEGORY:</span>
+                  <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono',monospace", color: T.muted, width: 100 }}>CATEGORY:</span>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {["All", ...INV_CATEGORIES].map(cat => (
                       <button key={cat} onClick={() => setShopCatF(cat)}
@@ -2021,7 +2021,7 @@ export default function App() {
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: T.muted, width: 100 }}>DEPARTMENT:</span>
+                  <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono',monospace", color: T.muted, width: 100 }}>DEPARTMENT:</span>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {["All", ...DEPARTMENTS].map(dept => (
                       <button key={dept} onClick={() => setShopDeptF(dept)}
@@ -2032,7 +2032,7 @@ export default function App() {
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: T.muted, width: 100 }}>SOURCE:</span>
+                  <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono',monospace", color: T.muted, width: 100 }}>SOURCE:</span>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {["All", "Vendor", "Store", "Unassigned"].map(source => (
                       <button key={source} onClick={() => setShopSourceF(source)}
@@ -2067,10 +2067,10 @@ export default function App() {
                       <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{ing.name}</div>
                       <div style={{ marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap", fontSize: 11, color: T.muted }}>
                         <span>{ing.category}</span>
-                        <span>•</span>
+                        <span>⬢</span>
                         <span>{ing.department}</span>
-                        {(ing.purchaseType === "Vendor" && ing.vendorName) && <><span>•</span><span>Vendor: {ing.vendorName}</span></>}
-                        {(ing.purchaseType === "Store" && ing.storeName) && <><span>•</span><span>Store: {ing.storeName}</span></>}
+                        {(ing.purchaseType === "Vendor" && ing.vendorName) && <><span>⬢</span><span>Vendor: {ing.vendorName}</span></>}
+                        {(ing.purchaseType === "Store" && ing.storeName) && <><span>⬢</span><span>Store: {ing.storeName}</span></>}
                       </div>
                       {ing.purchaseType === "Store" && ing.storeUrl && (
                         <div style={{ marginTop: 6 }}>
@@ -2079,7 +2079,7 @@ export default function App() {
                       )}
                       <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                         <span style={{ color: T.muted }}>{ing.quantity} {ing.unit}</span>
-                        <span style={{ fontFamily: "'DM Mono',monospace", color: T.green, fontWeight: 700 }}>${ing.totalCost.toFixed(2)}</span>
+                        <span style={{ fontFamily: "'IBM Plex Mono',monospace", color: T.green, fontWeight: 700 }}>${ing.totalCost.toFixed(2)}</span>
                       </div>
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 8 }}>
                         {ing.items.map(dish => (
@@ -2087,8 +2087,8 @@ export default function App() {
                         ))}
                       </div>
                       <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                        <button onClick={() => openEditShopItem(ing)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>✎ Edit</button>
-                        <button onClick={() => removeShopItem(ing)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "5px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>✕ Remove</button>
+                        <button onClick={() => openEditShopItem(ing)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S} Edit</button>
+                        <button onClick={() => removeShopItem(ing)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "5px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S" Remove</button>
                       </div>
                     </div>
                   ))
@@ -2098,7 +2098,7 @@ export default function App() {
               <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr 1.2fr 120px 120px 1.8fr 130px", padding: "10px 18px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
                   {["INGREDIENT", "CATEGORY", "DEPT", "WHERE TO BUY", "TOTAL QTY", "TOTAL COST", "USED IN DISHES", "ACTIONS"].map(h => (
-                    <div key={h} style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: T.subtle, letterSpacing: .8 }}>{h}</div>
+                    <div key={h} style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, color: T.subtle, letterSpacing: .8 }}>{h}</div>
                   ))}
                 </div>
                 {consolidatedShoppingRows.length === 0 ? (
@@ -2115,16 +2115,16 @@ export default function App() {
                           <div><a href={ing.storeUrl} target="_blank" rel="noreferrer" style={{ color: T.blue }}>Link</a></div>
                         )}
                       </div>
-                      <div style={{ fontSize: 13, fontFamily: "'DM Mono',monospace", color: T.text }}>{ing.quantity} {ing.unit}</div>
-                      <div style={{ fontSize: 13, fontFamily: "'DM Mono',monospace", color: T.green, fontWeight: 600 }}>${ing.totalCost.toFixed(2)}</div>
+                      <div style={{ fontSize: 13, fontFamily: "'IBM Plex Mono',monospace", color: T.text }}>{ing.quantity} {ing.unit}</div>
+                      <div style={{ fontSize: 13, fontFamily: "'IBM Plex Mono',monospace", color: T.green, fontWeight: 600 }}>${ing.totalCost.toFixed(2)}</div>
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                         {ing.items.map(dish => (
                           <span key={dish} style={{ fontSize: 10, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 4, padding: "2px 6px", color: T.muted }}>{dish}</span>
                         ))}
                       </div>
                       <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => openEditShopItem(ing)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>✎</button>
-                        <button onClick={() => removeShopItem(ing)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>✕</button>
+                        <button onClick={() => openEditShopItem(ing)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
+                        <button onClick={() => removeShopItem(ing)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
                       </div>
                     </div>
                   ))
@@ -2147,7 +2147,7 @@ export default function App() {
           />
         )}
 
-        {/* ══════ FINANCIALS ══════ */}
+        {/* �"��"��"��"��"��"� FINANCIALS �"��"��"��"��"��"� */}
         {tab==="financials" && (
           !isUnlocked ? <PinGate onUnlock={() => setIsUnlocked(true)} correctPin={securityPin} /> : (
           <div className="fu">
@@ -2167,7 +2167,7 @@ export default function App() {
                       { key: 'budgeted', label: 'Budgeted/Monthly' },
                       { key: 'actual', label: 'Actual' },
                     ]);
-                  }} variant="outline" small>📥 Export</Btn>
+                  }} variant="outline" small>�x� Export</Btn>
                   {canManageAccess && <Btn onClick={() => setIsChangePinOpen(true)} variant="outline" small>Change PIN</Btn>}
                   {canManageAccess && (
                     <Btn onClick={() => setDelConfirm({
@@ -2181,7 +2181,7 @@ export default function App() {
                         setOp([]);
                         logActivity("Reset all financial data");
                       }
-                    })} variant="danger" small>🗑 Reset All</Btn>
+                    })} variant="danger" small>�x Reset All</Btn>
                   )}
                 </div>
               }
@@ -2195,8 +2195,8 @@ export default function App() {
                 {label:"Proj. Revenue / Mo",value:`$${(projRev/1000).toFixed(0)}K`,sub:"At 30% food cost",color:T.blue,dot:T.blueLight},
               ].map(k=>(
                 <div key={k.label} style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, padding: isMobile ? "14px 16px" : 20 }}>
-                  <div style={{ fontSize:11, color:T.muted, fontFamily:"'DM Mono',monospace", marginBottom:6, letterSpacing:.5 }}>{k.label.toUpperCase()}</div>
-                  <div style={{ fontFamily:"'Playfair Display',serif", fontSize: isMobile ? 28 : 24, fontWeight:700, color:k.color }}>{k.value}</div>
+                  <div style={{ fontSize:11, color:T.muted, fontFamily:"'IBM Plex Mono',monospace", marginBottom:6, letterSpacing:.5 }}>{k.label.toUpperCase()}</div>
+                  <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize: isMobile ? 28 : 24, fontWeight:700, color:k.color }}>{k.value}</div>
                   <div style={{ fontSize:11, color:T.muted, marginTop:4 }}>{k.sub}</div>
                 </div>
               ))}
@@ -2206,7 +2206,7 @@ export default function App() {
               {/* Startup Costs */}
               <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, padding: isMobile ? 16 : 22 }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:T.muted, letterSpacing:.8 }}>STARTUP COSTS</span>
+                  <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:10, color:T.muted, letterSpacing:.8 }}>STARTUP COSTS</span>
                   <Btn onClick={()=>setFinModal({type:"startup",item:null})} variant="outline" small>+ Add</Btn>
                 </div>
                 {startup.length === 0 && <p style={{ fontSize:13, color:T.muted, textAlign:"center", padding:"20px 0" }}>No startup costs yet. Tap + Add to begin.</p>}
@@ -2217,10 +2217,10 @@ export default function App() {
                       <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5, alignItems:"center" }}>
                         <span style={{ fontSize:13, color:T.text, fontWeight:500 }}>{c.category}</span>
                         <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                          <span style={{ fontSize:11, fontFamily:"'DM Mono',monospace", color:T.muted }}>${Number(c.budgeted).toLocaleString()}</span>
-                          <span style={{ fontSize:12, fontFamily:"'DM Mono',monospace", fontWeight:700, color:diff>0?T.red:T.green }}>${Number(c.actual).toLocaleString()}</span>
-                          <button onClick={()=>setFinModal({type:"startup",item:c})} style={{ background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1 }}>✎</button>
-                          <button onClick={()=>setDelConfirm({label:c.category,onConfirm:()=>deleteRecord('startup_costs', c.id, c.category, setStartup)})} style={{ background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1 }}>✕</button>
+                          <span style={{ fontSize:11, fontFamily:"'IBM Plex Mono',monospace", color:T.muted }}>${Number(c.budgeted).toLocaleString()}</span>
+                          <span style={{ fontSize:12, fontFamily:"'IBM Plex Mono',monospace", fontWeight:700, color:diff>0?T.red:T.green }}>${Number(c.actual).toLocaleString()}</span>
+                          <button onClick={()=>setFinModal({type:"startup",item:c})} style={{ background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1 }}>�S}</button>
+                          <button onClick={()=>setDelConfirm({label:c.category,onConfirm:()=>deleteRecord('startup_costs', c.id, c.category, setStartup)})} style={{ background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1 }}>�S"</button>
                         </div>
                       </div>
                       <div style={{ height:5, background:T.border, borderRadius:3 }}>
@@ -2233,7 +2233,7 @@ export default function App() {
               {/* Operating Costs */}
               <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, padding: isMobile ? 16 : 22 }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color:T.muted, letterSpacing:.8 }}>MONTHLY OPERATING COSTS</span>
+                  <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:10, color:T.muted, letterSpacing:.8 }}>MONTHLY OPERATING COSTS</span>
                   <Btn onClick={()=>setFinModal({type:"operating",item:null})} variant="outline" small>+ Add</Btn>
                 </div>
                 {operating.length === 0 && <p style={{ fontSize:13, color:T.muted, textAlign:"center", padding:"20px 0" }}>No operating costs yet. Tap + Add to begin.</p>}
@@ -2246,9 +2246,9 @@ export default function App() {
                       )}
                     </div>
                     <div style={{ display:"flex", gap:10, alignItems:"center" }}>
-                      <span style={{ fontFamily:"'DM Mono',monospace", fontSize:13, fontWeight:600, color:T.text }}>${Number(c.monthly).toLocaleString()}</span>
-                      <button onClick={()=>setFinModal({type:"operating",item:c})} style={{ background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:14,padding:"2px 4px" }}>✎</button>
-                      <button onClick={()=>setDelConfirm({label:c.category,onConfirm:()=>deleteRecord('operating_costs', c.id, c.category, setOp)})} style={{ background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:14,padding:"2px 4px" }}>✕</button>
+                      <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:13, fontWeight:600, color:T.text }}>${Number(c.monthly).toLocaleString()}</span>
+                      <button onClick={()=>setFinModal({type:"operating",item:c})} style={{ background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:14,padding:"2px 4px" }}>�S}</button>
+                      <button onClick={()=>setDelConfirm({label:c.category,onConfirm:()=>deleteRecord('operating_costs', c.id, c.category, setOp)})} style={{ background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:14,padding:"2px 4px" }}>�S"</button>
                     </div>
                   </div>
                 ))}
@@ -2258,19 +2258,19 @@ export default function App() {
           )
         )}
 
-        {/* ══════ COST CALCULATOR ══════ */}
+        {/* �"��"��"��"��"��"� COST CALCULATOR �"��"��"��"��"��"� */}
         {tab==="costcalc" && <CostCalculator menuItems={menuItems} dbCostCalcOverrides={dbCostCalcOverrides} onSaveOverride={saveCostCalcOverride} />}
 
-        {/* ══════ TEAM ONBOARDING ══════ */}
+        {/* �"��"��"��"��"��"� TEAM ONBOARDING �"��"��"��"��"��"� */}
         {tab==="onboarding" && <TeamOnboarding />}
 
-        {/* ══════ TIMELINE ══════ */}
+        {/* �"��"��"��"��"��"� TIMELINE �"��"��"��"��"��"� */}
         {tab==="timeline" && <Timeline timeline={timeline} onToggle={id => {
           const m = timeline.find(x => x.id === id);
           if (m) updateRecord('milestones', id, { done: !m.done }, 'Milestone', setTL);
         }} onEdit={setTlModal} onDelete={m => setDelConfirm({ label: m.milestone, onConfirm: () => deleteRecord('milestones', m.id, m.milestone, setTL) })} onAdd={() => setTlModal("new")} />}
 
-        {/* ══════ NOTES ══════ */}
+        {/* �"��"��"��"��"��"� NOTES �"��"��"��"��"��"� */}
         {tab==="notes" && (
           <div className="fu">
             <SectionHeader title="Notes & Ideas" subtitle="Capture ideas, vendor contacts, recipes, and attach files"
@@ -2278,7 +2278,7 @@ export default function App() {
                 <div style={{ display: "flex", gap: 10 }}>
                   {!isDriveConnected && (
                     <Btn onClick={handleGoogleConnect} variant="outline" small>
-                      <span style={{ color: T.blue }}>▲</span> Connect Drive
+                      <span style={{ color: T.blue }}>��</span> Connect Drive
                     </Btn>
                   )}
                   <Btn onClick={()=>setNoteModal("new")} variant="primary">+ New Note</Btn>
@@ -2294,12 +2294,12 @@ export default function App() {
                   placeholder="Search notes..." 
                   style={{ ...inpStyle, paddingLeft: 36 }} 
                 />
-                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", opacity: 0.4 }}>🔍</span>
+                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", opacity: 0.4 }}>�x�</span>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {["All", ...Object.keys(NOTE_TAG_COLORS)].map(tag => (
                   <button key={tag} onClick={() => setNoteTagF(tag)}
-                    style={{ cursor: "pointer", borderRadius: 20, padding: "6px 14px", fontSize: 12, fontFamily: "'DM Sans',sans-serif", border: `1px solid ${noteTagF === tag ? T.gold : T.border}`, background: noteTagF === tag ? T.goldLight : "#FFF", color: noteTagF === tag ? T.gold : T.muted, fontWeight: noteTagF === tag ? 600 : 400 }}>
+                    style={{ cursor: "pointer", borderRadius: 20, padding: "6px 14px", fontSize: 12, fontFamily: "'Cormorant Garamond', serif", border: `1px solid ${noteTagF === tag ? T.gold : T.border}`, background: noteTagF === tag ? T.goldLight : "#FFF", color: noteTagF === tag ? T.gold : T.muted, fontWeight: noteTagF === tag ? 600 : 400 }}>
                     {tag}
                   </button>
                 ))}
@@ -2327,21 +2327,21 @@ export default function App() {
           </div>
         )}
 
-        {/* ══════ VENDORS ══════ */}
+        {/* �"��"��"��"��"��"� VENDORS �"��"��"��"��"��"� */}
         {tab === "vendors" && <VendorManager vendors={vendors} onAdd={() => setVendorModal("new")} onEdit={setVendorModal} onDelete={id => {
           const v = vendors.find(x => x.id === id);
           const label = v?.name || "Vendor";
           setDelConfirm({ label, onConfirm: () => deleteRecord('vendors', id, label, setVendors) });
         }} />}
 
-        {/* ══════ INVENTORY ══════ */}
+        {/* �"��"��"��"��"��"� INVENTORY �"��"��"��"��"��"� */}
         {tab === "inventory" && <InventoryTracker items={inventory} onUpdateStock={(id, val) => updateRecord('inventory_items', id, { currentStock: val }, 'Stock Level', setInventory)} onAdd={() => setInvModal("new")} onEdit={setInvModal} onDelete={id => {
           const item = inventory.find(x => x.id === id);
           const label = item?.name || "Inventory Item";
           setDelConfirm({ label, onConfirm: () => deleteRecord('inventory_items', id, label, setInventory) });
         }} />}
 
-        {/* ══════ PERMITS ══════ */}
+        {/* �"��"��"��"��"��"� PERMITS �"��"��"��"��"��"� */}
         {tab === "permits" && (
           <>
             <PermitTracker permits={permits} onAdd={() => setPermitModal("new")} onEdit={setPermitModal} onDelete={id => {
@@ -2357,7 +2357,7 @@ export default function App() {
           </>
         )}
 
-        {/* ══════ CALENDAR ══════ */}
+        {/* �"��"��"��"��"��"� CALENDAR �"��"��"��"��"��"� */}
         {tab === "calendar" && (
           <FullCalendar 
             tasks={tasks} 
@@ -2372,7 +2372,7 @@ export default function App() {
           />
         )}
 
-        {/* ══════ MARKETING ══════ */}
+        {/* �"��"��"��"��"��"� MARKETING �"��"��"��"��"��"� */}
         {tab === "marketing" && (
           <>
             <MarketingCalendar posts={marketing} onAdd={() => setMktModal("new")} onEdit={setMktModal} onDelete={id => {
@@ -2390,24 +2390,24 @@ export default function App() {
           </>
         )}
 
-        {/* ══════ TRAINING ══════ */}
+        {/* �"��"��"��"��"��"� TRAINING �"��"��"��"��"��"� */}
         {tab === "training" && <TrainingPortal modules={training} onToggleStep={toggleTrainingStep} onAdd={() => setTrainModal("new")} onEdit={setTrainModal} onDelete={id => {
           const m = training.find(x => x.id === id);
           const label = m?.title || "Training Module";
           setDelConfirm({ label, onConfirm: () => deleteRecord('training_modules', id, label, setTraining) });
         }} />}
 
-        {/* ══════ CHECKLISTS ══════ */}
+        {/* �"��"��"��"��"��"� CHECKLISTS �"��"��"��"��"��"� */}
         {tab === "checklists" && <DailyChecklistManager checklists={checklists} onToggleItem={toggleChecklistItem} onAdd={() => setChkModal("new")} onEdit={setChkModal} onDelete={id => {
           const c = checklists.find(x => x.id === id);
           const label = c?.title || "Checklist";
           setDelConfirm({ label, onConfirm: () => deleteRecord('daily_checklists', id, label, setChecklists) });
         }} />}
 
-        {/* ══════ AI ══════ */}
+        {/* �"��"��"��"��"��"� AI �"��"��"��"��"��"� */}
         {tab==="ai" && <AIAssistant messages={aiMsgs} onSend={sendAi} loading={aiLoad} onSaveToNotes={saveAiToNotes} />}
 
-        {/* ══════ SETTINGS ══════ */}
+        {/* �"��"��"��"��"��"� SETTINGS �"��"��"��"��"��"� */}
         {tab === "settings" && (
           !isUnlocked ? <PinGate onUnlock={() => setIsUnlocked(true)} correctPin={securityPin} /> : !canManageAccess ? (
             <div className="fu">
@@ -2421,12 +2421,12 @@ export default function App() {
               <SectionHeader title="Settings" subtitle="Locked controls for title and account access" />
 
               <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 20, marginBottom: 18 }}>
-                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: .8, marginBottom: 10 }}>APP TITLE</div>
+                <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: .8, marginBottom: 10 }}>APP TITLE</div>
                 <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                   <input
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
-                    style={{ ...inpStyle, flex: 1 }}
+                    style={{ ...inpStyle, flex: 1, fontFamily: /[\u0E00-\u0E7F]/.test(editTitle) ? "var(--font-thai-display)" : "'Cormorant Garamond', serif" }}
                     placeholder="Restaurant name"
                   />
                   <Btn onClick={async () => {
@@ -2450,16 +2450,16 @@ export default function App() {
               </div>
 
               <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 20, marginBottom: 18 }}>
-                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: .8, marginBottom: 12 }}>ACCOUNT SECURITY</div>
+                <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: .8, marginBottom: 12 }}>ACCOUNT SECURITY</div>
                 <div style={{ display: "flex", gap: 10, flexDirection: "column" }}>
-                  <Btn onClick={() => setIsChangePinOpen(true)} variant="outline" style={{ width: "100%", justifyContent: "flex-start" }}>🔐 Change Security PIN</Btn>
-                  <Btn onClick={() => setIsChangePasswordOpen(true)} variant="outline" style={{ width: "100%", justifyContent: "flex-start" }}>🔑 Change Sign-In Password</Btn>
+                  <Btn onClick={() => setIsChangePinOpen(true)} variant="outline" style={{ width: "100%", justifyContent: "flex-start" }}>�x� Change Security PIN</Btn>
+                  <Btn onClick={() => setIsChangePasswordOpen(true)} variant="outline" style={{ width: "100%", justifyContent: "flex-start" }}>�x Change Sign-In Password</Btn>
                 </div>
               </div>
 
               <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 20 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: .8 }}>ACCESS CONTROL</div>
+                  <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: .8 }}>ACCESS CONTROL</div>
                   <Btn onClick={refreshAccessUsers} variant="outline" small>Refresh</Btn>
                 </div>
 
@@ -2473,7 +2473,7 @@ export default function App() {
                       <div key={u.id} style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: 12, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                         <div>
                           <div style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{String(u.email || "").toLowerCase() === "yanajaib@gmail.com" ? "Partner" : (u.name || "User")}</div>
-                          <div style={{ fontSize: 11, color: T.muted }}>{u.email} • {u.role} • {u.is_active ? "Active" : "Revoked"}</div>
+                          <div style={{ fontSize: 11, color: T.muted }}>{u.email} ⬢ {u.role} ⬢ {u.is_active ? "Active" : "Revoked"}</div>
                         </div>
                         {u.is_active ? (
                           <Btn onClick={async () => {
@@ -2508,7 +2508,7 @@ export default function App() {
           )
         )}
 
-        {/* ══════ INVOICES ══════ */}
+        {/* �"��"��"��"��"��"� INVOICES �"��"��"��"��"��"� */}
         {tab === "invoices" && (
           <InvoicesSection 
             invoices={invoices} 
@@ -2518,7 +2518,7 @@ export default function App() {
           />
         )}
 
-        {/* ══════ TALENT & HIRING ══════ */}
+        {/* �"��"��"��"��"��"� TALENT & HIRING �"��"��"��"��"��"� */}
         {tab === "talent" && (
           !isUnlocked ? <PinGate onUnlock={() => setIsUnlocked(true)} correctPin={securityPin} /> : (
             <div className="fu">
@@ -2537,7 +2537,7 @@ export default function App() {
           )
         )}
 
-        {/* ══════ TEAM MAP ══════ */}
+        {/* �"��"��"��"��"��"� TEAM MAP �"��"��"��"��"��"� */}
         {tab === "teammap" && (
           !isUnlocked ? <PinGate onUnlock={() => setIsUnlocked(true)} correctPin={securityPin} /> : (
             <div className="fu">
@@ -2604,7 +2604,7 @@ export default function App() {
             // Step 2: use the reset token to set the new password
             const { error } = await insforge.auth.resetPassword({ otp: exchangeData.token, newPassword });
             if (error) throw new Error(error.message || "Failed to update password. Please try again.");
-            setSettingsMsg("✅ Password updated! Please sign in again.");
+            setSettingsMsg("�S& Password updated! Please sign in again.");
             logActivity("Changed sign-in password");
             setIsChangePasswordOpen(false);
             setTimeout(() => logout(), 1500);
@@ -2617,3 +2617,4 @@ export default function App() {
 </div>
   );
 }
+

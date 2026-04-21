@@ -24,7 +24,7 @@ export function NoteModal({ note, onSave, onClose }: { note: Note | null, onSave
 
   return (
     <Modal title={note ? "Edit Note" : "New Note"} onClose={onClose} width={560}>
-      <Field label="TITLE"><input value={form.title} onChange={e => set("title", e.target.value)} placeholder="Note title…" style={inpStyle} /></Field>
+      <Field label="TITLE"><input value={form.title} onChange={e => set("title", e.target.value)} placeholder="Note title⬦" style={inpStyle} /></Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 0 }}>
         <Field label="TAG">
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -33,7 +33,7 @@ export function NoteModal({ note, onSave, onClose }: { note: Note | null, onSave
               const active = form.tag === tag;
               return (
                 <button key={tag} onClick={() => set("tag", tag)}
-                  style={{ cursor: "pointer", borderRadius: 24, padding: "5px 14px", fontSize: 12, fontFamily: "'Inter', sans-serif", fontWeight: 600, border: `1px solid ${active ? tc.dot : T.border}`, background: active ? tc.bg : "#FFF", color: active ? tc.dot : T.muted, transition: "all .2s" }}>
+                  style={{ cursor: "pointer", borderRadius: 24, padding: "5px 14px", fontSize: 12, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, border: `1px solid ${active ? tc.dot : T.border}`, background: active ? tc.bg : "#FFF", color: active ? tc.dot : T.muted, transition: "all .2s" }}>
                   {tag}
                 </button>
               );
@@ -42,24 +42,24 @@ export function NoteModal({ note, onSave, onClose }: { note: Note | null, onSave
         </Field>
       </div>
       <Field label="BODY">
-        <textarea value={form.body} onChange={e => set("body", e.target.value)} placeholder="Write your note here…" rows={4}
+        <textarea value={form.body} onChange={e => set("body", e.target.value)} placeholder="Write your note here⬦" rows={4}
           style={{ ...inpStyle, resize: "vertical", lineHeight: 1.6 }} />
       </Field>
       <Field label="ATTACHMENTS">
         <div style={{ border: `2px dashed ${T.border}`, borderRadius: 10, padding: "18px 16px", textAlign: "center", cursor: "pointer", background: T.bg }}
           onClick={() => fileRef.current?.click()}>
-          <div style={{ fontSize: 22, marginBottom: 6 }}>📎</div>
-          <div style={{ fontSize: 13, color: T.muted, fontFamily: "'Inter', sans-serif", fontWeight: 500 }}>Click to upload or drag & drop</div>
-          <div style={{ fontSize: 11, color: T.subtle, marginTop: 4, fontFamily: "'DM Mono', monospace", fontWeight: 600 }}>Photos, PDFs, docs</div>
+          <div style={{ fontSize: 22, marginBottom: 6 }}>�x}</div>
+          <div style={{ fontSize: 13, color: T.muted, fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}>Click to upload or drag & drop</div>
+          <div style={{ fontSize: 11, color: T.subtle, marginTop: 4, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600 }}>Photos, PDFs, docs</div>
           <input ref={fileRef} type="file" multiple accept="image/*,.pdf,.doc,.docx,.txt" onChange={handleFiles} style={{ display: "none" }} />
         </div>
         {form.files.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
             {form.files.map((f: any) => (
               <div key={f.id} style={{ position: "relative", display: "flex", alignItems: "center", gap: 6, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, padding: f.isImage ? "4px" : "6px 10px", overflow: "hidden" }}>
-                {f.isImage ? <img src={f.url} alt={f.name} style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 6 }} /> : <span style={{ fontSize: 18 }}>📄</span>}
-                {!f.isImage && <span style={{ fontSize: 11, color: T.muted, fontFamily: "'DM Sans',sans-serif", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span>}
-                <button onClick={() => setForm((frm: any) => ({ ...frm, files: frm.files.filter((x: any) => x.id !== f.id) }))} style={{ position: "absolute", top: 2, right: 2, background: "rgba(0,0,0,.45)", border: "none", borderRadius: "50%", width: 16, height: 16, color: "#FFF", cursor: "pointer", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0 }}>×</button>
+                {f.isImage ? <img src={f.url} alt={f.name} style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 6 }} /> : <span style={{ fontSize: 18 }}>�x</span>}
+                {!f.isImage && <span style={{ fontSize: 11, color: T.muted, fontFamily: "'Cormorant Garamond', serif", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span>}
+                <button onClick={() => setForm((frm: any) => ({ ...frm, files: frm.files.filter((x: any) => x.id !== f.id) }))} style={{ position: "absolute", top: 2, right: 2, background: "rgba(0,0,0,.45)", border: "none", borderRadius: "50%", width: 16, height: 16, color: "#FFF", cursor: "pointer", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0 }}>�</button>
               </div>
             ))}
           </div>
@@ -81,10 +81,10 @@ export function NoteCard({ note, onEdit, onDelete, isDriveConnected, onSaveToDri
       onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "translateY(0)"; }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <Pill label={note.tag} color={tc.text} bg={tc.bg} border={`${tc.dot}33`} size={10} />
-        <span style={{ fontSize: 11, color: T.subtle, fontFamily: "'DM Mono',monospace" }}>{note.date}</span>
+        <span style={{ fontSize: 11, color: T.subtle, fontFamily: "'IBM Plex Mono',monospace" }}>{note.date}</span>
       </div>
-      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: T.text, lineHeight: 1.25 }}>{note.title}</div>
-      {note.body && <div style={{ fontSize: 13, color: T.text, fontFamily: "'Inter', sans-serif", lineHeight: 1.6, flex: 1, opacity: 0.8 }}>{note.body}</div>}
+      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 700, color: T.text, lineHeight: 1.25 }}>{note.title}</div>
+      {note.body && <div style={{ fontSize: 13, color: T.text, fontFamily: "'Cormorant Garamond', serif", lineHeight: 1.6, flex: 1, opacity: 0.8 }}>{note.body}</div>}
       {note.files && note.files.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           {note.files.map(f => (
@@ -92,8 +92,8 @@ export function NoteCard({ note, onEdit, onDelete, isDriveConnected, onSaveToDri
               {f.isImage
                 ? <img src={f.url} alt={f.name} style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 4, cursor: "pointer" }} onClick={() => window.open(f.url, "_blank")} />
                 : <>
-                  <span style={{ fontSize: 14 }}>📄</span>
-                  <a href={f.url} download={f.name} style={{ fontSize: 10, color: T.blue, fontFamily: "'DM Sans',sans-serif", textDecoration: "none", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</a>
+                  <span style={{ fontSize: 14 }}>�x</span>
+                  <a href={f.url} download={f.name} style={{ fontSize: 10, color: T.blue, fontFamily: "'Cormorant Garamond', serif", textDecoration: "none", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</a>
                 </>
               }
               {isDriveConnected && (
@@ -102,7 +102,7 @@ export function NoteCard({ note, onEdit, onDelete, isDriveConnected, onSaveToDri
                   title="Save to Google Drive"
                   style={{ background: "rgba(255,255,255,0.8)", border: "none", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 10, position: "absolute", top: 2, right: 2, boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}
                 >
-                  ▲
+                  ��
                 </button>
               )}
             </div>
@@ -110,19 +110,20 @@ export function NoteCard({ note, onEdit, onDelete, isDriveConnected, onSaveToDri
         </div>
       )}
       <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-        <button onClick={() => onEdit(note)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: "6px 14px", color: T.muted, cursor: "pointer", fontSize: 12, fontFamily: "'Inter', sans-serif", fontWeight: 600 }}>Edit</button>
+        <button onClick={() => onEdit(note)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: "6px 14px", color: T.muted, cursor: "pointer", fontSize: 12, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}>Edit</button>
         <button 
           onClick={() => {
             const subject = encodeURIComponent(note.title);
             const body = encodeURIComponent(note.body + "\n\n---\nSent from Restaurant Launch Planner");
             window.location.href = `mailto:?subject=${subject}&body=${body}`;
           }} 
-          style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: "6px 14px", color: T.gold, cursor: "pointer", fontSize: 12, fontFamily: "'Inter', sans-serif", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}
+          style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: "6px 14px", color: T.gold, cursor: "pointer", fontSize: 12, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}
         >
           <Share2 size={13} /> Share
         </button>
-        <button onClick={() => onDelete(note.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 8, padding: "6px 14px", color: T.red, cursor: "pointer", fontSize: 12, fontFamily: "'Inter', sans-serif", fontWeight: 600, marginLeft: "auto" }}>Delete</button>
+        <button onClick={() => onDelete(note.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 8, padding: "6px 14px", color: T.red, cursor: "pointer", fontSize: 12, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, marginLeft: "auto" }}>Delete</button>
       </div>
     </div>
   );
 }
+

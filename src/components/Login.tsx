@@ -28,7 +28,7 @@ export const Login: React.FC = () => {
   return (
     <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #F9F8F6 0%, #E1D9D1 100%)", padding: 20 }}>
       <div style={{ background: "#FFF", padding: "3rem", borderRadius: 24, boxShadow: "0 32px 64px rgba(0,0,0,0.1)", width: "100%", maxWidth: 440, textAlign: "center" }}>
-        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, fontWeight: 700, color: "#1A1A1A", marginBottom: 10 }}>ไกลกังวล</div>
+        <div style={{ fontFamily: "var(--font-thai-display)", fontSize: 32, fontWeight: 700, color: "#1A1A1A", marginBottom: 10 }}>ไกลกังวล</div>
         <p style={{ color: "#666", fontSize: 14, marginBottom: 40 }}>{isRegistering ? "Create your account" : "Sign in to access the launch dashboard"}</p>
         
         {errorMsg && (
@@ -96,9 +96,10 @@ export const Login: React.FC = () => {
         </div>
 
         <div style={{ marginTop: 40, borderTop: "1px solid #EEE", paddingTop: 24 }}>
-          <span style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", color: "#999", letterSpacing: 1.2 }}>PROTOTYPE V1.3.0</span>
+          <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono',monospace", color: "#999", letterSpacing: 1.2 }}>PROTOTYPE V1.3.0</span>
         </div>
       </div>
     </div>
   );
 };
+

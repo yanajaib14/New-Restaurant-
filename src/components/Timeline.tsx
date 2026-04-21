@@ -24,9 +24,9 @@ export function Timeline({ timeline, onToggle, onEdit, onDelete, onAdd }: { time
                   <span style={{ fontSize: 10, color: pc, background: `${pc}15`, border: `1px solid ${pc}33`, borderRadius: 4, padding: "1px 7px" }}>{item.phase}</span>
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted }}>{item.date}</span>
-                  <button onClick={e => { e.stopPropagation(); onEdit(item); }} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 7px", color: T.muted, cursor: "pointer", fontSize: 11 }}>✎</button>
-                  <button onClick={e => { e.stopPropagation(); onDelete(item); }} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "3px 7px", color: T.red, cursor: "pointer", fontSize: 11 }}>✕</button>
+                  <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: T.muted }}>{item.date}</span>
+                  <button onClick={e => { e.stopPropagation(); onEdit(item); }} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 7px", color: T.muted, cursor: "pointer", fontSize: 11 }}>�S}</button>
+                  <button onClick={e => { e.stopPropagation(); onDelete(item); }} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "3px 7px", color: T.red, cursor: "pointer", fontSize: 11 }}>�S"</button>
                 </div>
               </div>
             </div>
@@ -35,7 +35,7 @@ export function Timeline({ timeline, onToggle, onEdit, onDelete, onAdd }: { time
       </div>
       {/* Phase legend */}
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 20, padding: "14px 18px", background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 10 }}>
-        <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: T.muted, marginRight: 4 }}>PHASES:</span>
+        <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, marginRight: 4 }}>PHASES:</span>
         {Object.entries(PHASE_COLORS).map(([phase, color]) => (
           <div key={phase} style={{ display: "flex", alignItems: "center", gap: 5 }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: color as string, display: "inline-block" }} />
@@ -68,3 +68,4 @@ export function TimelineModal({ item, onSave, onClose }: { item: Milestone | nul
 
 import { useState } from 'react';
 import { Modal, Field, inpStyle, selStyle } from './UI';
+
