@@ -130,11 +130,29 @@ export function PinGate({ onUnlock, correctPin }: { onUnlock: () => void, correc
   );
 }
 
-export function ChangePinModal({ currentPin, onSave, onClose }: { currentPin: string, onSave: (newPin: string) => void, onClose: () => void }) {
+export function ChangePinModal({ currentPin, onSave, onClose, userRole, userEmail }: { currentPin: string, onSave: (newPin: string) => void, onClose: () => void, userRole?: string, userEmail?: string }) {
   const [oldPin, setOldPin] = React.useState("");
   const [newPin, setNewPin] = React.useState("");
   const [confirmPin, setConfirmPin] = React.useState("");
   const [error, setError] = React.useState("");
+
+  // Check if user has permission to change PIN (Owner or Partner only)
+  const canChangePIN = userRole === "Owner" || String(userEmail || "").toLowerCase() === "yanajaib@gmail.com";
+
+  if (!canChangePIN) {
+    return (
+      <Modal title="Change Security PIN" onClose={onClose} width={400}>
+        <div style={{ padding: 20, textAlign: "center", background: T.redLight, borderRadius: 8, marginBottom: 16 }}>
+          <p style={{ color: T.red, fontSize: 13, margin: 0, fontWeight: 500 }}>
+            Only Owner and Partner accounts can change the PIN.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <Btn onClick={onClose} variant="ghost" style={{ flex: 1, justifyContent: "center" }}>Close</Btn>
+        </div>
+      </Modal>
+    );
+  }
 
   const handleSave = () => {
     if (oldPin !== currentPin) {

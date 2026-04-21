@@ -1590,7 +1590,7 @@ export default function App() {
                       { key: 'actual', label: 'Actual' },
                     ]);
                   }} variant="outline" small>📥 Export CSV</Btn>
-                  <Btn onClick={() => setIsChangePinOpen(true)} variant="outline" small>Change PIN</Btn>
+                  {canManageAccess && <Btn onClick={() => setIsChangePinOpen(true)} variant="outline" small>Change PIN</Btn>}
                 </div>
               }
             />
@@ -1816,7 +1816,14 @@ export default function App() {
 
         {/* ══════ SETTINGS ══════ */}
         {tab === "settings" && (
-          !isUnlocked ? <PinGate onUnlock={() => setIsUnlocked(true)} correctPin={securityPin} /> : (
+          !isUnlocked ? <PinGate onUnlock={() => setIsUnlocked(true)} correctPin={securityPin} /> : !canManageAccess ? (
+            <div className="fu">
+              <SectionHeader title="Settings" subtitle="Locked controls for title and account access" />
+              <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 20, textAlign: "center" }}>
+                <p style={{ color: T.muted, fontSize: 13 }}>Only owner and partner accounts can access settings.</p>
+              </div>
+            </div>
+          ) : (
             <div className="fu">
               <SectionHeader title="Settings" subtitle="Locked controls for title and account access" />
 
@@ -1956,9 +1963,12 @@ export default function App() {
       {isChangePinOpen && (
         <ChangePinModal 
           currentPin={securityPin} 
+          userRole={userRole || undefined}
+          userEmail={currentUserEmail}
           onSave={(newPin) => {
             setSecurityPin(newPin);
             localStorage.setItem("app_security_pin", newPin);
+            logActivity("Changed security PIN");
           }} 
           onClose={() => setIsChangePinOpen(false)} 
         />
