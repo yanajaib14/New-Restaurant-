@@ -206,6 +206,17 @@ export function TalentHiring({ positions, candidates, onAddPos, onEditPos, onDel
   const totHired = positions.reduce((s: number, p: any) => s + p.hired, 0);
   const staffingProg = totOpenings > 0 ? Math.round((totHired / totOpenings) * 100) : 0;
 
+  const hiredCandidates = candidates.filter((c: Candidate) => c.stage === "Hired");
+  const filledTeam = hiredCandidates.map((c: Candidate) => {
+    const matchedPosition = positions.find((p: Position) => p.role === c.position);
+    return {
+      id: c.id,
+      name: c.name,
+      role: c.position,
+      responsibilities: matchedPosition?.compPlan || c.feedback || "Add responsibilities in position compensation plan or candidate feedback.",
+    };
+  });
+
   return (
     <div className="fu">
       <SectionHeader 
@@ -276,6 +287,35 @@ export function TalentHiring({ positions, candidates, onAddPos, onEditPos, onDel
             ))
           )}
         </div>
+      </div>
+
+      {/* Filled Team Overview */}
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+          <Users size={18} color={T.green} />
+          <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1 }}>FILLED TEAM OVERVIEW</span>
+        </div>
+
+        {filledTeam.length === 0 ? (
+          <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 24, padding: 24, color: T.muted, fontSize: 13 }}>
+            No hired team members yet. Move candidates to "Hired" to build your final team map.
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14 }}>
+            {filledTeam.map((m: any) => (
+              <div key={m.id} style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: 16 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: T.text, marginBottom: 4 }}>{m.name}</div>
+                <div style={{ fontSize: 11, color: T.blue, background: T.blueLight, border: `1px solid ${T.blueBorder}`, display: "inline-block", padding: "3px 8px", borderRadius: 999, marginBottom: 10 }}>
+                  {m.role || "Unassigned Role"}
+                </div>
+                <div style={{ fontSize: 10, fontFamily: "'DM Mono',monospace", letterSpacing: .8, color: T.subtle, marginBottom: 6 }}>
+                  RESPONSIBILITIES
+                </div>
+                <div style={{ fontSize: 12, lineHeight: 1.6, color: T.muted }}>{m.responsibilities}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Candidate Pipeline */}
