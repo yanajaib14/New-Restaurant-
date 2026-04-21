@@ -19,17 +19,20 @@ async function fix() {
 
   try {
     // 1. Schema access
-    await client.query('GRANT USAGE ON SCHEMA public TO anon, authenticated;');
+    await client.query('GRANT USAGE ON SCHEMA public TO anon, authenticated, public;');
     
-    // 2. Grant all on existing tables and sequences
-    await client.query('GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;');
-    await client.query('GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;');
+    // 2. Grant all on existing tables and sequences to anon and authenticated
+    await client.query('GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, public;');
+    await client.query('GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, public;');
     
     // 3. Ensure future tables also get these permissions
-    await client.query('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated;');
-    await client.query('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated;');
+    await client.query('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, public;');
+    await client.query('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, public;');
 
-    console.log('✓ All schema, table, and sequence permissions granted!');
+    // 4. Specifically ensure the anon role has bypassrls or proper grants if needed (though usually not possible for anon)
+    // For PostgREST, anon MUST have permission to the tables it accesses
+    
+    console.log('✓ All schema, table, and sequence permissions granted to anon, authenticated, and public!');
     console.log('✓ Default privileges updated for future tables.');
 
   } catch (err) {

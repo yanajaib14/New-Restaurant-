@@ -400,36 +400,97 @@ export default function App() {
     if (data) setter(data as any);
   };
 
+  // ── Centralized Database Handlers ──
+  const deleteRecord = async (table: string, id: any, label: string, setter: (d: any[]) => void) => {
+    try {
+      const { error } = await insforge.database.from(table).delete().eq('id', id);
+      if (error) throw error;
+      logActivity(`Deleted ${label}`);
+      await refetch(table, setter);
+    } catch (e: any) {
+      console.error(`Delete Error (${table}):`, e);
+      alert(`Failed to delete ${label}: ${e.message || JSON.stringify(e)}`);
+    }
+  };
+
+  const updateRecord = async (table: string, id: any, patch: any, label: string, setter: (d: any[]) => void) => {
+    try {
+      const { error } = await insforge.database.from(table).update(patch).eq('id', id);
+      if (error) throw error;
+      await refetch(table, setter);
+    } catch (e: any) {
+      console.error(`Update Error (${table}):`, e);
+      alert(`Failed to update ${label}: ${e.message || JSON.stringify(e)}`);
+    }
+  };
+
+  const toggleTaskCheck = async (tid: number, cid: number) => {
+    const t = tasks.find(x => x.id === tid);
+    if (!t) return;
+    const newChecklist = t.checklist.map(c => c.id === cid ? { ...c, done: !c.done } : c);
+    await updateRecord('tasks', tid, { checklist: newChecklist }, 'Task Checklist', setTasks);
+  };
+
+  const toggleTrainingStep = async (mid: number, sid: number) => {
+    const m = training.find(x => x.id === mid);
+    if (!m) return;
+    const newSteps = m.steps.map(s => s.id === sid ? { ...s, done: !s.done } : s);
+    await updateRecord('training_modules', mid, { steps: newSteps }, 'Training Step', setTraining);
+  };
+
+  const toggleChecklistItem = async (cid: number, iid: number) => {
+    const ch = checklists.find(x => x.id === cid);
+    if (!ch) return;
+    const newItems = ch.items.map(i => i.id === iid ? { ...i, done: !i.done } : i);
+    await updateRecord('daily_checklists', cid, { items: newItems }, 'Checklist Item', setChecklists);
+  };
+
+
   // ── Task CRUD ──
   const saveTask = async (form: any) => {
     const { id, _delete, ...rest } = form;
-    if (_delete) {
-      await insforge.database.from('tasks').delete().eq('id', id);
-      logActivity(`Deleted task: ${form.task}`);
-    } else if (taskModal && taskModal !== 'new') {
-      await insforge.database.from('tasks').update(rest).eq('id', taskModal.id);
-      logActivity(`Updated task: ${form.task}`);
-    } else {
-      await insforge.database.from('tasks').insert([rest]);
-      logActivity(`Added task: ${form.task}`);
+    try {
+      if (_delete) {
+        const { error } = await insforge.database.from('tasks').delete().eq('id', id);
+        if (error) throw error;
+        logActivity(`Deleted task: ${form.task}`);
+      } else if (taskModal && taskModal !== 'new') {
+        const { error } = await insforge.database.from('tasks').update(rest).eq('id', taskModal.id);
+        if (error) throw error;
+        logActivity(`Updated task: ${form.task}`);
+      } else {
+        const { error } = await insforge.database.from('tasks').insert([rest]);
+        if (error) throw error;
+        logActivity(`Added task: ${form.task}`);
+      }
+      await refetch('tasks', setTasks);
+      setTaskModal(null);
+      setCalDate(null);
+    } catch (e: any) {
+      console.error("Save Task Error:", e);
+      alert(`Failed to save task: ${e.message || JSON.stringify(e)}`);
     }
-    await refetch('tasks', setTasks);
-    setTaskModal(null);
-    setCalDate(null);
   };
 
   // ── Menu CRUD ──
   const saveMenu = async (form: any) => {
     const { id, ...rest } = form;
-    if (menuModal && menuModal !== 'new') {
-      await insforge.database.from('menu_items').update(rest).eq('id', menuModal.id);
-      logActivity(`Updated menu item: ${form.name}`);
-    } else {
-      await insforge.database.from('menu_items').insert([rest]);
-      logActivity(`Added menu item: ${form.name}`);
+    try {
+      if (menuModal && menuModal !== 'new') {
+        const { error } = await insforge.database.from('menu_items').update(rest).eq('id', menuModal.id);
+        if (error) throw error;
+        logActivity(`Updated menu item: ${form.name}`);
+      } else {
+        const { error } = await insforge.database.from('menu_items').insert([rest]);
+        if (error) throw error;
+        logActivity(`Added menu item: ${form.name}`);
+      }
+      await refetch('menu_items', setMenuItems);
+      setMenuModal(null);
+    } catch (e: any) {
+      console.error("Save Menu Error:", e);
+      alert(`Failed to save menu item: ${e.message || JSON.stringify(e)}`);
     }
-    await refetch('menu_items', setMenuItems);
-    setMenuModal(null);
   };
 
   // ── Financial CRUD ──
@@ -438,40 +499,61 @@ export default function App() {
     const table = type === 'startup' ? 'startup_costs' : 'operating_costs';
     const setter = type === 'startup' ? setStartup : setOp;
     const { id, ...rest } = form;
-    if (item) {
-      await insforge.database.from(table).update(rest).eq('id', item.id);
-      logActivity(`Updated financial item: ${form.category}`);
-    } else {
-      await insforge.database.from(table).insert([rest]);
-      logActivity(`Added financial item: ${form.category}`);
+    try {
+      if (item) {
+        const { error } = await insforge.database.from(table).update(rest).eq('id', item.id);
+        if (error) throw error;
+        logActivity(`Updated financial item: ${form.category}`);
+      } else {
+        const { error } = await insforge.database.from(table).insert([rest]);
+        if (error) throw error;
+        logActivity(`Added financial item: ${form.category}`);
+      }
+      await refetch(table, setter);
+      setFinModal(null);
+    } catch (e: any) {
+      console.error("Save Finance Error:", e);
+      alert(`Failed to save financial data: ${e.message || JSON.stringify(e)}`);
     }
-    await refetch(table, setter);
-    setFinModal(null);
   };
 
   // ── Timeline CRUD ──
   const saveTL = async (form: any) => {
     const { id, ...rest } = form;
-    if (tlModal && tlModal !== 'new') {
-      await insforge.database.from('milestones').update(rest).eq('id', tlModal.id);
-    } else {
-      await insforge.database.from('milestones').insert([rest]);
+    try {
+      if (tlModal && tlModal !== 'new') {
+        const { error } = await insforge.database.from('milestones').update(rest).eq('id', tlModal.id);
+        if (error) throw error;
+      } else {
+        const { error } = await insforge.database.from('milestones').insert([rest]);
+        if (error) throw error;
+      }
+      await refetch('milestones', setTL);
+      setTlModal(null);
+    } catch (e: any) {
+      console.error("Save Timeline Error:", e);
+      alert(`Failed to save milestone: ${e.message || JSON.stringify(e)}`);
     }
-    await refetch('milestones', setTL);
-    setTlModal(null);
   };
 
   // ── Notes CRUD ──
   const saveNote = async (form: any) => {
     const d = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Phoenix' });
     const { id, ...rest } = form;
-    if (noteModal && noteModal !== 'new') {
-      await insforge.database.from('notes').update(rest).eq('id', noteModal.id);
-    } else {
-      await insforge.database.from('notes').insert([{ ...rest, date: d }]);
+    try {
+      if (noteModal && noteModal !== 'new') {
+        const { error } = await insforge.database.from('notes').update(rest).eq('id', noteModal.id);
+        if (error) throw error;
+      } else {
+        const { error } = await insforge.database.from('notes').insert([{ ...rest, date: d }]);
+        if (error) throw error;
+      }
+      await refetch('notes', setNotes);
+      setNoteModal(null);
+    } catch (e: any) {
+      console.error("Save Note Error:", e);
+      alert(`Failed to save note: ${e.message || JSON.stringify(e)}`);
     }
-    await refetch('notes', setNotes);
-    setNoteModal(null);
   };
 
   const filteredNotes = notes.filter(n => {
@@ -483,129 +565,221 @@ export default function App() {
   // ── Vendor CRUD ──
   const saveVendor = async (form: any) => {
     const { id, ...rest } = form;
-    if (vendorModal && vendorModal !== 'new') {
-      await insforge.database.from('vendors').update(rest).eq('id', vendorModal.id);
-    } else {
-      await insforge.database.from('vendors').insert([rest]);
+    try {
+      if (vendorModal && vendorModal !== 'new') {
+        const { error } = await insforge.database.from('vendors').update(rest).eq('id', vendorModal.id);
+        if (error) throw error;
+      } else {
+        const { error } = await insforge.database.from('vendors').insert([rest]);
+        if (error) throw error;
+      }
+      await refetch('vendors', setVendors);
+      setVendorModal(null);
+    } catch (e: any) {
+      console.error("Save Vendor Error:", e);
+      alert(`Failed to save vendor: ${e.message || JSON.stringify(e)}`);
     }
-    await refetch('vendors', setVendors);
-    setVendorModal(null);
   };
 
   // ── Inventory CRUD ──
   const saveInv = async (form: any) => {
     const { id, ...rest } = form;
-    if (invModal && invModal !== 'new') {
-      await insforge.database.from('inventory_items').update(rest).eq('id', invModal.id);
-    } else {
-      await insforge.database.from('inventory_items').insert([{ ...rest, lastOrdered: 'Just now' }]);
+    try {
+      if (invModal && invModal !== 'new') {
+        const { error } = await insforge.database.from('inventory_items').update(rest).eq('id', invModal.id);
+        if (error) throw error;
+      } else {
+        const { error } = await insforge.database.from('inventory_items').insert([{ ...rest, lastOrdered: 'Just now' }]);
+        if (error) throw error;
+      }
+      await refetch('inventory_items', setInventory);
+      setInvModal(null);
+    } catch (e: any) {
+      console.error("Save Inventory Error:", e);
+      alert(`Failed to save inventory item: ${e.message || JSON.stringify(e)}`);
     }
-    await refetch('inventory_items', setInventory);
-    setInvModal(null);
   };
 
   // ── Permit CRUD ──
   const savePermit = async (form: any) => {
     const { id, ...rest } = form;
-    if (permitModal && permitModal !== 'new') {
-      await insforge.database.from('permits').update(rest).eq('id', permitModal.id);
-    } else {
-      await insforge.database.from('permits').insert([rest]);
+    try {
+      if (permitModal && permitModal !== 'new') {
+        const { error } = await insforge.database.from('permits').update(rest).eq('id', permitModal.id);
+        if (error) throw error;
+      } else {
+        const { error } = await insforge.database.from('permits').insert([rest]);
+        if (error) throw error;
+      }
+      await refetch('permits', setPermits);
+      setPermitModal(null);
+    } catch (e: any) {
+      console.error("Save Permit Error:", e);
+      alert(`Failed to save permit: ${e.message || JSON.stringify(e)}`);
     }
-    await refetch('permits', setPermits);
-    setPermitModal(null);
   };
 
   // ── Marketing CRUD ──
   const saveMkt = async (form: any) => {
     const { id, _delete, ...rest } = form;
-    if (_delete) {
-      await insforge.database.from('marketing_posts').delete().eq('id', id);
-    } else if (mktModal && mktModal !== 'new') {
-      await insforge.database.from('marketing_posts').update(rest).eq('id', mktModal.id);
-    } else {
-      await insforge.database.from('marketing_posts').insert([rest]);
+    try {
+      if (_delete) {
+        const { error } = await insforge.database.from('marketing_posts').delete().eq('id', id);
+        if (error) throw error;
+      } else if (mktModal && mktModal !== 'new') {
+        const { error } = await insforge.database.from('marketing_posts').update(rest).eq('id', mktModal.id);
+        if (error) throw error;
+      } else {
+        const { error } = await insforge.database.from('marketing_posts').insert([rest]);
+        if (error) throw error;
+      }
+      await refetch('marketing_posts', setMarketing);
+      setMktModal(null);
+    } catch (e: any) {
+      console.error("Save Marketing Error:", e);
+      alert(`Failed to save marketing post: ${e.message || JSON.stringify(e)}`);
     }
-    await refetch('marketing_posts', setMarketing);
-    setMktModal(null);
   };
 
   // ── Training CRUD ──
   const saveTrain = async (form: any) => {
     const { id, _delete, ...rest } = form;
-    if (_delete) {
-      await insforge.database.from('training_modules').delete().eq('id', id);
-    } else if (trainModal && trainModal !== 'new') {
-      await insforge.database.from('training_modules').update(rest).eq('id', trainModal.id);
-    } else {
-      await insforge.database.from('training_modules').insert([rest]);
+    try {
+      if (_delete) {
+        const { error } = await insforge.database.from('training_modules').delete().eq('id', id);
+        if (error) throw error;
+      } else if (trainModal && trainModal !== 'new') {
+        const { error } = await insforge.database.from('training_modules').update(rest).eq('id', trainModal.id);
+        if (error) throw error;
+      } else {
+        const { error } = await insforge.database.from('training_modules').insert([rest]);
+        if (error) throw error;
+      }
+      await refetch('training_modules', setTraining);
+      setTrainModal(null);
+    } catch (e: any) {
+      console.error("Save Training Error:", e);
+      alert(`Failed to save training module: ${e.message || JSON.stringify(e)}`);
     }
-    await refetch('training_modules', setTraining);
-    setTrainModal(null);
+  };
+
+  const saveUtility = async (form: any) => {
+    const { id, ...rest } = form;
+    try {
+      if (utilityModal && utilityModal !== 'new') {
+        const { error } = await insforge.database.from('utility_accounts').update(rest).eq('id', utilityModal.id);
+        if (error) throw error;
+      } else {
+        const { error } = await insforge.database.from('utility_accounts').insert([rest]);
+        if (error) throw error;
+      }
+      await refetch('utility_accounts', setUtilities);
+      setUtilityModal(null);
+    } catch (e: any) {
+      console.error("Save Utility Error:", e);
+      alert(`Failed to save utility account: ${e.message || JSON.stringify(e)}`);
+    }
   };
 
   const savePos = async (form: Position) => {
     const { id, ...rest } = form as any;
-    if (posModal && posModal !== 'new') {
-      await insforge.database.from('positions').update(rest).eq('id', (posModal as any).id);
-    } else {
-      await insforge.database.from('positions').insert([rest]);
+    try {
+      if (posModal && posModal !== 'new') {
+        const { error } = await insforge.database.from('positions').update(rest).eq('id', (posModal as any).id);
+        if (error) throw error;
+      } else {
+        const { error } = await insforge.database.from('positions').insert([rest]);
+        if (error) throw error;
+      }
+      await refetch('positions', setPositions);
+      setPosModal(null);
+    } catch (e: any) {
+      console.error("Save Position Error:", e);
+      alert(`Failed to save position: ${e.message || JSON.stringify(e)}`);
     }
-    await refetch('positions', setPositions);
-    setPosModal(null);
   };
 
   const saveCan = async (form: Candidate & { _delete?: boolean }) => {
     const { id, _delete, ...rest } = form as any;
-    if (_delete) {
-      await insforge.database.from('candidates').delete().eq('id', id);
-      logActivity(`Removed candidate: ${form.name}`);
-    } else if (canModal && canModal !== 'new') {
-      await insforge.database.from('candidates').update(rest).eq('id', (canModal as any).id);
-      logActivity(`Updated candidate: ${form.name}`);
-    } else {
-      await insforge.database.from('candidates').insert([rest]);
-      logActivity(`Added candidate: ${form.name}`);
+    try {
+      if (_delete) {
+        const { error } = await insforge.database.from('candidates').delete().eq('id', id);
+        if (error) throw error;
+        logActivity(`Removed candidate: ${form.name}`);
+      } else if (canModal && canModal !== 'new') {
+        const { error } = await insforge.database.from('candidates').update(rest).eq('id', (canModal as any).id);
+        if (error) throw error;
+        logActivity(`Updated candidate: ${form.name}`);
+      } else {
+        const { error } = await insforge.database.from('candidates').insert([rest]);
+        if (error) throw error;
+        logActivity(`Added candidate: ${form.name}`);
+      }
+      await refetch('candidates', setCandidates);
+      setCanModal(null);
+    } catch (e: any) {
+      console.error("Save Candidate Error:", e);
+      alert(`Failed to save candidate: ${e.message || JSON.stringify(e)}`);
     }
-    await refetch('candidates', setCandidates);
-    setCanModal(null);
   };
 
   const saveAsset = async (form: DigitalAsset & { _delete?: boolean }) => {
     const { id, _delete, ...rest } = form as any;
-    if (_delete) {
-      await insforge.database.from('digital_assets').delete().eq('id', id);
-    } else if (assetModal && assetModal !== 'new') {
-      await insforge.database.from('digital_assets').update(rest).eq('id', (assetModal as any).id);
-    } else {
-      await insforge.database.from('digital_assets').insert([rest]);
+    try {
+      if (_delete) {
+        const { error } = await insforge.database.from('digital_assets').delete().eq('id', id);
+        if (error) throw error;
+      } else if (assetModal && assetModal !== 'new') {
+        const { error } = await insforge.database.from('digital_assets').update(rest).eq('id', (assetModal as any).id);
+        if (error) throw error;
+      } else {
+        const { error } = await insforge.database.from('digital_assets').insert([rest]);
+        if (error) throw error;
+      }
+      await refetch('digital_assets', setAssets);
+      setAssetModal(null);
+    } catch (e: any) {
+      console.error("Save Asset Error:", e);
+      alert(`Failed to save digital asset: ${e.message || JSON.stringify(e)}`);
     }
-    await refetch('digital_assets', setAssets);
-    setAssetModal(null);
   };
 
   // ── Invoice CRUD ──
   const saveInvoice = async (form: any) => {
     const { id, ...rest } = form;
-    if (invoiceModal && invoiceModal !== 'new') {
-      await insforge.database.from('invoices').update(rest).eq('id', invoiceModal.id);
-    } else {
-      await insforge.database.from('invoices').insert([rest]);
+    try {
+      if (invoiceModal && invoiceModal !== 'new') {
+        const { error } = await insforge.database.from('invoices').update(rest).eq('id', invoiceModal.id);
+        if (error) throw error;
+      } else {
+        const { error } = await insforge.database.from('invoices').insert([rest]);
+        if (error) throw error;
+      }
+      await refetch('invoices', setInvoices);
+      setInvoiceModal(null);
+    } catch (e: any) {
+      console.error("Save Invoice Error:", e);
+      alert(`Failed to save invoice: ${e.message || JSON.stringify(e)}`);
     }
-    await refetch('invoices', setInvoices);
-    setInvoiceModal(null);
   };
 
   // ── Checklist CRUD ──
   const saveChk = async (form: any) => {
     const { id, ...rest } = form;
-    if (chkModal && chkModal !== 'new') {
-      await insforge.database.from('daily_checklists').update(rest).eq('id', chkModal.id);
-    } else {
-      await insforge.database.from('daily_checklists').insert([rest]);
+    try {
+      if (chkModal && chkModal !== 'new') {
+        const { error } = await insforge.database.from('daily_checklists').update(rest).eq('id', chkModal.id);
+        if (error) throw error;
+      } else {
+        const { error } = await insforge.database.from('daily_checklists').insert([rest]);
+        if (error) throw error;
+      }
+      await refetch('daily_checklists', setChecklists);
+      setChkModal(null);
+    } catch (e: any) {
+      console.error("Save Checklist Error:", e);
+      alert(`Failed to save checklist: ${e.message || JSON.stringify(e)}`);
     }
-    await refetch('daily_checklists', setChecklists);
-    setChkModal(null);
   };
 
 
@@ -670,19 +844,25 @@ export default function App() {
     }
   };
 
-  const saveAiToNotes = () => {
+  const saveAiToNotes = async () => {
     if (aiMsgs.length <= 1) return; // Only welcome message
     const content = aiMsgs.map(m => `${m.role === "user" ? "User" : "AI"}: ${m.content}`).join("\n\n");
-    const newNote: Note = {
-      id: Date.now(),
+    const newNote = {
       tag: "General",
       title: `AI Conversation - ${new Date().toLocaleDateString()}`,
       body: content,
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Phoenix' }),
       files: []
     };
-    setNotes(p => [newNote, ...p]);
-    setTab("notes");
+    try {
+      const { error } = await insforge.database.from('notes').insert([newNote]);
+      if (error) throw error;
+      await refetch('notes', setNotes);
+      setTab("notes");
+    } catch (e: any) {
+      console.error("Save AI Note Error:", e);
+      alert(`Failed to save AI conversation: ${e.message || JSON.stringify(e)}`);
+    }
   };
 
   const [activeGroup, setActiveGroup] = useState("DASHBOARD");
@@ -918,11 +1098,7 @@ export default function App() {
       {posModal && <PositionModal position={posModal === "new" ? null : posModal} onSave={savePos} onClose={() => setPosModal(null)} userRole={currentUser?.role} />}
       {canModal && <CandidateModal candidate={canModal === "new" ? null : canModal} initialDate={calDate || undefined} positions={positions} onSave={saveCan} onClose={() => { setCanModal(null); setCalDate(null); }} userRole={currentUser?.role} />}
       {assetModal && <DigitalAssetModal asset={assetModal === "new" ? null : assetModal} onSave={saveAsset} onClose={() => setAssetModal(null)} />}
-      {utilityModal && <UtilityModal account={utilityModal === "new" ? null : utilityModal} onSave={form => {
-        if (utilityModal === "new") setUtilities(p => [...p, { ...form, id: Date.now() }]);
-        else setUtilities(p => p.map(x => x.id === (utilityModal as any).id ? form : x));
-        setUtilityModal(null);
-      }} onClose={() => setUtilityModal(null)} />}
+      {utilityModal && <UtilityModal account={utilityModal === "new" ? null : utilityModal} onSave={saveUtility} onClose={() => setUtilityModal(null)} />}
       {chkModal && <ChecklistModal checklist={chkModal === "new" ? null : chkModal} onSave={saveChk} onClose={() => setChkModal(null)} />}
       {delConfirm && (
         <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.3)",zIndex:998,display:"flex",alignItems:"center",justifyContent:"center" }} onClick={()=>setDelConfirm(null)}>
@@ -1124,9 +1300,9 @@ export default function App() {
                 ? <div style={{ padding:36, textAlign:"center", color:T.muted, fontSize:13 }}>No tasks match these filters. <button onClick={()=>setTaskModal("new")} style={{ marginLeft:8, background:"none", border:`1px solid ${T.border}`, borderRadius:8, padding:"5px 12px", cursor:"pointer", color:T.gold, fontSize:12 }}>+ Add Task</button></div>
                 : tasks.filter(t=>(catFilter==="All"||t.category===catFilter)&&(statFilter==="All"||t.status===statFilter)).map(t=>(
                   <TaskRow key={t.id} task={t} onEdit={setTaskModal}
-                    onDelete={t=>setDelConfirm({label:t.task,onConfirm:()=>setTasks(p=>p.filter(x=>x.id!==t.id))})}
-                    onStatusChange={(id,s)=>setTasks(p=>p.map(x=>x.id===id?{...x,status:s}:x))}
-                    onToggleCheck={(tid,cid)=>setTasks(p=>p.map(x=>x.id===tid?{...x,checklist:x.checklist.map(c=>c.id===cid?{...c,done:!c.done}:c)}:x))}/>
+                    onDelete={t => setDelConfirm({ label: t.task, onConfirm: () => deleteRecord('tasks', t.id, t.task, setTasks) })}
+                    onStatusChange={(id, s) => updateRecord('tasks', id, { status: s }, 'Task Status', setTasks)}
+                    onToggleCheck={toggleTaskCheck} />
                 ))}
             </div>
           </div>
@@ -1173,7 +1349,7 @@ export default function App() {
                   <div style={{ fontSize:11, color:T.muted }}>{item.notes||"—"}</div>
                   <div style={{ display:"flex", gap:5 }}>
                     <button onClick={()=>setMenuModal(item)} style={{ background:"none",border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 7px",color:T.muted,cursor:"pointer",fontSize:11 }}>✎</button>
-                    <button onClick={()=>setDelConfirm({label:item.name,onConfirm:()=>setMenuItems(p=>p.filter(x=>x.id!==item.id))})} style={{ background:"none",border:`1px solid ${T.redBorder}`,borderRadius:6,padding:"3px 7px",color:T.red,cursor:"pointer",fontSize:11 }}>✕</button>
+                    <button onClick={()=>setDelConfirm({label:item.name,onConfirm:()=>deleteRecord('menu_items', item.id, item.name, setMenuItems)})} style={{ background:"none",border:`1px solid ${T.redBorder}`,borderRadius:6,padding:"3px 7px",color:T.red,cursor:"pointer",fontSize:11 }}>✕</button>
                   </div>
                 </div>
               ))}
@@ -1248,7 +1424,10 @@ export default function App() {
             items={inventory} 
             vendors={vendors} 
             onEdit={setInvModal} 
-            onDelete={id => setDelConfirm({ label: "Inventory Item", onConfirm: () => setInventory(p => p.filter(x => x.id !== id)) })}
+            onDelete={id => {
+              const item = inventory.find(x => x.id === id);
+              if (item) setDelConfirm({ label: item.name, onConfirm: () => deleteRecord('inventory_items', id, item.name, setInventory) });
+            }}
             onAdd={() => setInvModal("new")}
           />
         )}
@@ -1311,7 +1490,7 @@ export default function App() {
                           <span style={{ fontSize:10, fontFamily:"'DM Mono',monospace", color:T.muted }}>${Number(c.budgeted).toLocaleString()}</span>
                           <span style={{ fontSize:11, fontFamily:"'DM Mono',monospace", fontWeight:600, color:diff>0?T.red:T.green }}>${Number(c.actual).toLocaleString()} {diff>0?"▲":"▼"}</span>
                           <button onClick={()=>setFinModal({type:"startup",item:c})} style={{ background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:11,padding:"0 2px" }}>✎</button>
-                          <button onClick={()=>setDelConfirm({label:c.category,onConfirm:()=>setStartup(p=>p.filter(x=>x.id!==c.id))})} style={{ background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:11,padding:"0 2px" }}>✕</button>
+                          <button onClick={()=>setDelConfirm({label:c.category,onConfirm:()=>deleteRecord('startup_costs', c.id, c.category, setStartup)})} style={{ background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:11,padding:"0 2px" }}>✕</button>
                         </div>
                       </div>
                       <div style={{ height:4, background:T.border, borderRadius:2 }}>
@@ -1338,7 +1517,7 @@ export default function App() {
                       <div style={{ display:"flex", gap:10, alignItems:"center" }}>
                         <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:T.muted }}>${Number(c.monthly).toLocaleString()}</span>
                         <button onClick={()=>setFinModal({type:"operating",item:c})} style={{ background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:11 }}>✎</button>
-                        <button onClick={()=>setDelConfirm({label:c.category,onConfirm:()=>setOp(p=>p.filter(x=>x.id!==c.id))})} style={{ background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:11 }}>✕</button>
+                        <button onClick={()=>setDelConfirm({label:c.category,onConfirm:()=>deleteRecord('operating_costs', c.id, c.category, setOp)})} style={{ background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:11 }}>✕</button>
                       </div>
                     </div>
                   ))}
@@ -1356,7 +1535,10 @@ export default function App() {
         {tab==="onboarding" && <TeamOnboarding />}
 
         {/* ══════ TIMELINE ══════ */}
-        {tab==="timeline" && <Timeline timeline={timeline} onToggle={id=>setTL(t=>t.map(x=>x.id===id?{...x,done:!x.done}:x))} onEdit={setTlModal} onDelete={m=>setDelConfirm({label:m.milestone,onConfirm:()=>setTL(p=>p.filter(x=>x.id!==m.id))})} onAdd={()=>setTlModal("new")} />}
+        {tab==="timeline" && <Timeline timeline={timeline} onToggle={id => {
+          const m = timeline.find(x => x.id === id);
+          if (m) updateRecord('milestones', id, { done: !m.done }, 'Milestone', setTL);
+        }} onEdit={setTlModal} onDelete={m => setDelConfirm({ label: m.milestone, onConfirm: () => deleteRecord('milestones', m.id, m.milestone, setTL) })} onAdd={() => setTlModal("new")} />}
 
         {/* ══════ NOTES ══════ */}
         {tab==="notes" && (
@@ -1405,7 +1587,7 @@ export default function App() {
                     key={n.id} 
                     note={n} 
                     onEdit={setNoteModal} 
-                    onDelete={id=>setDelConfirm({label:n.title,onConfirm:()=>setNotes(p=>p.filter(x=>x.id!==id))})}
+                    onDelete={id => setDelConfirm({ label: n.title, onConfirm: () => deleteRecord('notes', id, n.title, setNotes) })}
                     isDriveConnected={isDriveConnected}
                     onSaveToDrive={handleSaveToDrive}
                   />
@@ -1416,16 +1598,16 @@ export default function App() {
         )}
 
         {/* ══════ VENDORS ══════ */}
-        {tab === "vendors" && <VendorManager vendors={vendors} onAdd={() => setVendorModal("new")} onEdit={setVendorModal} onDelete={id => setDelConfirm({ label: "Vendor", onConfirm: () => setVendors(p => p.filter(x => x.id !== id)) })} />}
+        {tab === "vendors" && <VendorManager vendors={vendors} onAdd={() => setVendorModal("new")} onEdit={setVendorModal} onDelete={v => setDelConfirm({ label: v.name, onConfirm: () => deleteRecord('vendors', v.id, v.name, setVendors) })} />}
 
         {/* ══════ INVENTORY ══════ */}
-        {tab === "inventory" && <InventoryTracker items={inventory} onUpdateStock={(id, val) => setInventory(p => p.map(x => x.id === id ? { ...x, currentStock: val } : x))} onAdd={() => setInvModal("new")} onEdit={setInvModal} onDelete={id => setDelConfirm({ label: "Inventory Item", onConfirm: () => setInventory(p => p.filter(x => x.id !== id)) })} />}
+        {tab === "inventory" && <InventoryTracker items={inventory} onUpdateStock={(id, val) => updateRecord('inventory_items', id, { currentStock: val }, 'Stock Level', setInventory)} onAdd={() => setInvModal("new")} onEdit={setInvModal} onDelete={item => setDelConfirm({ label: item.name, onConfirm: () => deleteRecord('inventory_items', item.id, item.name, setInventory) })} />}
 
         {/* ══════ PERMITS ══════ */}
         {tab === "permits" && (
           <>
-            <PermitTracker permits={permits} onAdd={() => setPermitModal("new")} onEdit={setPermitModal} onDelete={id => setDelConfirm({ label: "Permit", onConfirm: () => setPermits(p => p.filter(x => x.id !== id)) })} />
-            <UtilityTracker utilities={utilities} onAdd={() => setUtilityModal("new")} onEdit={setUtilityModal} onDelete={id => setDelConfirm({ label: "Utility Account", onConfirm: () => setUtilities(p => p.filter(x => x.id !== id)) })} />
+            <PermitTracker permits={permits} onAdd={() => setPermitModal("new")} onEdit={setPermitModal} onDelete={p => setDelConfirm({ label: p.name, onConfirm: () => deleteRecord('permits', p.id, p.name, setPermits) })} />
+            <UtilityTracker utilities={utilities} onAdd={() => setUtilityModal("new")} onEdit={setUtilityModal} onDelete={u => setDelConfirm({ label: u.name, onConfirm: () => deleteRecord('utility_accounts', u.id, u.name, setUtilities) })} />
           </>
         )}
 
@@ -1447,18 +1629,18 @@ export default function App() {
         {/* ══════ MARKETING ══════ */}
         {tab === "marketing" && (
           <>
-            <MarketingCalendar posts={marketing} onAdd={() => setMktModal("new")} onEdit={setMktModal} onDelete={id => setDelConfirm({ label: "Marketing Post", onConfirm: () => setMarketing(p => p.filter(x => x.id !== id)) })} />
+            <MarketingCalendar posts={marketing} onAdd={() => setMktModal("new")} onEdit={setMktModal} onDelete={p => setDelConfirm({ label: p.title, onConfirm: () => deleteRecord('marketing_posts', p.id, p.title, setMarketing) })} />
             {!isUnlocked ? <PinGate onUnlock={() => setIsUnlocked(true)} correctPin={securityPin} /> : (
-              <DigitalAssetManager assets={assets} onAdd={() => setAssetModal("new")} onEdit={setAssetModal} onDelete={id => setDelConfirm({ label: "Digital Account", onConfirm: () => setAssets(p => p.filter(x => x.id !== id)) })} />
+              <DigitalAssetManager assets={assets} onAdd={() => setAssetModal("new")} onEdit={setAssetModal} onDelete={a => setDelConfirm({ label: a.name, onConfirm: () => deleteRecord('digital_assets', a.id, a.name, setAssets) })} />
             )}
           </>
         )}
 
         {/* ══════ TRAINING ══════ */}
-        {tab === "training" && <TrainingPortal modules={training} onToggleStep={(mid, sid) => setTraining(p => p.map(m => m.id === mid ? { ...m, steps: m.steps.map(s => s.id === sid ? { ...s, done: !s.done } : s) } : m))} onAdd={() => setTrainModal("new")} onEdit={setTrainModal} onDelete={id => setDelConfirm({ label: "Training Module", onConfirm: () => setTraining(p => p.filter(x => x.id !== id)) })} />}
+        {tab === "training" && <TrainingPortal modules={training} onToggleStep={toggleTrainingStep} onAdd={() => setTrainModal("new")} onEdit={setTrainModal} onDelete={m => setDelConfirm({ label: m.title, onConfirm: () => deleteRecord('training_modules', m.id, m.title, setTraining) })} />}
 
         {/* ══════ CHECKLISTS ══════ */}
-        {tab === "checklists" && <DailyChecklistManager checklists={checklists} onToggleItem={(cid, iid) => setChecklists(p => p.map(c => c.id === cid ? { ...c, items: c.items.map(i => i.id === iid ? { ...i, done: !i.done } : i) } : c))} onAdd={() => setChkModal("new")} onEdit={setChkModal} onDelete={id => setDelConfirm({ label: "Checklist", onConfirm: () => setChecklists(p => p.filter(x => x.id !== id)) })} />}
+        {tab === "checklists" && <DailyChecklistManager checklists={checklists} onToggleItem={toggleChecklistItem} onAdd={() => setChkModal("new")} onEdit={setChkModal} onDelete={c => setDelConfirm({ label: c.title, onConfirm: () => deleteRecord('daily_checklists', c.id, c.title, setChecklists) })} />}
 
         {/* ══════ AI ══════ */}
         {tab==="ai" && <AIAssistant messages={aiMsgs} onSend={sendAi} loading={aiLoad} onSaveToNotes={saveAiToNotes} />}
@@ -1468,7 +1650,7 @@ export default function App() {
           <InvoicesSection 
             invoices={invoices} 
             onEdit={setInvoiceModal} 
-            onDelete={inv => setDelConfirm({ label: `Invoice from ${inv.vendorName}`, onConfirm: () => setInvoices(p => p.filter(x => x.id !== inv.id)) })} 
+            onDelete={inv => setDelConfirm({ label: `Invoice from ${inv.vendorName}`, onConfirm: () => deleteRecord('invoices', inv.id, `Invoice ${inv.vendorName}`, setInvoices) })} 
             onAdd={() => setInvoiceModal("new")} 
           />
         )}
@@ -1482,10 +1664,10 @@ export default function App() {
                 candidates={candidates} 
                 onAddPos={() => setPosModal("new")}
                 onEditPos={setPosModal}
-                onDeletePos={(id: number) => setDelConfirm({ label: "This position", onConfirm: () => setPositions(p => p.filter(x => x.id !== id)) })}
+                onDeletePos={(p: any) => setDelConfirm({ label: p.role, onConfirm: () => deleteRecord('positions', p.id, p.role, setPositions) })}
                 onAddCan={() => setCanModal("new")}
                 onEditCan={setCanModal}
-                onDeleteCan={(id: number) => setCandidates(p => p.filter(x => x.id !== id))}
+                onDeleteCan={(c: any) => setDelConfirm({ label: c.name, onConfirm: () => deleteRecord('candidates', c.id, c.name, setCandidates) })}
                 userRole={currentUser?.role}
               />
             </div>
