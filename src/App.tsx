@@ -48,11 +48,11 @@ type ShoppingListItem = {
 
 const TASK_TODOS_STORAGE_KEY = "restaurant_task_todos_v1";
 
-const readStoredTaskTodos = (): TaskTodoItem[] => {
-  if (typeof window === "undefined") return [];
+const readStoredTaskTodos = (): TaskTodoItem[] | null => {
+  if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(TASK_TODOS_STORAGE_KEY);
-    if (!raw) return [];
+    if (raw === null) return null;
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
@@ -391,7 +391,7 @@ export default function App() {
       } else {
         setTaskTodoStore("local");
         const stored = readStoredTaskTodos();
-        setTaskTodos((stored.length ? stored : INIT_TASK_TODOS).map(sanitizeTaskTodo));
+        setTaskTodos((stored ?? INIT_TASK_TODOS).map(sanitizeTaskTodo));
       }
 
       const { data: activityRows, error: activityErr } = await dbSelect("activity_logs");
