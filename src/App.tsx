@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { 
   T, CAT_COLORS, STATUS_COLORS, PRIORITY_COLORS, NOTE_TAG_COLORS, 
-  CATEGORIES, INV_CATEGORIES, DEPARTMENTS, MENU_SECTIONS, Task, TaskTodoItem, TODO_STATUS_COLORS,
+  CATEGORIES, INV_CATEGORIES, DEPARTMENTS, MENU_SECTIONS, Task, TaskTodoItem, TodoSubtask, TODO_STATUS_COLORS, TODO_STATUSES,
   MenuItem, StartupCost, OperatingCost, Milestone, Note, Vendor, 
   InventoryItem, Permit, MarketingPost, TrainingModule, DailyChecklist, 
   UtilityAccount, DigitalAsset, User, ActivityLog, UserRole, Invoice, Position, Candidate
 } from "./types";
-import { Pill, Btn, SectionHeader, PinGate, ChangePinModal, ChangePasswordModal, inpStyle, ProgressRing, Modal, Field } from "./components/UI";
+import { Pill, Btn, SectionHeader, PinGate, ChangePinModal, ChangePasswordModal, inpStyle, dropdownStyle, ProgressRing, Modal, Field } from "./components/UI";
 import { TaskModal, TaskRow } from "./components/TaskBoard";
 import { MenuModal } from "./components/MenuPlanner";
 import { FinModal } from "./components/Financials";
@@ -60,6 +60,33 @@ const readStoredTaskTodos = (): TaskTodoItem[] => {
   }
 };
 
+const normalizeLegacyTodoStatus = (status: unknown): TaskTodoItem["status"] => {
+  const value = String(status || "").trim();
+  if (value === "Not Started" || value === "In Progress" || value === "Done" || value === "On Hold") return value;
+  if (value === "Inbox") return "Not Started";
+  if (value === "Linked") return "In Progress";
+  return "Not Started";
+};
+
+const sanitizeTaskTodo = (todo: any): TaskTodoItem => ({
+  id: Number(todo?.id || Date.now()),
+  title: String(todo?.title || "Untitled"),
+  category: CATEGORIES.includes(String(todo?.category || "")) ? String(todo.category) : CATEGORIES[0],
+  status: normalizeLegacyTodoStatus(todo?.status),
+  assignedTo: todo?.assignedTo ? String(todo.assignedTo) : undefined,
+  linkedTaskId: todo?.linkedTaskId ? Number(todo.linkedTaskId) : null,
+  linkUrl: todo?.linkUrl ? String(todo.linkUrl) : undefined,
+  note: todo?.note ? String(todo.note) : undefined,
+  created_at: todo?.created_at ? String(todo.created_at) : new Date().toISOString(),
+});
+
+const TODO_STATUS_ORDER: Record<TaskTodoItem["status"], number> = {
+  "Not Started": 0,
+  "In Progress": 1,
+  "On Hold": 2,
+  Done: 3,
+};
+
 // ������ INITIAL DATA ��������������������������������������������������������������������������������������������������������������������������
 const INIT_VENDORS: Vendor[] = [
   { id: 1, name: "Green Valley Farms", contact: "Maria Garcia", email: "maria@greenvalley.com", phone: "555-0101", category: "Produce", deliveryDays: ["M", "W", "F"], notes: "" },
@@ -111,9 +138,9 @@ const INIT_TASKS: Task[] = [
 ];
 
 const INIT_TASK_TODOS: TaskTodoItem[] = [
-  { id: 1, title: "Call city about signage permit requirements", category: "Permits", status: "Inbox", assignedTo: "Owner", created_at: new Date().toISOString() },
-  { id: 2, title: "Collect internet quotes for FOH and office", category: "IT & Systems", status: "Inbox", assignedTo: "Manager", created_at: new Date().toISOString() },
-  { id: 3, title: "Draft opening week training roster", category: "Staffing", status: "Linked", assignedTo: "Partner", linkedTaskId: 6, created_at: new Date().toISOString() },
+  { id: 1, title: "Call city about signage permit requirements", category: "Permits", status: "Not Started", assignedTo: "Owner", note: "Ask for same-day review option", created_at: new Date().toISOString() },
+  { id: 2, title: "Collect internet quotes for FOH and office", category: "IT & Systems", status: "In Progress", assignedTo: "Manager", linkUrl: "https://example.com/provider-quotes", created_at: new Date().toISOString() },
+  { id: 3, title: "Draft opening week training roster", category: "Staffing", status: "On Hold", assignedTo: "Partner", linkedTaskId: 6, note: "Waiting on final shift budget", created_at: new Date().toISOString() },
 ];
 
 const INIT_MENU: MenuItem[] = [
@@ -264,7 +291,7 @@ export default function App() {
   const [tasks, setTasks]       = useState<Task[]>(INIT_TASKS);
   const [taskTodos, setTaskTodos] = useState<TaskTodoItem[]>(() => {
     const stored = readStoredTaskTodos();
-    return stored.length ? stored : INIT_TASK_TODOS;
+    return stored.length ? stored.map(sanitizeTaskTodo) : INIT_TASK_TODOS.map(sanitizeTaskTodo);
   });
   const [menuItems, setMenuItems] = useState<MenuItem[]>(INIT_MENU);
   const [startup, setStartup]   = useState<StartupCost[]>(INIT_STARTUP);
@@ -359,12 +386,12 @@ export default function App() {
 
       const { data: todoRows, error: todoError } = await dbSelect("task_todos");
       if (!todoError) {
-        setTaskTodos((todoRows as TaskTodoItem[]) || []);
+        setTaskTodos(((todoRows as TaskTodoItem[]) || []).map(sanitizeTaskTodo));
         setTaskTodoStore("db");
       } else {
         setTaskTodoStore("local");
         const stored = readStoredTaskTodos();
-        setTaskTodos(stored.length ? stored : INIT_TASK_TODOS);
+        setTaskTodos((stored.length ? stored : INIT_TASK_TODOS).map(sanitizeTaskTodo));
       }
 
       const { data: activityRows, error: activityErr } = await dbSelect("activity_logs");
@@ -601,19 +628,31 @@ export default function App() {
   }, [dbShoppingItems]);
 
   const [delConfirm, setDelConfirm] = useState<any>(null); // {label, onConfirm}
-  const [todoDraft, setTodoDraft] = useState({
+  const [todoDraft, setTodoDraft] = useState<{
+    title: string; category: string; status: TaskTodoItem["status"];
+    assignedTo: string; linkedTaskId: string; linkUrl: string; note: string;
+    subtasks: TodoSubtask[];
+  }>({
     title: "",
     category: CATEGORIES[0],
-    status: "Inbox" as TaskTodoItem["status"],
+    status: "Not Started" as TaskTodoItem["status"],
     assignedTo: "",
     linkedTaskId: "",
+    linkUrl: "",
+    note: "",
+    subtasks: [],
   });
+  const [quickTodoTitle, setQuickTodoTitle] = useState("");
+  const [quickTodoCategory, setQuickTodoCategory] = useState(CATEGORIES[0]);
+  const [expandedPlanningCats, setExpandedPlanningCats] = useState<Record<string, boolean>>(() =>
+    CATEGORIES.reduce((acc, category) => ({ ...acc, [category]: true }), {} as Record<string, boolean>)
+  );
 
   // Filters
   const [catFilter, setCatF]    = useState("All");
   const [statFilter, setStatF]  = useState("All");
   const [todoCatFilter, setTodoCatFilter] = useState("All");
-  const [todoStatusFilter, setTodoStatusFilter] = useState("Open");
+  const [todoStatusFilter, setTodoStatusFilter] = useState<TaskTodoItem["status"] | "All">("All");
   const [menuSecF, setMenuSecF] = useState("All");
   const [shopCatF, setShopCatF] = useState("All");
   const [shopDeptF, setShopDeptF] = useState("All");
@@ -650,18 +689,24 @@ export default function App() {
   const criticalOverdue = tasks.filter(t => t.isCritical && t.status === "Overdue").length;
   const prog      = tasks.length ? Math.round((completed/tasks.length)*100) : 0;
   const openTaskTodos = taskTodos.filter(todo => todo.status !== "Done");
-  const linkedTaskTodos = taskTodos.filter(todo => todo.status === "Linked");
   const doneTaskTodos = taskTodos.filter(todo => todo.status === "Done");
   const filteredTasks = tasks.filter(t => (catFilter === "All" || t.category === catFilter) && (statFilter === "All" || t.status === statFilter));
   const filteredTaskTodos = taskTodos.filter(todo => {
     const categoryMatch = todoCatFilter === "All" || todo.category === todoCatFilter;
-    const statusMatch = todoStatusFilter === "All"
-      || (todoStatusFilter === "Open" ? todo.status !== "Done" : todo.status === todoStatusFilter);
+    const statusMatch = todoStatusFilter === "All" || todo.status === todoStatusFilter;
     return categoryMatch && statusMatch;
   });
   const groupedTaskTodos = CATEGORIES
     .map(category => ({ category, items: filteredTaskTodos.filter(todo => todo.category === category) }))
     .filter(group => group.items.length > 0);
+  const actionListTodos = [...filteredTaskTodos].sort((a, b) => {
+    if (TODO_STATUS_ORDER[a.status] !== TODO_STATUS_ORDER[b.status]) {
+      return TODO_STATUS_ORDER[a.status] - TODO_STATUS_ORDER[b.status];
+    }
+    const ad = new Date(a.created_at || 0).getTime();
+    const bd = new Date(b.created_at || 0).getTime();
+    return bd - ad;
+  });
   const taskCategoryOverview = CATEGORIES
     .map(category => {
       const taskCount = tasks.filter(task => task.category === category).length;
@@ -670,6 +715,26 @@ export default function App() {
       return { category, taskCount, completedCount, todoCount };
     })
     .filter(group => group.taskCount > 0 || group.todoCount > 0);
+  const planningCategoryRows = CATEGORIES
+    .map(category => {
+      const categoryTasks = tasks.filter(task => task.category === category);
+      const categoryTodos = taskTodos.filter(todo => todo.category === category);
+      const taskComplete = categoryTasks.filter(task => task.status === "Complete").length;
+      const todoComplete = categoryTodos.filter(todo => todo.status === "Done").length;
+      const total = categoryTasks.length + categoryTodos.length;
+      const completedCount = taskComplete + todoComplete;
+      const openCount = Math.max(0, total - completedCount);
+      const progress = total ? Math.round((completedCount / total) * 100) : 0;
+      return {
+        category,
+        total,
+        openCount,
+        completedCount,
+        progress,
+        taskCount: categoryTasks.length,
+        todoCount: categoryTodos.length,
+      };
+    });
   
   const invoiceStartupTotal = invoices.filter(i => i.category === "Lease & TI").reduce((s, i) => s + Number(i.amount), 0);
   const totBudget = startup.reduce((s,c)=>s+(+c.budgeted),0);
@@ -722,7 +787,7 @@ export default function App() {
       .filter(t => t.status === "Overdue" || t.priority === "Critical")
       .map(t => ({ id: `task-${t.id}`, title: t.task, meta: `${t.category} · ${t.status}` })),
     ...taskTodos
-      .filter(todo => todo.status === "Inbox")
+      .filter(todo => todo.status === "Not Started")
       .slice(0, 2)
       .map(todo => ({ id: `todo-${todo.id}`, title: todo.title, meta: `${todo.category} · Todo inbox` })),
     ...permitAlerts
@@ -736,18 +801,18 @@ export default function App() {
     if (data) setter(data as any);
   };
 
-  const normalizeTodoStatus = (status: TaskTodoItem["status"], linkedTaskId?: number | null): TaskTodoItem["status"] => {
-    if (status === "Done") return "Done";
-    return linkedTaskId ? "Linked" : "Inbox";
-  };
+  const normalizeTodoStatus = (status: TaskTodoItem["status"]): TaskTodoItem["status"] => normalizeLegacyTodoStatus(status);
 
   const openNewTodo = () => {
     setTodoDraft({
       title: "",
       category: catFilter === "All" ? CATEGORIES[0] : catFilter,
-      status: "Inbox",
+      status: "Not Started",
       assignedTo: "",
       linkedTaskId: "",
+      linkUrl: "",
+      note: "",
+      subtasks: [],
     });
     setTodoModal("new");
   };
@@ -759,6 +824,9 @@ export default function App() {
       status: todo.status,
       assignedTo: todo.assignedTo || "",
       linkedTaskId: todo.linkedTaskId ? String(todo.linkedTaskId) : "",
+      linkUrl: todo.linkUrl || "",
+      note: todo.note || "",
+      subtasks: todo.subtasks || [],
     });
     setTodoModal(todo);
   };
@@ -795,9 +863,12 @@ export default function App() {
     const payload = {
       title,
       category: todoDraft.category,
-      status: normalizeTodoStatus(todoDraft.status, linkedTaskId),
+      status: normalizeTodoStatus(todoDraft.status),
       assignedTo: todoDraft.assignedTo.trim() || null,
       linkedTaskId,
+      linkUrl: todoDraft.linkUrl.trim() || null,
+      note: todoDraft.note.trim() || null,
+      subtasks: todoDraft.subtasks,
     };
 
     try {
@@ -820,6 +891,9 @@ export default function App() {
           status: payload.status,
           assignedTo: payload.assignedTo || undefined,
           linkedTaskId: payload.linkedTaskId,
+          linkUrl: payload.linkUrl || undefined,
+          note: payload.note || undefined,
+          subtasks: payload.subtasks,
           created_at: todoModal && todoModal !== "new" ? todoModal.created_at : new Date().toISOString(),
         };
         setTaskTodos(prev => {
@@ -852,6 +926,65 @@ export default function App() {
     } catch (e: any) {
       console.error("Delete Todo Error:", e);
       alert(`Failed to delete todo: ${e.message || JSON.stringify(e)}`);
+    }
+  };
+
+  const quickAddTodo = async () => {
+    const title = quickTodoTitle.trim();
+    if (!title) return;
+
+    const payload = {
+      title,
+      category: quickTodoCategory,
+      status: "Not Started" as TaskTodoItem["status"],
+      assignedTo: null,
+      linkedTaskId: null,
+      linkUrl: null,
+      note: null,
+    };
+
+    try {
+      if (taskTodoStore === "db") {
+        const { error } = await dbInsert("task_todos", payload);
+        if (error) throw error;
+        await refetch("task_todos", setTaskTodos as any);
+      } else {
+        const nextTodo: TaskTodoItem = {
+          id: Date.now(),
+          title: payload.title,
+          category: payload.category,
+          status: payload.status,
+          created_at: new Date().toISOString(),
+        };
+        setTaskTodos(prev => [nextTodo, ...prev]);
+      }
+
+      setQuickTodoTitle("");
+      setTodoCatFilter("All");
+      setTodoStatusFilter("All");
+      logActivity(`Quick added todo: ${title}`);
+    } catch (e: any) {
+      console.error("Quick Add Todo Error:", e);
+      alert(`Failed to add todo: ${e.message || JSON.stringify(e)}`);
+    }
+  };
+
+  const toggleTodoDone = async (todo: TaskTodoItem) => {
+    const nextStatus: TaskTodoItem["status"] = todo.status === "Done" ? "Not Started" : "Done";
+
+    try {
+      if (taskTodoStore === "db") {
+        const { error } = await dbUpdate("task_todos", todo.id, { status: nextStatus });
+        if (error) throw error;
+        await refetch("task_todos", setTaskTodos as any);
+      } else {
+        setTaskTodos(prev => prev.map(item => item.id === todo.id ? { ...item, status: nextStatus } : item));
+      }
+
+      logActivity(`${nextStatus === "Done" ? "Completed" : "Reopened"} todo: ${todo.title}`);
+    } catch (e: any) {
+      console.error("Toggle Todo Status Error:", e);
+      alert(`Failed to update todo: ${e.message || JSON.stringify(e)}`);
     }
   };
 
@@ -1842,34 +1975,66 @@ export default function App() {
           <Field label="TODO TITLE"><input value={todoDraft.title} onChange={e => setTodoDraft(d => ({ ...d, title: e.target.value }))} style={inpStyle} placeholder="e.g. Confirm POS training schedule" /></Field>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
             <Field label="CATEGORY">
-              <select value={todoDraft.category} onChange={e => setTodoDraft(d => ({ ...d, category: e.target.value }))} style={{ ...inpStyle, height: 42 }}>
+              <select value={todoDraft.category} onChange={e => setTodoDraft(d => ({ ...d, category: e.target.value }))} style={{ ...dropdownStyle, height: 42 }}>
                 {CATEGORIES.map(category => <option key={category} value={category}>{category}</option>)}
               </select>
             </Field>
             <Field label="STATUS">
-              <select value={todoDraft.status} onChange={e => setTodoDraft(d => ({ ...d, status: e.target.value as TaskTodoItem["status"] }))} style={{ ...inpStyle, height: 42 }}>
-                {["Inbox", "Linked", "Done"].map(status => <option key={status} value={status}>{status}</option>)}
+              <select value={todoDraft.status} onChange={e => setTodoDraft(d => ({ ...d, status: e.target.value as TaskTodoItem["status"] }))} style={{ ...dropdownStyle, height: 42 }}>
+                {TODO_STATUSES.map(status => <option key={status} value={status}>{status}</option>)}
               </select>
             </Field>
           </div>
           <Field label="ASSIGNED TO"><input value={todoDraft.assignedTo} onChange={e => setTodoDraft(d => ({ ...d, assignedTo: e.target.value }))} style={inpStyle} placeholder="Owner, Manager, Partner" /></Field>
-          <Field label="LINK TO MASTER TASK (OPTIONAL)">
-            <select
-              value={todoDraft.linkedTaskId}
-              onChange={e => {
-                const nextLinkedTaskId = e.target.value;
-                setTodoDraft(d => ({
-                  ...d,
-                  linkedTaskId: nextLinkedTaskId,
-                  status: normalizeTodoStatus(d.status, nextLinkedTaskId ? Number(nextLinkedTaskId) : null),
-                }));
-              }}
-              style={{ ...inpStyle, height: 42 }}
-            >
-              <option value="">Not linked yet</option>
-              {tasks.map(task => <option key={task.id} value={task.id}>{task.task} ({task.category})</option>)}
-            </select>
-          </Field>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+            <Field label="REFERENCE LINK (OPTIONAL)"><input value={todoDraft.linkUrl} onChange={e => setTodoDraft(d => ({ ...d, linkUrl: e.target.value }))} style={inpStyle} placeholder="https://..." /></Field>
+            <Field label="SHORT NOTE (OPTIONAL)"><input value={todoDraft.note} onChange={e => setTodoDraft(d => ({ ...d, note: e.target.value }))} style={inpStyle} placeholder="Quick context for this todo" /></Field>
+          </div>
+          {/* Subtasks */}
+          <div style={{ marginTop: 4 }}>
+            <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.subtle, letterSpacing: 1, fontWeight: 600, marginBottom: 8 }}>SUBTASKS</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
+              {todoDraft.subtasks.map((sub, idx) => (
+                <div key={sub.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={sub.done}
+                    onChange={() => setTodoDraft(d => ({ ...d, subtasks: d.subtasks.map((s, i) => i === idx ? { ...s, done: !s.done } : s) }))}
+                    style={{ width: 14, height: 14, accentColor: T.green, flexShrink: 0 }}
+                  />
+                  <span style={{ flex: 1, fontSize: 13, color: sub.done ? T.muted : T.text, textDecoration: sub.done ? "line-through" : "none" }}>{sub.text}</span>
+                  <button
+                    onClick={() => setTodoDraft(d => ({ ...d, subtasks: d.subtasks.filter((_, i) => i !== idx) }))}
+                    style={{ background: "none", border: "none", color: T.red, cursor: "pointer", fontSize: 16, lineHeight: 1, padding: "0 2px" }}
+                  >×</button>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                id="subtask-input"
+                placeholder="Add a subtask..."
+                style={{ ...inpStyle, flex: 1, height: 36, fontSize: 13 }}
+                onKeyDown={e => {
+                  if (e.key === "Enter") {
+                    const val = (e.target as HTMLInputElement).value.trim();
+                    if (val) {
+                      setTodoDraft(d => ({ ...d, subtasks: [...d.subtasks, { id: Date.now(), text: val, done: false }] }));
+                      (e.target as HTMLInputElement).value = "";
+                    }
+                  }
+                }}
+              />
+              <Btn variant="outline" small onClick={() => {
+                const inp = document.getElementById("subtask-input") as HTMLInputElement;
+                const val = inp?.value.trim();
+                if (val) {
+                  setTodoDraft(d => ({ ...d, subtasks: [...d.subtasks, { id: Date.now(), text: val, done: false }] }));
+                  inp.value = "";
+                }
+              }}>+ Add</Btn>
+            </div>
+          </div>
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20, flexWrap: "wrap" }}>
             {todoModal !== "new" && (
               <div style={{ marginRight: "auto" }}>
@@ -1894,12 +2059,12 @@ export default function App() {
           <Field label="ITEM NAME"><input value={shopItemDraft.name} onChange={e => setShopItemDraft(d => ({ ...d, name: e.target.value }))} style={inpStyle} placeholder="e.g. Olive Oil" /></Field>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="CATEGORY">
-              <select value={shopItemDraft.category} onChange={e => setShopItemDraft(d => ({ ...d, category: e.target.value }))} style={{ ...inpStyle, height: 42 }}>
+              <select value={shopItemDraft.category} onChange={e => setShopItemDraft(d => ({ ...d, category: e.target.value }))} style={{ ...dropdownStyle, height: 42 }}>
                 {INV_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
               </select>
             </Field>
             <Field label="DEPARTMENT">
-              <select value={shopItemDraft.department} onChange={e => setShopItemDraft(d => ({ ...d, department: e.target.value }))} style={{ ...inpStyle, height: 42 }}>
+              <select value={shopItemDraft.department} onChange={e => setShopItemDraft(d => ({ ...d, department: e.target.value }))} style={{ ...dropdownStyle, height: 42 }}>
                 {DEPARTMENTS.map(dep => <option key={dep} value={dep}>{dep}</option>)}
               </select>
             </Field>
@@ -1913,7 +2078,7 @@ export default function App() {
             <select
               value={shopItemDraft.purchaseType}
               onChange={e => setShopItemDraft(d => ({ ...d, purchaseType: e.target.value as "Vendor" | "Store" | "", vendorName: "", storeName: "", storeUrl: "" }))}
-              style={{ ...inpStyle, height: 42 }}
+              style={{ ...dropdownStyle, height: 42 }}
             >
               <option value="">Not set</option>
               <option value="Vendor">Order Through Vendor</option>
@@ -1922,7 +2087,7 @@ export default function App() {
           </Field>
           {shopItemDraft.purchaseType === "Vendor" && (
             <Field label="VENDOR">
-              <select value={shopItemDraft.vendorName} onChange={e => setShopItemDraft(d => ({ ...d, vendorName: e.target.value }))} style={{ ...inpStyle, height: 42 }}>
+              <select value={shopItemDraft.vendorName} onChange={e => setShopItemDraft(d => ({ ...d, vendorName: e.target.value }))} style={{ ...dropdownStyle, height: 42 }}>
                 <option value="">Select vendor</option>
                 {vendors.map(v => <option key={v.id} value={v.name}>{v.name}</option>)}
               </select>
@@ -2028,35 +2193,39 @@ export default function App() {
 
                 <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 28, marginTop: isMobile ? 16 : 24 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 12, flexWrap: "wrap" }}>
-                    <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>TASKS AND TODOS BY CATEGORY</div>
-                    <Btn onClick={() => setTab("tasks")} variant="ghost" small>Open Task Boards</Btn>
+                    <div>
+                      <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>TODAY'S TOP TODOS</div>
+                      <div style={{ fontSize: 11, color: T.subtle, marginTop: 2 }}>{openTaskTodos.length} open · showing top 5</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <Btn onClick={openNewTodo} variant="outline" small>+ Add Todo</Btn>
+                      <Btn onClick={() => setTab("tasks")} variant="ghost" small>View All</Btn>
+                    </div>
                   </div>
-                  {taskCategoryOverview.length === 0 ? (
-                    <div style={{ fontSize: 12, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px", background: T.bg }}>No category activity yet.</div>
+                  {openTaskTodos.length === 0 ? (
+                    <div style={{ fontSize: 12, color: T.green, background: T.greenLight, border: `1px solid ${T.greenBorder}`, borderRadius: 10, padding: "10px 12px" }}>All clear — no open todos!</div>
                   ) : (
-                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: 12 }}>
-                      {taskCategoryOverview.map(group => {
-                        const cc = CAT_COLORS[group.category] || { bg: T.bg, dot: T.text, border: T.border };
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {openTaskTodos.slice(0, 5).map(todo => {
+                        const sc = TODO_STATUS_COLORS[todo.status];
+                        const cc = CAT_COLORS[todo.category] || { dot: T.muted, bg: T.bg, border: T.border };
+                        const doneCount = (todo.subtasks || []).filter(s => s.done).length;
+                        const totalSubs = (todo.subtasks || []).length;
                         return (
-                          <div key={`overview-${group.category}`} style={{ border: `1px solid ${cc.border}`, background: cc.bg, borderRadius: 14, padding: "14px 16px" }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                              <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{group.category}</div>
-                              <span style={{ fontSize: 10, color: cc.dot, background: "#FFF", border: `1px solid ${cc.border}`, borderRadius: 999, padding: "2px 8px", fontWeight: 700 }}>{group.todoCount} open todo</span>
+                          <div key={`dash-todo-${todo.id}`} style={{ display: "flex", alignItems: "center", gap: 10, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 14px", background: T.bg }}>
+                            <input
+                              type="checkbox"
+                              checked={todo.status === "Done"}
+                              onChange={() => toggleTodoDone(todo)}
+                              style={{ width: 15, height: 15, accentColor: T.green, flexShrink: 0, cursor: "pointer" }}
+                            />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: todo.status === "Done" ? T.muted : T.text, textDecoration: todo.status === "Done" ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{todo.title}</div>
+                              {totalSubs > 0 && <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>{doneCount}/{totalSubs} subtasks</div>}
                             </div>
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
-                              <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px" }}>
-                                <div style={{ fontSize: 10, color: T.subtle }}>Tasks</div>
-                                <div style={{ fontSize: 16, fontWeight: 700, color: T.text }}>{group.taskCount}</div>
-                              </div>
-                              <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px" }}>
-                                <div style={{ fontSize: 10, color: T.subtle }}>Complete</div>
-                                <div style={{ fontSize: 16, fontWeight: 700, color: T.green }}>{group.completedCount}</div>
-                              </div>
-                              <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px" }}>
-                                <div style={{ fontSize: 10, color: T.subtle }}>Todo Inbox</div>
-                                <div style={{ fontSize: 16, fontWeight: 700, color: group.todoCount > 0 ? T.gold : T.text }}>{group.todoCount}</div>
-                              </div>
-                            </div>
+                            <span style={{ fontSize: 10, background: cc.bg, color: cc.dot, border: `1px solid ${cc.border}`, borderRadius: 999, padding: "2px 7px", whiteSpace: "nowrap", flexShrink: 0 }}>{todo.category}</span>
+                            <span style={{ fontSize: 10, background: sc.bg, color: sc.text, border: `1px solid ${sc.border}`, borderRadius: 999, padding: "2px 7px", whiteSpace: "nowrap", flexShrink: 0 }}>{todo.status}</span>
+                            <button onClick={() => openEditTodo(todo)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 8px", color: T.muted, cursor: "pointer", fontSize: 11, flexShrink: 0 }}>Edit</button>
                           </div>
                         );
                       })}
@@ -2095,198 +2264,290 @@ export default function App() {
         {/* �"��"��"��"��"��"� TASKS �"��"��"��"��"��"� */}
         {tab==="tasks" && (
           <div className="fu">
-            <SectionHeader title="Task Boards" subtitle={`${tasks.length} tasks · ${openTaskTodos.length} open todo items · Click > to expand subtask checklist`}
+            <SectionHeader title="Planning" subtitle={`${taskTodos.length} inbox items · ${openTaskTodos.length} open · ${doneTaskTodos.length} completed`}
               action={
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: isMobile ? "stretch" : "flex-end" }}>
-                  <Btn onClick={() => exportToCSV(tasks, 'Restaurant_Launch_Tasks', [
-                    { key: 'task', label: 'Task Name' },
-                    { key: 'category', label: 'Department' },
-                    { key: 'due', label: 'Due Date' },
-                    { key: 'status', label: 'Status' },
-                    { key: 'priority', label: 'Priority' },
-                    { key: 'checklist', label: 'Checklist Details' }
-                  ])} variant="outline" small>Export CSV</Btn>
-                  <Btn onClick={()=>setTaskModal("new")} variant="primary">+ New Task</Btn>
+                  <Btn onClick={openNewTodo} variant="outline" small>+ Full Todo Form</Btn>
+                  <Btn onClick={()=>setTaskModal("new")} variant="primary">+ New Master Task</Btn>
                 </div>
               }/>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 18 }}>
-              {[
-                { label: "Master Tasks", value: tasks.length, tone: T.text, bg: "#FFF" },
-                { label: "Todo Inbox", value: openTaskTodos.length, tone: T.gold, bg: T.goldLight },
-                { label: "Linked Todos", value: linkedTaskTodos.length, tone: T.blue, bg: T.blueLight },
-                { label: "Done Todos", value: doneTaskTodos.length, tone: T.green, bg: T.greenLight },
-              ].map(card => (
-                <div key={card.label} style={{ background: card.bg, border: `1px solid ${T.border}`, borderRadius: 14, padding: "14px 16px" }}>
-                  <div style={{ fontSize: 11, color: T.subtle, marginBottom: 6 }}>{card.label}</div>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: card.tone }}>{card.value}</div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 14, padding: isMobile ? 14 : 18, marginBottom: 18 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
-                <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>TODO INBOX</div>
-                <Btn onClick={openNewTodo} variant="outline" small>+ Add Todo</Btn>
-              </div>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 10, color: T.subtle, marginBottom: 8 }}>STATUS</div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {["Open", "Inbox", "Linked", "Done", "All"].map(status => (
-                    <button
-                      key={status}
-                      onClick={() => setTodoStatusFilter(status)}
-                      style={{ cursor: "pointer", borderRadius: 999, padding: isMobile ? "7px 12px" : "5px 12px", fontSize: isMobile ? 12 : 11, border: `1px solid ${todoStatusFilter === status ? T.gold : T.border}`, background: todoStatusFilter === status ? T.goldLight : "#FFF", color: todoStatusFilter === status ? T.gold : T.muted, fontWeight: todoStatusFilter === status ? 700 : 500 }}
-                    >
-                      {status}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, color: T.subtle, marginBottom: 8 }}>CATEGORY</div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {["All", ...CATEGORIES].map(category => (
-                    <button
-                      key={category}
-                      onClick={() => {
-                        setTodoCatFilter(category);
-                        setCatF(category);
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(360px, 0.8fr) minmax(0, 1.2fr)", gap: 16, alignItems: "start" }}>
+              <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
+                <div style={{ position: "sticky", top: 0, zIndex: 4, padding: isMobile ? "12px" : "14px", background: "#FFF", borderBottom: `1px solid ${T.border}` }}>
+                  <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.1, fontWeight: 600, marginBottom: 10 }}>ACTION LIST</div>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) minmax(190px, 220px) auto", gap: 8 }}>
+                    <input
+                      value={quickTodoTitle}
+                      onChange={e => setQuickTodoTitle(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter") quickAddTodo();
                       }}
-                      style={{ cursor: "pointer", borderRadius: 999, padding: isMobile ? "7px 12px" : "5px 12px", fontSize: isMobile ? 12 : 11, border: `1px solid ${todoCatFilter === category ? T.gold : T.border}`, background: todoCatFilter === category ? T.goldLight : "#FFF", color: todoCatFilter === category ? T.gold : T.muted, fontWeight: todoCatFilter === category ? 700 : 500 }}
-                    >
-                      {category}
-                    </button>
-                  ))}
+                      placeholder="Quick-add todo..."
+                      style={{ ...inpStyle, height: 40 }}
+                    />
+                    <select value={quickTodoCategory} onChange={e => setQuickTodoCategory(e.target.value)} style={{ ...dropdownStyle, height: 40 }}>
+                      {CATEGORIES.map(category => <option key={category} value={category}>{category}</option>)}
+                    </select>
+                    <Btn onClick={quickAddTodo} variant="primary" small>+ Add</Btn>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+                    {["All", ...TODO_STATUSES].map(status => (
+                      <button
+                        key={status}
+                        onClick={() => setTodoStatusFilter(status as TaskTodoItem["status"] | "All")}
+                        style={{ cursor: "pointer", borderRadius: 999, padding: "4px 10px", fontSize: 10, border: `1px solid ${todoStatusFilter === status ? T.gold : T.border}`, background: todoStatusFilter === status ? T.goldLight : "#FFF", color: todoStatusFilter === status ? T.gold : T.muted, fontWeight: todoStatusFilter === status ? 700 : 500 }}
+                      >
+                        {status}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ maxHeight: isMobile ? "none" : "calc(100vh - 290px)", overflowY: "auto" }}>
+                  {actionListTodos.length === 0 ? (
+                    <div style={{ padding: "18px 14px", color: T.muted, fontSize: 12 }}>No todo items match this filter.</div>
+                  ) : (
+                    actionListTodos.map(todo => {
+                      const isDone = todo.status === "Done";
+                      const subtasks = todo.subtasks || [];
+                      const subDone = subtasks.filter(s => s.done).length;
+                      return (
+                        <div key={todo.id} style={{ borderBottom: `1px solid ${T.border}`, padding: "9px 12px", background: isDone ? T.bg : "#FFF" }}>
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                            <input
+                              type="checkbox"
+                              checked={isDone}
+                              onChange={() => toggleTodoDone(todo)}
+                              style={{ width: 14, height: 14, cursor: "pointer", accentColor: T.green, marginTop: 2, flexShrink: 0 }}
+                            />
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: 13, color: isDone ? T.muted : T.text, textDecoration: isDone ? "line-through" : "none", overflowWrap: "anywhere" }}>{todo.title}</div>
+                              {subtasks.length > 0 && (
+                                <div style={{ marginTop: 5, display: "flex", flexDirection: "column", gap: 4 }}>
+                                  {subtasks.map(sub => (
+                                    <label key={sub.id} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                                      <input
+                                        type="checkbox"
+                                        checked={sub.done}
+                                        onChange={() => {
+                                          const updated = subtasks.map(s => s.id === sub.id ? { ...s, done: !s.done } : s);
+                                          const allDone = updated.every(s => s.done);
+                                          const newStatus: TaskTodoItem["status"] = allDone ? "Done" : todo.status === "Done" ? "In Progress" : todo.status;
+                                          setTaskTodos(prev => prev.map(t => t.id === todo.id ? { ...t, subtasks: updated, status: newStatus } : t));
+                                        }}
+                                        style={{ width: 12, height: 12, accentColor: T.green, flexShrink: 0 }}
+                                      />
+                                      <span style={{ fontSize: 11, color: sub.done ? T.muted : T.subtle, textDecoration: sub.done ? "line-through" : "none" }}>{sub.text}</span>
+                                    </label>
+                                  ))}
+                                  <div style={{ fontSize: 10, color: T.muted, marginTop: 1 }}>{subDone}/{subtasks.length} done</div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
-              {groupedTaskTodos.length === 0 ? (
-                <div style={{ border: `1px dashed ${T.border}`, borderRadius: 12, padding: "16px 18px", color: T.muted, fontSize: 13 }}>No todo items match these filters.</div>
-              ) : (
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: 12 }}>
-                  {groupedTaskTodos.map(group => {
-                    const cc = CAT_COLORS[group.category] || { bg: T.bg, dot: T.text, border: T.border };
+
+              <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? 12 : 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+                  <div>
+                    <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.1, fontWeight: 600 }}>CATEGORIZED OVERVIEW</div>
+                    <div style={{ fontSize: 12, color: T.subtle, marginTop: 2 }}>Open vs Completed by planning category</div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <Btn onClick={() => setTodoStatusFilter("All")} variant="ghost" small>All Statuses</Btn>
+                    <Btn onClick={() => setTodoStatusFilter("In Progress")} variant="outline" small>Focus In Progress</Btn>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {planningCategoryRows.map(row => {
+                    const cc = CAT_COLORS[row.category] || { bg: T.bg, dot: T.text, border: T.border };
+                    const isExpanded = !!expandedPlanningCats[row.category];
+                    const categoryTodos = taskTodos
+                      .filter(todo => todo.category === row.category)
+                      .filter(todo => todoStatusFilter === "All" || todo.status === todoStatusFilter)
+                      .sort((a, b) => {
+                        if (TODO_STATUS_ORDER[a.status] !== TODO_STATUS_ORDER[b.status]) {
+                          return TODO_STATUS_ORDER[a.status] - TODO_STATUS_ORDER[b.status];
+                        }
+                        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+                      });
+
                     return (
-                      <div key={`todo-group-${group.category}`} style={{ border: `1px solid ${cc.border}`, background: "#FFF", borderRadius: 14, overflow: "hidden" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "12px 14px", background: cc.bg, borderBottom: `1px solid ${cc.border}` }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{group.category}</div>
-                          <span style={{ fontSize: 10, color: cc.dot, border: `1px solid ${cc.border}`, borderRadius: 999, padding: "2px 8px", background: "#FFF", fontWeight: 700 }}>{group.items.length} items</span>
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column" }}>
-                          {group.items.map(todo => {
-                            const linkedTask = tasks.find(task => task.id === todo.linkedTaskId);
-                            const sc = TODO_STATUS_COLORS[todo.status];
-                            return (
-                              <div key={todo.id} style={{ padding: "12px 14px", borderBottom: `1px solid ${T.border}` }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 6, overflowWrap: "anywhere" }}>{todo.title}</div>
-                                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
-                                      <span style={{ fontSize: 10, color: sc.text, background: sc.bg, border: `1px solid ${sc.border}`, borderRadius: 999, padding: "2px 8px", fontWeight: 700 }}>{todo.status}</span>
-                                      <span style={{ fontSize: 10, color: T.muted, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 999, padding: "2px 8px" }}>{todo.assignedTo || "Unassigned"}</span>
-                                    </div>
-                                    <div style={{ fontSize: 11, color: T.muted, overflowWrap: "anywhere" }}>
-                                      {linkedTask ? `Linked to: ${linkedTask.task}` : "Not linked to a master task yet"}
-                                    </div>
-                                  </div>
-                                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", marginLeft: "auto" }}>
-                                    <button onClick={() => openEditTodo(todo)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 12 }}>Edit</button>
-                                    <button onClick={() => setDelConfirm({ label: todo.title, onConfirm: () => deleteTaskTodo(todo) })} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 12 }}>Delete</button>
-                                  </div>
+                      <div key={`planning-row-${row.category}`} style={{ border: `1px solid ${cc.border}`, borderRadius: 14, overflow: "hidden", background: "#FFF" }}>
+                        <button
+                          onClick={() => setExpandedPlanningCats(prev => ({ ...prev, [row.category]: !prev[row.category] }))}
+                          style={{ width: "100%", display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: 10, alignItems: "center", textAlign: "left", border: "none", background: cc.bg, padding: "10px 12px", cursor: "pointer", borderBottom: `1px solid ${cc.border}` }}
+                        >
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{row.category}</div>
+                            <div style={{ marginTop: 4, fontSize: 10, color: T.muted }}>{row.taskCount} master tasks · {row.todoCount} todo items</div>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span style={{ fontSize: 11, color: cc.dot, fontWeight: 700 }}>{row.progress}%</span>
+                            <span style={{ fontSize: 14, color: T.muted }}>{isExpanded ? "▾" : "▸"}</span>
+                          </div>
+                        </button>
+
+                        <div style={{ padding: "12px" }}>
+                          <div style={{ height: 7, borderRadius: 999, background: T.bg, border: `1px solid ${T.border}`, overflow: "hidden", marginBottom: 10 }}>
+                            <div style={{ height: "100%", width: `${row.progress}%`, background: row.progress >= 70 ? T.green : row.progress >= 40 ? T.gold : T.blue, transition: "width .2s ease" }} />
+                          </div>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                            <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px", background: T.bg }}>
+                              <div style={{ fontSize: 10, color: T.subtle }}>Open</div>
+                              <div style={{ fontSize: 18, fontWeight: 700, color: row.openCount > 0 ? T.gold : T.text }}>{row.openCount}</div>
+                            </div>
+                            <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px", background: T.bg }}>
+                              <div style={{ fontSize: 10, color: T.subtle }}>Completed</div>
+                              <div style={{ fontSize: 18, fontWeight: 700, color: T.green }}>{row.completedCount}</div>
+                            </div>
+                          </div>
+
+                          {isExpanded && (
+                            <div style={{ marginTop: 10, borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
+                              {categoryTodos.length === 0 ? (
+                                <div style={{ fontSize: 11, color: T.muted }}>No todo items in this category for current status filter.</div>
+                              ) : (
+                                <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                                  {categoryTodos.map(todo => {
+                                    const sc = TODO_STATUS_COLORS[todo.status];
+                                    return (
+                                      <div key={`cat-todo-${row.category}-${todo.id}`} style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px", background: "#FFF" }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
+                                          <div style={{ fontSize: 12, color: T.text, overflowWrap: "anywhere" }}>{todo.title}</div>
+                                          <span style={{ fontSize: 10, color: sc.text, background: sc.bg, border: `1px solid ${sc.border}`, borderRadius: 999, padding: "2px 8px", whiteSpace: "nowrap" }}>{todo.status}</span>
+                                        </div>
+                                        {(todo.note || todo.linkUrl) && (
+                                          <div style={{ marginTop: 6, fontSize: 11, color: T.muted, display: "flex", flexDirection: "column", gap: 3 }}>
+                                            {todo.note && <span>{todo.note}</span>}
+                                            {todo.linkUrl && <a href={todo.linkUrl} target="_blank" rel="noreferrer" style={{ color: T.blue, textDecoration: "underline", overflowWrap: "anywhere" }}>{todo.linkUrl}</a>}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
-                              </div>
-                            );
-                          })}
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
                   })}
                 </div>
-              )}
+              </div>
             </div>
 
-            <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 14, padding: isMobile ? 14 : 18, marginBottom: 18 }}>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 10, color: T.subtle, marginBottom: 8 }}>MASTER TASK CATEGORY</div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {["All", ...CATEGORIES].map(category => (
-                    <button
-                      key={category}
-                      onClick={() => setCatF(category)}
-                      style={{ cursor: "pointer", borderRadius: 999, padding: isMobile ? "7px 12px" : "5px 12px", fontSize: isMobile ? 12 : 11, border: `1px solid ${catFilter === category ? T.gold : T.border}`, background: catFilter === category ? T.goldLight : "#FFF", color: catFilter === category ? T.gold : T.muted, fontWeight: catFilter === category ? 700 : 500 }}
-                    >
-                      {category}
-                    </button>
-                  ))}
+            <div style={{ marginTop: 16, background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? 12 : 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.1, fontWeight: 600 }}>MASTER TASK CHECKLISTS</div>
+                  <div style={{ fontSize: 12, color: T.subtle, marginTop: 2 }}>Add subtasks in task editor, then check each item off here when completed.</div>
                 </div>
+                <Btn onClick={() => setTaskModal("new")} variant="outline" small>+ New Task</Btn>
               </div>
-              <div>
-                <div style={{ fontSize: 10, color: T.subtle, marginBottom: 8 }}>MASTER TASK STATUS</div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {["All", "Not Started", "In Progress", "Complete", "Overdue"].map(status => (
-                    <button
-                      key={status}
-                      onClick={() => setStatF(status)}
-                      style={{ cursor: "pointer", borderRadius: 999, padding: isMobile ? "7px 12px" : "5px 12px", fontSize: isMobile ? 12 : 11, border: `1px solid ${statFilter === status ? T.gold : T.border}`, background: statFilter === status ? T.goldLight : "#FFF", color: statFilter === status ? T.gold : T.muted, fontWeight: statFilter === status ? 700 : 500 }}
-                    >
-                      {status}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            {/* Table / Mobile Cards */}
-            {isMobile ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {filteredTasks.length === 0 ? (
-                  <div style={{ padding: 20, textAlign: "center", color: T.muted, fontSize: 13, background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12 }}>
-                    No tasks match these filters.
+
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10, marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 10, color: T.subtle, marginBottom: 6 }}>CATEGORY</div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {["All", ...CATEGORIES].map(category => (
+                      <button
+                        key={`task-cat-${category}`}
+                        onClick={() => setCatF(category)}
+                        style={{ cursor: "pointer", borderRadius: 999, padding: "4px 10px", fontSize: 10, border: `1px solid ${catFilter === category ? T.gold : T.border}`, background: catFilter === category ? T.goldLight : "#FFF", color: catFilter === category ? T.gold : T.muted, fontWeight: catFilter === category ? 700 : 500 }}
+                      >
+                        {category}
+                      </button>
+                    ))}
                   </div>
-                ) : (
-                  filteredTasks.map(t => {
-                    const sc = STATUS_COLORS[t.status];
-                    const pc = PRIORITY_COLORS[t.priority];
-                    const cc = CAT_COLORS[t.category] || {};
-                    return (
-                      <div key={t.id} style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 12 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 6, overflowWrap: "anywhere" }}>{t.task}</div>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                              <span style={{ fontSize: 10, color: cc.dot, background: cc.bg, border: `1px solid ${cc.border}`, borderRadius: 10, padding: "2px 8px" }}>{t.category}</span>
-                              <span style={{ fontSize: 10, color: pc.text, background: pc.bg, border: `1px solid ${pc.border}`, borderRadius: 10, padding: "2px 8px" }}>{t.priority}</span>
-                              <span style={{ fontSize: 10, color: sc.text, background: sc.bg, border: `1px solid ${sc.border}`, borderRadius: 10, padding: "2px 8px" }}>{t.status}</span>
-                            </div>
-                            <div style={{ marginTop: 8, fontSize: 11, color: T.muted }}>
-                              Due {t.due || "-"} ⬢ {t.assignedTo || "Unassigned"}
-                            </div>
-                          </div>
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginLeft: "auto" }}>
-                            <button onClick={() => setTaskModal(t)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 12 }}>Edit</button>
-                            <button onClick={() => setDelConfirm({ label: t.task, onConfirm: () => deleteRecord('tasks', t.id, t.task, setTasks) })} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 12 }}>Delete</button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            ) : (
-              <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, overflow:"hidden" }}>
-                <div style={{ display:"grid", gridTemplateColumns:"28px minmax(260px, 1.8fr) 120px 140px 100px 90px minmax(120px, auto)", gap: 0, padding:"10px 18px", background:T.bg, borderBottom:`1px solid ${T.border}` }}>
-                  {["","TASK / PROGRESS","DUE","STATUS","OWNER","PRIORITY",""] .map((h,i)=>(
-                    <div key={i} style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:T.subtle, letterSpacing:.8 }}>{h}</div>
-                  ))}
                 </div>
-                {filteredTasks.length===0
-                  ? <div style={{ padding:36, textAlign:"center", color:T.muted, fontSize:13 }}>No tasks match these filters. <button onClick={()=>setTaskModal("new")} style={{ marginLeft:8, background:"none", border:`1px solid ${T.border}`, borderRadius:8, padding:"5px 12px", cursor:"pointer", color:T.gold, fontSize:12 }}>+ Add Task</button></div>
-                  : filteredTasks.map(t=>(
-                    <TaskRow key={t.id} task={t} onEdit={setTaskModal}
-                      onDelete={t => setDelConfirm({ label: t.task, onConfirm: () => deleteRecord('tasks', t.id, t.task, setTasks) })}
-                      onStatusChange={(id, s) => updateRecord('tasks', id, { status: s }, 'Task Status', setTasks)}
-                      onToggleCheck={toggleTaskCheck} />
-                  ))}
+                <div>
+                  <div style={{ fontSize: 10, color: T.subtle, marginBottom: 6 }}>STATUS</div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {["All", "Not Started", "In Progress", "Complete", "Overdue"].map(status => (
+                      <button
+                        key={`task-status-${status}`}
+                        onClick={() => setStatF(status)}
+                        style={{ cursor: "pointer", borderRadius: 999, padding: "4px 10px", fontSize: 10, border: `1px solid ${statFilter === status ? T.gold : T.border}`, background: statFilter === status ? T.goldLight : "#FFF", color: statFilter === status ? T.gold : T.muted, fontWeight: statFilter === status ? 700 : 500 }}
+                      >
+                        {status}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-            )}
+
+              {isMobile ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {filteredTasks.length === 0 ? (
+                    <div style={{ border: `1px dashed ${T.border}`, borderRadius: 10, padding: "14px 12px", color: T.muted, fontSize: 12 }}>
+                      No tasks match current filters.
+                    </div>
+                  ) : (
+                    filteredTasks.map(task => {
+                      const total = task.checklist.length;
+                      const done = task.checklist.filter(item => item.done).length;
+                      const pct = total ? Math.round((done / total) * 100) : 0;
+                      return (
+                        <div key={`task-mobile-${task.id}`} style={{ border: `1px solid ${T.border}`, borderRadius: 12, padding: "10px 12px", background: "#FFF" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start", marginBottom: 8 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: T.text, overflowWrap: "anywhere" }}>{task.task}</div>
+                            <button onClick={() => setTaskModal(task)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
+                          </div>
+                          <div style={{ height: 6, borderRadius: 999, background: T.bg, border: `1px solid ${T.border}`, overflow: "hidden", marginBottom: 8 }}>
+                            <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? T.green : T.gold }} />
+                          </div>
+                          <div style={{ fontSize: 11, color: T.muted, marginBottom: 8 }}>{done}/{total} subtasks complete</div>
+                          {task.checklist.length === 0 ? (
+                            <div style={{ fontSize: 11, color: T.muted }}>No subtasks yet. Tap Edit to add checklist items.</div>
+                          ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                              {task.checklist.map(item => (
+                                <label key={`task-mobile-check-${task.id}-${item.id}`} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                                  <input type="checkbox" checked={item.done} onChange={() => toggleTaskCheck(task.id, item.id)} style={{ width: 14, height: 14, accentColor: T.green }} />
+                                  <span style={{ fontSize: 12, color: item.done ? T.muted : T.text, textDecoration: item.done ? "line-through" : "none" }}>{item.text}</span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              ) : (
+                <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "28px minmax(260px, 1.8fr) 120px 140px 100px 90px minmax(120px, auto)", gap: 0, padding: "10px 18px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
+                    {["", "TASK / PROGRESS", "DUE", "STATUS", "OWNER", "PRIORITY", ""].map((h, i) => (
+                      <div key={`task-head-${i}`} style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, color: T.subtle, letterSpacing: .8 }}>{h}</div>
+                    ))}
+                  </div>
+                  {filteredTasks.length === 0 ? (
+                    <div style={{ padding: 26, textAlign: "center", color: T.muted, fontSize: 12 }}>
+                      No tasks match current filters.
+                    </div>
+                  ) : (
+                    filteredTasks.map(task => (
+                      <TaskRow
+                        key={`planning-task-row-${task.id}`}
+                        task={task}
+                        onEdit={setTaskModal}
+                        onDelete={t => setDelConfirm({ label: t.task, onConfirm: () => deleteRecord('tasks', t.id, t.task, setTasks) })}
+                        onStatusChange={(id, s) => updateRecord('tasks', id, { status: s }, 'Task Status', setTasks)}
+                        onToggleCheck={toggleTaskCheck}
+                      />
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

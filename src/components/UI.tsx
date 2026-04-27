@@ -52,6 +52,7 @@ export const Field = ({ label, children }: { label: string, children: React.Reac
 
 export const inpStyle: React.CSSProperties = { width: "100%", background: "#FDFDFD", border: `1px solid ${T.border}`, borderRadius: 12, padding: "12px 14px", color: T.text, fontSize: 15, lineHeight: 1.4, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontWeight: 500 };
 export const selStyle: React.CSSProperties = { ...inpStyle, cursor: "pointer" };
+export const dropdownStyle: React.CSSProperties = { width: "100%", background: "#FDFDFD", border: `1px solid ${T.border}`, borderRadius: 12, padding: "8px 10px", color: T.text, fontSize: 12, lineHeight: 1.4, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontWeight: 500, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
 
 export function SectionHeader({ title, subtitle, action }: { title: string, subtitle?: string, action?: React.ReactNode }) {
   const isMobile = window.innerWidth < 1024;

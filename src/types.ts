@@ -101,20 +101,32 @@ export interface Task {
   isCritical?: boolean;
 }
 
+export interface TodoSubtask {
+  id: number;
+  text: string;
+  done: boolean;
+}
+
 export interface TaskTodoItem {
   id: number;
   title: string;
   category: string;
-  status: "Inbox" | "Linked" | "Done";
+  status: "Not Started" | "In Progress" | "Done" | "On Hold";
   assignedTo?: string;
   linkedTaskId?: number | null;
+  linkUrl?: string;
+  note?: string;
+  subtasks?: TodoSubtask[];
   created_at?: string;
 }
 
+export const TODO_STATUSES: TaskTodoItem["status"][] = ["Not Started", "In Progress", "Done", "On Hold"];
+
 export const TODO_STATUS_COLORS: Record<TaskTodoItem["status"], { bg: string; text: string; border: string }> = {
-  Inbox: { bg: T.goldLight, text: T.gold, border: T.goldBorder },
-  Linked: { bg: T.blueLight, text: T.blue, border: T.blueBorder },
+  "Not Started": { bg: T.goldLight, text: T.gold, border: T.goldBorder },
+  "In Progress": { bg: T.blueLight, text: T.blue, border: T.blueBorder },
   Done: { bg: T.greenLight, text: T.green, border: T.greenBorder },
+  "On Hold": { bg: T.redLight, text: T.red, border: T.redBorder },
 };
 
 export interface Ingredient {
