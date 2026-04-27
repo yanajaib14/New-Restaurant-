@@ -111,6 +111,12 @@ export interface TaskTodoItem {
   created_at?: string;
 }
 
+export const TODO_STATUS_COLORS: Record<TaskTodoItem["status"], { bg: string; text: string; border: string }> = {
+  Inbox: { bg: T.goldLight, text: T.gold, border: T.goldBorder },
+  Linked: { bg: T.blueLight, text: T.blue, border: T.blueBorder },
+  Done: { bg: T.greenLight, text: T.green, border: T.greenBorder },
+};
+
 export interface Ingredient {
   id: number;
   name: string;

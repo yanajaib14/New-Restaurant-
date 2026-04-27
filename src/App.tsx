@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { 
   T, CAT_COLORS, STATUS_COLORS, PRIORITY_COLORS, NOTE_TAG_COLORS, 
-  CATEGORIES, INV_CATEGORIES, DEPARTMENTS, MENU_SECTIONS, Task, 
+  CATEGORIES, INV_CATEGORIES, DEPARTMENTS, MENU_SECTIONS, Task, TaskTodoItem, TODO_STATUS_COLORS,
   MenuItem, StartupCost, OperatingCost, Milestone, Note, Vendor, 
   InventoryItem, Permit, MarketingPost, TrainingModule, DailyChecklist, 
   UtilityAccount, DigitalAsset, User, ActivityLog, UserRole, Invoice, Position, Candidate
@@ -44,6 +44,20 @@ type ShoppingListItem = {
   storeName?: string;
   storeUrl?: string;
   isManual?: boolean;
+};
+
+const TASK_TODOS_STORAGE_KEY = "restaurant_task_todos_v1";
+
+const readStoredTaskTodos = (): TaskTodoItem[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(TASK_TODOS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 };
 
 // ������ INITIAL DATA ��������������������������������������������������������������������������������������������������������������������������
@@ -94,6 +108,12 @@ const INIT_TASKS: Task[] = [
   { id:6, category:"Staffing", task:"Hire FOH & Kitchen Staff", due:"", status:"Not Started", priority:"High", checklist:[{id:501,text:"Post job ads on Indeed",done:false},{id:502,text:"Screen applications",done:false},{id:503,text:"Schedule interviews",done:false}] },
   { id:7, category:"Financials", task:"Finalize Budget", due:"", status:"In Progress", priority:"High", checklist:[{id:901,text:"Record all startup costs",done:true},{id:902,text:"Forecast monthly expenses",done:false},{id:903,text:"Set up accounting software",done:false}] },
   { id:8, category:"Operations", task:"Set Up POS", due:"", status:"Not Started", priority:"High", checklist:[{id:1001,text:"Choose and purchase POS system",done:false},{id:1002,text:"Configure menu in system",done:false},{id:1003,text:"Train staff on POS",done:false}] },
+];
+
+const INIT_TASK_TODOS: TaskTodoItem[] = [
+  { id: 1, title: "Call city about signage permit requirements", category: "Permits", status: "Inbox", assignedTo: "Owner", created_at: new Date().toISOString() },
+  { id: 2, title: "Collect internet quotes for FOH and office", category: "IT & Systems", status: "Inbox", assignedTo: "Manager", created_at: new Date().toISOString() },
+  { id: 3, title: "Draft opening week training roster", category: "Staffing", status: "Linked", assignedTo: "Partner", linkedTaskId: 6, created_at: new Date().toISOString() },
 ];
 
 const INIT_MENU: MenuItem[] = [
@@ -242,6 +262,10 @@ export default function App() {
 
   // Data states
   const [tasks, setTasks]       = useState<Task[]>(INIT_TASKS);
+  const [taskTodos, setTaskTodos] = useState<TaskTodoItem[]>(() => {
+    const stored = readStoredTaskTodos();
+    return stored.length ? stored : INIT_TASK_TODOS;
+  });
   const [menuItems, setMenuItems] = useState<MenuItem[]>(INIT_MENU);
   const [startup, setStartup]   = useState<StartupCost[]>(INIT_STARTUP);
   const [operating, setOp]      = useState<OperatingCost[]>(INIT_OPERATING);
@@ -258,6 +282,7 @@ export default function App() {
 
   // Modal states
   const [taskModal, setTaskModal]   = useState<any>(null); // null | "new" | task obj
+  const [todoModal, setTodoModal]   = useState<TaskTodoItem | "new" | null>(null);
   const [menuModal, setMenuModal]   = useState<any>(null);
   const [finModal, setFinModal]     = useState<any>(null); // {type, item|null}
   const [tlModal, setTlModal]       = useState<any>(null);
@@ -331,6 +356,16 @@ export default function App() {
         })
       );
 
+      const { data: todoRows, error: todoError } = await dbSelect("task_todos");
+      if (!todoError) {
+        setTaskTodos((todoRows as TaskTodoItem[]) || []);
+        setTaskTodoStore("db");
+      } else {
+        setTaskTodoStore("local");
+        const stored = readStoredTaskTodos();
+        setTaskTodos(stored.length ? stored : INIT_TASK_TODOS);
+      }
+
       const { data: activityRows, error: activityErr } = await dbSelect("activity_logs");
       if (!activityErr) {
         const rows = (activityRows as any[])
@@ -347,6 +382,11 @@ export default function App() {
   useEffect(() => {
     loadAllData();
   }, [loadAllData]);
+
+  useEffect(() => {
+    if (taskTodoStore !== "local" || typeof window === "undefined") return;
+    window.localStorage.setItem(TASK_TODOS_STORAGE_KEY, JSON.stringify(taskTodos));
+  }, [taskTodos, taskTodoStore]);
 
   useEffect(() => {
     const loadTitle = async () => {
@@ -560,10 +600,20 @@ export default function App() {
   }, [dbShoppingItems]);
 
   const [delConfirm, setDelConfirm] = useState<any>(null); // {label, onConfirm}
+  const [taskTodoStore, setTaskTodoStore] = useState<"local" | "db">("local");
+  const [todoDraft, setTodoDraft] = useState({
+    title: "",
+    category: CATEGORIES[0],
+    status: "Inbox" as TaskTodoItem["status"],
+    assignedTo: "",
+    linkedTaskId: "",
+  });
 
   // Filters
   const [catFilter, setCatF]    = useState("All");
   const [statFilter, setStatF]  = useState("All");
+  const [todoCatFilter, setTodoCatFilter] = useState("All");
+  const [todoStatusFilter, setTodoStatusFilter] = useState("Open");
   const [menuSecF, setMenuSecF] = useState("All");
   const [shopCatF, setShopCatF] = useState("All");
   const [shopDeptF, setShopDeptF] = useState("All");
@@ -598,7 +648,28 @@ export default function App() {
   const completed = tasks.filter(t=>t.status==="Complete").length;
   const overdue   = tasks.filter(t=>t.status==="Overdue").length;
   const criticalOverdue = tasks.filter(t => t.isCritical && t.status === "Overdue").length;
-  const prog      = Math.round((completed/tasks.length)*100);
+  const prog      = tasks.length ? Math.round((completed/tasks.length)*100) : 0;
+  const openTaskTodos = taskTodos.filter(todo => todo.status !== "Done");
+  const linkedTaskTodos = taskTodos.filter(todo => todo.status === "Linked");
+  const doneTaskTodos = taskTodos.filter(todo => todo.status === "Done");
+  const filteredTasks = tasks.filter(t => (catFilter === "All" || t.category === catFilter) && (statFilter === "All" || t.status === statFilter));
+  const filteredTaskTodos = taskTodos.filter(todo => {
+    const categoryMatch = todoCatFilter === "All" || todo.category === todoCatFilter;
+    const statusMatch = todoStatusFilter === "All"
+      || (todoStatusFilter === "Open" ? todo.status !== "Done" : todo.status === todoStatusFilter);
+    return categoryMatch && statusMatch;
+  });
+  const groupedTaskTodos = CATEGORIES
+    .map(category => ({ category, items: filteredTaskTodos.filter(todo => todo.category === category) }))
+    .filter(group => group.items.length > 0);
+  const taskCategoryOverview = CATEGORIES
+    .map(category => {
+      const taskCount = tasks.filter(task => task.category === category).length;
+      const completedCount = tasks.filter(task => task.category === category && task.status === "Complete").length;
+      const todoCount = taskTodos.filter(todo => todo.category === category && todo.status !== "Done").length;
+      return { category, taskCount, completedCount, todoCount };
+    })
+    .filter(group => group.taskCount > 0 || group.todoCount > 0);
   
   const invoiceStartupTotal = invoices.filter(i => i.category === "Lease & TI").reduce((s, i) => s + Number(i.amount), 0);
   const totBudget = startup.reduce((s,c)=>s+(+c.budgeted),0);
@@ -650,6 +721,10 @@ export default function App() {
     ...tasks
       .filter(t => t.status === "Overdue" || t.priority === "Critical")
       .map(t => ({ id: `task-${t.id}`, title: t.task, meta: `${t.category} · ${t.status}` })),
+    ...taskTodos
+      .filter(todo => todo.status === "Inbox")
+      .slice(0, 2)
+      .map(todo => ({ id: `todo-${todo.id}`, title: todo.title, meta: `${todo.category} · Todo inbox` })),
     ...permitAlerts
       .filter(x => (x.daysLeft as number) <= 14)
       .map(x => ({ id: `permit-${x.permit.id}`, title: `${x.permit.name} permit follow-up`, meta: `${x.daysLeft as number} days left` })),
@@ -659,6 +734,33 @@ export default function App() {
   const refetch = async (table: string, setter: (d: any[]) => void) => {
     const { data } = await dbSelect(table);
     if (data) setter(data as any);
+  };
+
+  const normalizeTodoStatus = (status: TaskTodoItem["status"], linkedTaskId?: number | null): TaskTodoItem["status"] => {
+    if (status === "Done") return "Done";
+    return linkedTaskId ? "Linked" : "Inbox";
+  };
+
+  const openNewTodo = () => {
+    setTodoDraft({
+      title: "",
+      category: catFilter === "All" ? CATEGORIES[0] : catFilter,
+      status: "Inbox",
+      assignedTo: "",
+      linkedTaskId: "",
+    });
+    setTodoModal("new");
+  };
+
+  const openEditTodo = (todo: TaskTodoItem) => {
+    setTodoDraft({
+      title: todo.title,
+      category: todo.category,
+      status: todo.status,
+      assignedTo: todo.assignedTo || "",
+      linkedTaskId: todo.linkedTaskId ? String(todo.linkedTaskId) : "",
+    });
+    setTodoModal(todo);
   };
 
   // ���� Centralized Database Handlers ����
@@ -682,6 +784,74 @@ export default function App() {
     } catch (e: any) {
       console.error(`Update Error (${table}):`, e);
       alert(`Failed to update ${label}: ${e.message || JSON.stringify(e)}`);
+    }
+  };
+
+  const saveTaskTodo = async () => {
+    const title = todoDraft.title.trim();
+    if (!title) return;
+
+    const linkedTaskId = todoDraft.linkedTaskId ? Number(todoDraft.linkedTaskId) : null;
+    const payload = {
+      title,
+      category: todoDraft.category,
+      status: normalizeTodoStatus(todoDraft.status, linkedTaskId),
+      assignedTo: todoDraft.assignedTo.trim() || null,
+      linkedTaskId,
+    };
+
+    try {
+      if (taskTodoStore === "db") {
+        if (todoModal && todoModal !== "new") {
+          const { error } = await dbUpdate("task_todos", todoModal.id, payload);
+          if (error) throw error;
+          logActivity(`Updated todo: ${title}`);
+        } else {
+          const { error } = await dbInsert("task_todos", payload);
+          if (error) throw error;
+          logActivity(`Added todo: ${title}`);
+        }
+        await refetch("task_todos", setTaskTodos as any);
+      } else {
+        const nextTodo: TaskTodoItem = {
+          id: todoModal && todoModal !== "new" ? todoModal.id : Date.now(),
+          title: payload.title,
+          category: payload.category,
+          status: payload.status,
+          assignedTo: payload.assignedTo || undefined,
+          linkedTaskId: payload.linkedTaskId,
+          created_at: todoModal && todoModal !== "new" ? todoModal.created_at : new Date().toISOString(),
+        };
+        setTaskTodos(prev => {
+          if (todoModal && todoModal !== "new") {
+            return prev.map(todo => todo.id === todoModal.id ? nextTodo : todo);
+          }
+          return [nextTodo, ...prev];
+        });
+        logActivity(`${todoModal && todoModal !== "new" ? "Updated" : "Added"} todo: ${title}`);
+      }
+
+      setTodoModal(null);
+    } catch (e: any) {
+      console.error("Save Todo Error:", e);
+      alert(`Failed to save todo: ${e.message || JSON.stringify(e)}`);
+    }
+  };
+
+  const deleteTaskTodo = async (todo: TaskTodoItem) => {
+    try {
+      if (taskTodoStore === "db") {
+        const { error } = await dbDelete("task_todos", todo.id);
+        if (error) throw error;
+        await refetch("task_todos", setTaskTodos as any);
+      } else {
+        setTaskTodos(prev => prev.filter(item => item.id !== todo.id));
+      }
+      logActivity(`Deleted todo: ${todo.title}`);
+      setTodoModal(null);
+    } catch (e: any) {
+      console.error("Delete Todo Error:", e);
+      alert(`Failed to delete todo: ${e.message || JSON.stringify(e)}`);
     }
   };
 
@@ -1667,6 +1837,50 @@ export default function App() {
 
       {/* ���� MODALS ���� */}
       {taskModal  && <TaskModal task={taskModal==="new"?null:taskModal} initialDate={calDate || undefined} onSave={saveTask} onClose={()=>{setTaskModal(null); setCalDate(null);}}/>}
+      {todoModal && (
+        <Modal title={todoModal === "new" ? "Add Todo Item" : "Edit Todo Item"} onClose={() => setTodoModal(null)} width={460}>
+          <Field label="TODO TITLE"><input value={todoDraft.title} onChange={e => setTodoDraft(d => ({ ...d, title: e.target.value }))} style={inpStyle} placeholder="e.g. Confirm POS training schedule" /></Field>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+            <Field label="CATEGORY">
+              <select value={todoDraft.category} onChange={e => setTodoDraft(d => ({ ...d, category: e.target.value }))} style={{ ...inpStyle, height: 42 }}>
+                {CATEGORIES.map(category => <option key={category} value={category}>{category}</option>)}
+              </select>
+            </Field>
+            <Field label="STATUS">
+              <select value={todoDraft.status} onChange={e => setTodoDraft(d => ({ ...d, status: e.target.value as TaskTodoItem["status"] }))} style={{ ...inpStyle, height: 42 }}>
+                {["Inbox", "Linked", "Done"].map(status => <option key={status} value={status}>{status}</option>)}
+              </select>
+            </Field>
+          </div>
+          <Field label="ASSIGNED TO"><input value={todoDraft.assignedTo} onChange={e => setTodoDraft(d => ({ ...d, assignedTo: e.target.value }))} style={inpStyle} placeholder="Owner, Manager, Partner" /></Field>
+          <Field label="LINK TO MASTER TASK (OPTIONAL)">
+            <select
+              value={todoDraft.linkedTaskId}
+              onChange={e => {
+                const nextLinkedTaskId = e.target.value;
+                setTodoDraft(d => ({
+                  ...d,
+                  linkedTaskId: nextLinkedTaskId,
+                  status: normalizeTodoStatus(d.status, nextLinkedTaskId ? Number(nextLinkedTaskId) : null),
+                }));
+              }}
+              style={{ ...inpStyle, height: 42 }}
+            >
+              <option value="">Not linked yet</option>
+              {tasks.map(task => <option key={task.id} value={task.id}>{task.task} ({task.category})</option>)}
+            </select>
+          </Field>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20, flexWrap: "wrap" }}>
+            {todoModal !== "new" && (
+              <div style={{ marginRight: "auto" }}>
+                <Btn onClick={() => deleteTaskTodo(todoModal)} variant="outline" style={{ color: T.red, borderColor: T.redBorder }}>Delete Todo</Btn>
+              </div>
+            )}
+            <Btn onClick={() => setTodoModal(null)} variant="ghost">Cancel</Btn>
+            <Btn onClick={saveTaskTodo} variant="primary">{todoModal === "new" ? "Add Todo" : "Save Todo"}</Btn>
+          </div>
+        </Modal>
+      )}
       {menuModal  && <MenuModal item={menuModal==="new"?null:menuModal} onSave={saveMenu} onClose={()=>setMenuModal(null)}/>}
       {finModal   && <FinModal item={finModal.item||null} type={finModal.type} onSave={saveFin} onClose={()=>setFinModal(null)} userRole={currentUser?.role} />}
       {tlModal    && <TimelineModal item={tlModal==="new"?null:tlModal} onSave={saveTL} onClose={()=>setTlModal(null)}/>}
@@ -1812,6 +2026,44 @@ export default function App() {
                   </div>
                 </div>
 
+                <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 28, marginTop: isMobile ? 16 : 24 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 12, flexWrap: "wrap" }}>
+                    <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>TASKS AND TODOS BY CATEGORY</div>
+                    <Btn onClick={() => setTab("tasks")} variant="ghost" small>Open Task Boards</Btn>
+                  </div>
+                  {taskCategoryOverview.length === 0 ? (
+                    <div style={{ fontSize: 12, color: T.muted, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px", background: T.bg }}>No category activity yet.</div>
+                  ) : (
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: 12 }}>
+                      {taskCategoryOverview.map(group => {
+                        const cc = CAT_COLORS[group.category] || { bg: T.bg, dot: T.text, border: T.border };
+                        return (
+                          <div key={`overview-${group.category}`} style={{ border: `1px solid ${cc.border}`, background: cc.bg, borderRadius: 14, padding: "14px 16px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{group.category}</div>
+                              <span style={{ fontSize: 10, color: cc.dot, background: "#FFF", border: `1px solid ${cc.border}`, borderRadius: 999, padding: "2px 8px", fontWeight: 700 }}>{group.todoCount} open todo</span>
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+                              <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px" }}>
+                                <div style={{ fontSize: 10, color: T.subtle }}>Tasks</div>
+                                <div style={{ fontSize: 16, fontWeight: 700, color: T.text }}>{group.taskCount}</div>
+                              </div>
+                              <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px" }}>
+                                <div style={{ fontSize: 10, color: T.subtle }}>Complete</div>
+                                <div style={{ fontSize: 16, fontWeight: 700, color: T.green }}>{group.completedCount}</div>
+                              </div>
+                              <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px" }}>
+                                <div style={{ fontSize: 10, color: T.subtle }}>Todo Inbox</div>
+                                <div style={{ fontSize: 16, fontWeight: 700, color: group.todoCount > 0 ? T.gold : T.text }}>{group.todoCount}</div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
                 {/* Permit Alerts */}
                 <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 28, marginTop: isMobile ? 16 : 24 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -1843,9 +2095,9 @@ export default function App() {
         {/* �"��"��"��"��"��"� TASKS �"��"��"��"��"��"� */}
         {tab==="tasks" && (
           <div className="fu">
-            <SectionHeader title="Task Boards" subtitle={`${tasks.length} tasks · Click > to expand subtask checklist`}
+            <SectionHeader title="Task Boards" subtitle={`${tasks.length} tasks · ${openTaskTodos.length} open todo items · Click > to expand subtask checklist`}
               action={
-                <div style={{ display: "flex", gap: 10 }}>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: isMobile ? "stretch" : "flex-end" }}>
                   <Btn onClick={() => exportToCSV(tasks, 'Restaurant_Launch_Tasks', [
                     { key: 'task', label: 'Task Name' },
                     { key: 'category', label: 'Department' },
@@ -1857,23 +2109,148 @@ export default function App() {
                   <Btn onClick={()=>setTaskModal("new")} variant="primary">+ New Task</Btn>
                 </div>
               }/>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 18 }}>
+              {[
+                { label: "Master Tasks", value: tasks.length, tone: T.text, bg: "#FFF" },
+                { label: "Todo Inbox", value: openTaskTodos.length, tone: T.gold, bg: T.goldLight },
+                { label: "Linked Todos", value: linkedTaskTodos.length, tone: T.blue, bg: T.blueLight },
+                { label: "Done Todos", value: doneTaskTodos.length, tone: T.green, bg: T.greenLight },
+              ].map(card => (
+                <div key={card.label} style={{ background: card.bg, border: `1px solid ${T.border}`, borderRadius: 14, padding: "14px 16px" }}>
+                  <div style={{ fontSize: 11, color: T.subtle, marginBottom: 6 }}>{card.label}</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: card.tone }}>{card.value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 14, padding: isMobile ? 14 : 18, marginBottom: 18 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
+                <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>TODO INBOX</div>
+                <Btn onClick={openNewTodo} variant="outline" small>+ Add Todo</Btn>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 10, color: T.subtle, marginBottom: 8 }}>STATUS</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {["Open", "Inbox", "Linked", "Done", "All"].map(status => (
+                    <button
+                      key={status}
+                      onClick={() => setTodoStatusFilter(status)}
+                      style={{ cursor: "pointer", borderRadius: 999, padding: isMobile ? "7px 12px" : "5px 12px", fontSize: isMobile ? 12 : 11, border: `1px solid ${todoStatusFilter === status ? T.gold : T.border}`, background: todoStatusFilter === status ? T.goldLight : "#FFF", color: todoStatusFilter === status ? T.gold : T.muted, fontWeight: todoStatusFilter === status ? 700 : 500 }}
+                    >
+                      {status}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, color: T.subtle, marginBottom: 8 }}>CATEGORY</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {["All", ...CATEGORIES].map(category => (
+                    <button
+                      key={category}
+                      onClick={() => {
+                        setTodoCatFilter(category);
+                        setCatF(category);
+                      }}
+                      style={{ cursor: "pointer", borderRadius: 999, padding: isMobile ? "7px 12px" : "5px 12px", fontSize: isMobile ? 12 : 11, border: `1px solid ${todoCatFilter === category ? T.gold : T.border}`, background: todoCatFilter === category ? T.goldLight : "#FFF", color: todoCatFilter === category ? T.gold : T.muted, fontWeight: todoCatFilter === category ? 700 : 500 }}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {groupedTaskTodos.length === 0 ? (
+                <div style={{ border: `1px dashed ${T.border}`, borderRadius: 12, padding: "16px 18px", color: T.muted, fontSize: 13 }}>No todo items match these filters.</div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: 12 }}>
+                  {groupedTaskTodos.map(group => {
+                    const cc = CAT_COLORS[group.category] || { bg: T.bg, dot: T.text, border: T.border };
+                    return (
+                      <div key={`todo-group-${group.category}`} style={{ border: `1px solid ${cc.border}`, background: "#FFF", borderRadius: 14, overflow: "hidden" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "12px 14px", background: cc.bg, borderBottom: `1px solid ${cc.border}` }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{group.category}</div>
+                          <span style={{ fontSize: 10, color: cc.dot, border: `1px solid ${cc.border}`, borderRadius: 999, padding: "2px 8px", background: "#FFF", fontWeight: 700 }}>{group.items.length} items</span>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column" }}>
+                          {group.items.map(todo => {
+                            const linkedTask = tasks.find(task => task.id === todo.linkedTaskId);
+                            const sc = TODO_STATUS_COLORS[todo.status];
+                            return (
+                              <div key={todo.id} style={{ padding: "12px 14px", borderBottom: `1px solid ${T.border}` }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 6, overflowWrap: "anywhere" }}>{todo.title}</div>
+                                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
+                                      <span style={{ fontSize: 10, color: sc.text, background: sc.bg, border: `1px solid ${sc.border}`, borderRadius: 999, padding: "2px 8px", fontWeight: 700 }}>{todo.status}</span>
+                                      <span style={{ fontSize: 10, color: T.muted, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 999, padding: "2px 8px" }}>{todo.assignedTo || "Unassigned"}</span>
+                                    </div>
+                                    <div style={{ fontSize: 11, color: T.muted, overflowWrap: "anywhere" }}>
+                                      {linkedTask ? `Linked to: ${linkedTask.task}` : "Not linked to a master task yet"}
+                                    </div>
+                                  </div>
+                                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", marginLeft: "auto" }}>
+                                    <button onClick={() => openEditTodo(todo)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 12 }}>Edit</button>
+                                    <button onClick={() => setDelConfirm({ label: todo.title, onConfirm: () => deleteTaskTodo(todo) })} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 12 }}>Delete</button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 14, padding: isMobile ? 14 : 18, marginBottom: 18 }}>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 10, color: T.subtle, marginBottom: 8 }}>MASTER TASK CATEGORY</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {["All", ...CATEGORIES].map(category => (
+                    <button
+                      key={category}
+                      onClick={() => setCatF(category)}
+                      style={{ cursor: "pointer", borderRadius: 999, padding: isMobile ? "7px 12px" : "5px 12px", fontSize: isMobile ? 12 : 11, border: `1px solid ${catFilter === category ? T.gold : T.border}`, background: catFilter === category ? T.goldLight : "#FFF", color: catFilter === category ? T.gold : T.muted, fontWeight: catFilter === category ? 700 : 500 }}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 10, color: T.subtle, marginBottom: 8 }}>MASTER TASK STATUS</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {["All", "Not Started", "In Progress", "Complete", "Overdue"].map(status => (
+                    <button
+                      key={status}
+                      onClick={() => setStatF(status)}
+                      style={{ cursor: "pointer", borderRadius: 999, padding: isMobile ? "7px 12px" : "5px 12px", fontSize: isMobile ? 12 : 11, border: `1px solid ${statFilter === status ? T.gold : T.border}`, background: statFilter === status ? T.goldLight : "#FFF", color: statFilter === status ? T.gold : T.muted, fontWeight: statFilter === status ? 700 : 500 }}
+                    >
+                      {status}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
             {/* Table / Mobile Cards */}
             {isMobile ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {tasks.filter(t => (catFilter === "All" || t.category === catFilter) && (statFilter === "All" || t.status === statFilter)).length === 0 ? (
+                {filteredTasks.length === 0 ? (
                   <div style={{ padding: 20, textAlign: "center", color: T.muted, fontSize: 13, background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12 }}>
                     No tasks match these filters.
                   </div>
                 ) : (
-                  tasks.filter(t => (catFilter === "All" || t.category === catFilter) && (statFilter === "All" || t.status === statFilter)).map(t => {
+                  filteredTasks.map(t => {
                     const sc = STATUS_COLORS[t.status];
                     const pc = PRIORITY_COLORS[t.priority];
                     const cc = CAT_COLORS[t.category] || {};
                     return (
                       <div key={t.id} style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 12 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 6 }}>{t.task}</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 6, overflowWrap: "anywhere" }}>{t.task}</div>
                             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                               <span style={{ fontSize: 10, color: cc.dot, background: cc.bg, border: `1px solid ${cc.border}`, borderRadius: 10, padding: "2px 8px" }}>{t.category}</span>
                               <span style={{ fontSize: 10, color: pc.text, background: pc.bg, border: `1px solid ${pc.border}`, borderRadius: 10, padding: "2px 8px" }}>{t.priority}</span>
@@ -1883,7 +2260,7 @@ export default function App() {
                               Due {t.due || "-"} ⬢ {t.assignedTo || "Unassigned"}
                             </div>
                           </div>
-                          <div style={{ display: "flex", gap: 6 }}>
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginLeft: "auto" }}>
                             <button onClick={() => setTaskModal(t)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 12 }}>Edit</button>
                             <button onClick={() => setDelConfirm({ label: t.task, onConfirm: () => deleteRecord('tasks', t.id, t.task, setTasks) })} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 12 }}>Delete</button>
                           </div>
@@ -1895,14 +2272,14 @@ export default function App() {
               </div>
             ) : (
               <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, overflow:"hidden" }}>
-                <div style={{ display:"grid", gridTemplateColumns:"28px 1fr 120px 140px 100px 90px 70px", padding:"10px 18px", background:T.bg, borderBottom:`1px solid ${T.border}` }}>
+                <div style={{ display:"grid", gridTemplateColumns:"28px minmax(260px, 1.8fr) 120px 140px 100px 90px minmax(120px, auto)", gap: 0, padding:"10px 18px", background:T.bg, borderBottom:`1px solid ${T.border}` }}>
                   {["","TASK / PROGRESS","DUE","STATUS","OWNER","PRIORITY",""] .map((h,i)=>(
                     <div key={i} style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:T.subtle, letterSpacing:.8 }}>{h}</div>
                   ))}
                 </div>
-                {tasks.filter(t=>(catFilter==="All"||t.category===catFilter)&&(statFilter==="All"||t.status===statFilter)).length===0
+                {filteredTasks.length===0
                   ? <div style={{ padding:36, textAlign:"center", color:T.muted, fontSize:13 }}>No tasks match these filters. <button onClick={()=>setTaskModal("new")} style={{ marginLeft:8, background:"none", border:`1px solid ${T.border}`, borderRadius:8, padding:"5px 12px", cursor:"pointer", color:T.gold, fontSize:12 }}>+ Add Task</button></div>
-                  : tasks.filter(t=>(catFilter==="All"||t.category===catFilter)&&(statFilter==="All"||t.status===statFilter)).map(t=>(
+                  : filteredTasks.map(t=>(
                     <TaskRow key={t.id} task={t} onEdit={setTaskModal}
                       onDelete={t => setDelConfirm({ label: t.task, onConfirm: () => deleteRecord('tasks', t.id, t.task, setTasks) })}
                       onStatusChange={(id, s) => updateRecord('tasks', id, { status: s }, 'Task Status', setTasks)}
@@ -1910,22 +2287,6 @@ export default function App() {
                   ))}
               </div>
             )}
-            {/* Table */}
-            <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, overflow:"hidden" }}>
-              <div style={{ display:"grid", gridTemplateColumns:"28px 1fr 120px 140px 100px 90px 70px", padding:"10px 18px", background:T.bg, borderBottom:`1px solid ${T.border}` }}>
-                {["","TASK / PROGRESS","DUE","STATUS","OWNER","PRIORITY",""].map((h,i)=>(
-                  <div key={i} style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:9, color:T.subtle, letterSpacing:.8 }}>{h}</div>
-                ))}
-              </div>
-              {tasks.filter(t=>(catFilter==="All"||t.category===catFilter)&&(statFilter==="All"||t.status===statFilter)).length===0
-                ? <div style={{ padding:36, textAlign:"center", color:T.muted, fontSize:13 }}>No tasks match these filters. <button onClick={()=>setTaskModal("new")} style={{ marginLeft:8, background:"none", border:`1px solid ${T.border}`, borderRadius:8, padding:"5px 12px", cursor:"pointer", color:T.gold, fontSize:12 }}>+ Add Task</button></div>
-                : tasks.filter(t=>(catFilter==="All"||t.category===catFilter)&&(statFilter==="All"||t.status===statFilter)).map(t=>(
-                  <TaskRow key={t.id} task={t} onEdit={setTaskModal}
-                    onDelete={t => setDelConfirm({ label: t.task, onConfirm: () => deleteRecord('tasks', t.id, t.task, setTasks) })}
-                    onStatusChange={(id, s) => updateRecord('tasks', id, { status: s }, 'Task Status', setTasks)}
-                    onToggleCheck={toggleTaskCheck} />
-                ))}
-            </div>
           </div>
         )}
 

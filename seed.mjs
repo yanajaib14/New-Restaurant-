@@ -41,6 +41,11 @@ const DATA = {
     { category:"Financials", task:"Finalize Budget", due:"", status:"In Progress", priority:"High", checklist:JSON.stringify([{id:901,text:"Record all startup costs",done:true},{id:902,text:"Forecast monthly expenses",done:false},{id:903,text:"Set up accounting software",done:false}]) },
     { category:"Operations", task:"Set Up POS", due:"", status:"Not Started", priority:"High", checklist:JSON.stringify([{id:1001,text:"Choose and purchase POS system",done:false},{id:1002,text:"Configure menu in system",done:false},{id:1003,text:"Train staff on POS",done:false}]) },
   ],
+  task_todos: [
+    { title: "Call city about signage permit requirements", category: "Permits", status: "Inbox", assignedTo: "Owner", linkedTaskId: null },
+    { title: "Collect internet quotes for FOH and office", category: "IT & Systems", status: "Inbox", assignedTo: "Manager", linkedTaskId: null },
+    { title: "Draft opening week training roster", category: "Staffing", status: "Linked", assignedTo: "Partner", linkedTaskId: 6 },
+  ],
   menu_items: [
     { section:"Small Plates", name:"Crispy Wings", "desc":"House-smoked, chipotle honey glaze", price:16, foodCost:28, hero:true, notes:"Best seller candidate", imageUrl: "https://picsum.photos/seed/wings/200/200", ingredients: JSON.stringify([{ id: 101, name: "Chicken Wings", quantity: 1, unit: "lb", cost: 4.50 }, { id: 102, name: "Chipotle Paste", quantity: 2, unit: "oz", cost: 0.80 }, { id: 103, name: "Honey", quantity: 1, unit: "oz", cost: 0.40 }]) },
     { section:"Small Plates", name:"Truffle Flatbread", "desc":"Whipped ricotta, wild mushrooms, arugula", price:18, foodCost:25, hero:false, notes:"", imageUrl: "https://picsum.photos/seed/flatbread/200/200", ingredients: JSON.stringify([{ id: 201, name: "Pizza Dough", quantity: 1, unit: "pc", cost: 1.20 }, { id: 202, name: "Ricotta", quantity: 4, unit: "oz", cost: 1.50 }, { id: 203, name: "Truffle Oil", quantity: 0.5, unit: "oz", cost: 2.00 }, { id: 204, name: "Mushrooms", quantity: 3, unit: "oz", cost: 0.90 }]) },
@@ -133,7 +138,7 @@ async function seed() {
   
   // Truncate cascades all data across all tables instantly
   await client.query(`
-    TRUNCATE vendors, inventory_items, permits, marketing_posts, tasks, menu_items, startup_costs, operating_costs, milestones, notes, utility_accounts, training_modules, daily_checklists, invoices, positions, candidates, activity_logs, digital_assets RESTART IDENTITY CASCADE;
+    TRUNCATE vendors, inventory_items, permits, marketing_posts, task_todos, tasks, menu_items, startup_costs, operating_costs, milestones, notes, utility_accounts, training_modules, daily_checklists, invoices, positions, candidates, activity_logs, digital_assets RESTART IDENTITY CASCADE;
   `);
   
   console.log("Database Purged! Inserting 'Glai Kangwon' full data set via direct PG client...");

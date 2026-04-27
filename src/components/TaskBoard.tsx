@@ -60,26 +60,28 @@ export function TaskModal({ task, initialDate, onSave, onClose }: { task: Task |
 
 export function TaskRow({ task, onEdit, onDelete, onStatusChange, onToggleCheck }: { task: Task, onEdit: (t: Task) => void, onDelete: (t: Task) => void, onStatusChange: (id: number, s: string) => void, onToggleCheck: (tid: number, cid: number) => void, key?: any }) {
   const [open, setOpen] = useState(false);
+  const isCompact = typeof window !== "undefined" && window.innerWidth < 1320;
   const total = task.checklist.length, done = task.checklist.filter(c => c.done).length;
   const pct = total > 0 ? Math.round((done / total) * 100) : null;
   const cc = CAT_COLORS[task.category] || {};
   const sc = STATUS_COLORS[task.status];
   const pc = PRIORITY_COLORS[task.priority];
+  const rowTemplate = isCompact ? "28px minmax(240px, 1.7fr) 90px 120px 90px 78px minmax(120px, auto)" : "28px minmax(260px, 1.8fr) 120px 140px 100px 90px minmax(120px, auto)";
 
   return (
     <div style={{ borderBottom: `1px solid ${T.border}` }}>
-      <div style={{ display: "grid", gridTemplateColumns: "28px 1fr 120px 140px 100px 90px 70px", gap: 0, padding: "13px 18px", alignItems: "center", background: "#FFF", transition: "background .1s" }}
+      <div style={{ display: "grid", gridTemplateColumns: rowTemplate, gap: isCompact ? 10 : 0, padding: isCompact ? "13px 14px" : "13px 18px", alignItems: "center", background: "#FFF", transition: "background .1s" }}
         onMouseEnter={e => e.currentTarget.style.background = T.bg}
         onMouseLeave={e => e.currentTarget.style.background = "#FFF"}>
         <button onClick={() => setOpen(x => !x)} style={{ background: "none", border: "none", color: total > 0 ? T.muted : T.border, cursor: total > 0 ? "pointer" : "default", fontSize: 11, padding: 0, transform: open ? "rotate(90deg)" : "none", transition: "transform .15s", display: "flex", alignItems: "center", justifyContent: "center" }}>{">"}</button>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: total > 0 ? 4 : 0 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: total > 0 ? 4 : 0, flexWrap: "wrap" }}>
             <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: cc.dot, flexShrink: 0 }} />
-            <span style={{ fontSize: 13, color: T.text, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontWeight: 600 }}>{task.task}</span>
+            <span style={{ fontSize: 13, color: T.text, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontWeight: 600, minWidth: 0, overflowWrap: "anywhere" }}>{task.task}</span>
             <span style={{ fontSize: 10, color: cc.dot, background: cc.bg, border: `1px solid ${cc.border}`, borderRadius: 12, padding: "2px 8px", fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontWeight: 600 }}>{task.category}</span>
           </div>
           {total > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 16, flexWrap: "wrap" }}>
               <div style={{ width: 80, height: 2, background: T.border, borderRadius: 1 }}>
                 <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? T.green : T.gold, borderRadius: 1, transition: "width .3s" }} />
               </div>
@@ -87,20 +89,20 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange, onToggleCheck 
             </div>
           )}
         </div>
-        <div style={{ fontSize: 12, color: T.muted, fontFamily: "'IBM Plex Mono',monospace" }}>
+        <div style={{ fontSize: 12, color: T.muted, fontFamily: "'IBM Plex Mono',monospace", minWidth: 0 }}>
           {task.due ? new Date(task.due + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "-"}
         </div>
         <select value={task.status} onChange={e => onStatusChange(task.id, e.target.value)}
-          style={{ background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text, borderRadius: 24, padding: "4px 12px", fontSize: 11, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", cursor: "pointer", outline: "none", fontWeight: 700 }}>
+          style={{ background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text, borderRadius: 24, padding: isCompact ? "4px 10px" : "4px 12px", fontSize: 11, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", cursor: "pointer", outline: "none", fontWeight: 700, width: "100%", minWidth: 0 }}>
           {["Not Started", "In Progress", "Complete", "Overdue"].map(s => <option key={s}>{s}</option>)}
         </select>
-        <div style={{ fontSize: 11, color: T.muted, textAlign: "center", fontFamily: "'IBM Plex Mono',monospace" }}>
+        <div style={{ fontSize: 11, color: T.muted, textAlign: "center", fontFamily: "'IBM Plex Mono',monospace", minWidth: 0, overflowWrap: "anywhere" }}>
           {task.assignedTo || "-"}
         </div>
         <div style={{ textAlign: "center" }}>
           <span style={{ fontSize: 10, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontWeight: 700, padding: "3px 10px", borderRadius: 24, background: pc.bg, color: pc.text, border: `1px solid ${pc.border}` }}>{task.priority.toUpperCase()}</span>
         </div>
-        <div style={{ display: "flex", gap: 5, justifyContent: "flex-end" }}>
+        <div style={{ display: "flex", gap: 5, justifyContent: "flex-end", flexWrap: "wrap", minWidth: 0 }}>
           <button onClick={() => onEdit(task)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 12 }}>Edit</button>
           <button onClick={() => onDelete(task)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 12 }}>Delete</button>
         </div>
