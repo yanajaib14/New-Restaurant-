@@ -28,7 +28,7 @@ export function MarketingCalendar({ posts, onAdd, onEdit, onDelete }: { posts: M
               </div>
               <div>
                 <div style={{ fontSize: 10, color: T.muted, fontFamily: "'IBM Plex Mono',monospace", marginBottom: 4 }}>{p.platform.toUpperCase()}</div>
-                <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 15, fontWeight: 700, color: T.text }}>{p.title}</div>
+                <div style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: 15, fontWeight: 700, color: T.text }}>{p.title}</div>
               </div>
               <div style={{ fontSize: 12, color: T.muted, fontFamily: "'IBM Plex Mono',monospace", marginTop: "auto" }}>
                 �x& {p.date}
@@ -87,7 +87,7 @@ export function TrainingPortal({ modules, onToggleStep, onAdd, onEdit, onDelete 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
                 <div>
                   <Pill label={m.category} color={T.purple} bg={T.purpleLight} border={T.purpleBorder} />
-                  <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 17, fontWeight: 700, color: T.text, marginTop: 8 }}>{m.title}</div>
+                  <div style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: 17, fontWeight: 700, color: T.text, marginTop: 8 }}>{m.title}</div>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={() => onEdit(m)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
@@ -108,7 +108,7 @@ export function TrainingPortal({ modules, onToggleStep, onAdd, onEdit, onDelete 
                   <div key={step.id} onClick={() => onToggleStep(m.id, step.id)}
                     style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "4px 0" }}>
                     <div style={{ width: 16, height: 16, border: `2px solid ${step.done ? T.green : T.border}`, borderRadius: 4, background: step.done ? T.greenLight : "#FFF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      {step.done && <span style={{ color: T.green, fontSize: 10 }}>�S</span>}
+                      {step.done && <span style={{ color: T.green, fontSize: 10 }}>x</span>}
                     </div>
                     <span style={{ fontSize: 12, color: step.done ? T.muted : T.text, textDecoration: step.done ? "line-through" : "none" }}>{step.text}</span>
                   </div>
@@ -150,7 +150,7 @@ export function TrainingModal({ module, onSave, onClose }: { module: TrainingMod
         {form.steps.map((s: any) => (
           <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             <input value={s.text} onChange={e => setForm((f: any) => ({ ...f, steps: f.steps.map((x: any) => x.id === s.id ? { ...x, text: e.target.value } : x) }))} style={{ ...inpStyle, flex: 1, padding: "7px 11px", fontSize: 12 }} />
-            <button onClick={() => setForm((f: any) => ({ ...f, steps: f.steps.filter((x: any) => x.id !== s.id) }))} style={{ background: "none", border: "none", color: T.red, cursor: "pointer", fontSize: 16 }}>�</button>
+            <button onClick={() => setForm((f: any) => ({ ...f, steps: f.steps.filter((x: any) => x.id !== s.id) }))} style={{ background: "none", border: "none", color: T.red, cursor: "pointer", fontSize: 16 }}>x</button>
           </div>
         ))}
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
@@ -188,7 +188,7 @@ export function DigitalAssetManager({ assets, onAdd, onEdit, onDelete }: { asset
               </div>
             </div>
             <div>
-              <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 16, fontWeight: 700, color: T.text }}>{a.name}</div>
+              <div style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: 16, fontWeight: 700, color: T.text }}>{a.name}</div>
               {a.url && (
                 <a href={a.url.startsWith('http') ? a.url : `https://${a.url}`} target="_blank" rel="noreferrer" 
                    style={{ fontSize: 11, color: T.gold, textDecoration: "none", display: "block", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -275,7 +275,7 @@ export function DailyChecklistManager({ checklists, onToggleItem, onAdd, onEdit,
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
               <div>
                 <Pill label={c.shift} color={c.shift === "AM" ? T.gold : T.blue} bg={c.shift === "AM" ? T.goldLight : T.blueLight} border={c.shift === "AM" ? T.goldBorder : T.blueBorder} />
-                <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 16, fontWeight: 700, color: T.text, marginTop: 8 }}>{c.title}</div>
+                <div style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: 16, fontWeight: 700, color: T.text, marginTop: 8 }}>{c.title}</div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
                 <button onClick={() => onEdit(c)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
@@ -287,7 +287,7 @@ export function DailyChecklistManager({ checklists, onToggleItem, onAdd, onEdit,
                 <div key={item.id} onClick={() => onToggleItem(c.id, item.id)}
                   style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
                   <div style={{ width: 18, height: 18, border: `2px solid ${item.done ? T.green : T.border}`, borderRadius: 5, background: item.done ? T.greenLight : "#FFF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    {item.done && <span style={{ color: T.green, fontSize: 11 }}>�S</span>}
+                    {item.done && <span style={{ color: T.green, fontSize: 11 }}>x</span>}
                   </div>
                   <span style={{ fontSize: 13, color: item.done ? T.muted : T.text, textDecoration: item.done ? "line-through" : "none", flex: 1 }}>{item.text}</span>
                   {item.assignedTo && <span style={{ fontSize: 10, color: T.muted, fontFamily: "'IBM Plex Mono',monospace" }}>@{item.assignedTo}</span>}
@@ -323,7 +323,7 @@ export function ChecklistModal({ checklist, onSave, onClose }: { checklist: Dail
           <div key={i.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             <input value={i.text} onChange={e => setForm((f: any) => ({ ...f, items: f.items.map((x: any) => x.id === i.id ? { ...x, text: e.target.value } : x) }))} style={{ ...inpStyle, flex: 1, padding: "7px 11px", fontSize: 12 }} />
             <input value={i.assignedTo || ""} onChange={e => setForm((f: any) => ({ ...f, items: f.items.map((x: any) => x.id === i.id ? { ...x, assignedTo: e.target.value } : x) }))} placeholder="Assign..." style={{ ...inpStyle, width: 80, padding: "7px 11px", fontSize: 11 }} />
-            <button onClick={() => setForm((f: any) => ({ ...f, items: f.items.filter((x: any) => x.id !== i.id) }))} style={{ background: "none", border: "none", color: T.red, cursor: "pointer", fontSize: 16 }}>�</button>
+            <button onClick={() => setForm((f: any) => ({ ...f, items: f.items.filter((x: any) => x.id !== i.id) }))} style={{ background: "none", border: "none", color: T.red, cursor: "pointer", fontSize: 16 }}>x</button>
           </div>
         ))}
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
@@ -338,4 +338,5 @@ export function ChecklistModal({ checklist, onSave, onClose }: { checklist: Dail
     </Modal>
   );
 }
+
 

@@ -60,7 +60,7 @@ export function MenuModal({ item, onSave, onClose }: { item: MenuItem | null, on
           onClick={() => fileInputRef.current?.click()}
           style={{ width: 100, height: 100, borderRadius: 12, background: T.bg, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0, cursor: "pointer", position: "relative" }}
         >
-          {form.imageUrl ? <img src={form.imageUrl} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 24 }}>�x�</span>}
+          {form.imageUrl ? <img src={form.imageUrl} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 13, fontWeight: 700 }}>IMG</span>}
           <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.4)", color: "#FFF", fontSize: 9, textAlign: "center", padding: "4px 0", fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700 }}>UPLOAD</div>
         </div>
         <input 
@@ -113,7 +113,7 @@ export function MenuModal({ item, onSave, onClose }: { item: MenuItem | null, on
               <div style={{ fontSize: 11, color: T.muted }}>{ing.quantity}</div>
               <div style={{ fontSize: 11, color: T.muted }}>{ing.unit}</div>
               <div style={{ fontSize: 12, fontWeight: 600, color: T.text }}>${ing.cost.toFixed(2)}</div>
-              <button onClick={() => removeIng(ing.id)} style={{ background: "none", border: "none", color: T.red, cursor: "pointer", fontSize: 16 }}>�</button>
+              <button onClick={() => removeIng(ing.id)} style={{ background: "none", border: "none", color: T.red, cursor: "pointer", fontSize: 16 }}>x</button>
             </div>
           ))}
         </div>
@@ -129,7 +129,7 @@ export function MenuModal({ item, onSave, onClose }: { item: MenuItem | null, on
 
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
         <Field label="DESCRIPTION"><input value={form.desc} onChange={e => set("desc", e.target.value)} placeholder="Short description⬦" style={inpStyle} /></Field>
-        <Field label="HERO ITEM"><label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", paddingTop: 8 }}><input type="checkbox" checked={form.hero} onChange={e => set("hero", e.target.checked)} style={{ width: 16, height: 16, cursor: "pointer", accentColor: T.gold }} /><span style={{ fontSize: 13, fontFamily: "'Cormorant Garamond', serif", color: T.text, fontWeight: 600 }}>Mark as hero item ⭐</span></label></Field>
+        <Field label="HERO ITEM"><label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", paddingTop: 8 }}><input type="checkbox" checked={form.hero} onChange={e => set("hero", e.target.checked)} style={{ width: 16, height: 16, cursor: "pointer", accentColor: T.gold }} /><span style={{ fontSize: 13, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", color: T.text, fontWeight: 600 }}>Mark as hero item ⭐</span></label></Field>
       </div>
       <Field label="INTERNAL NOTES"><input value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Internal notes⬦" style={inpStyle} /></Field>
 
@@ -145,4 +145,5 @@ export function MenuModal({ item, onSave, onClose }: { item: MenuItem | null, on
     </Modal>
   );
 }
+
 

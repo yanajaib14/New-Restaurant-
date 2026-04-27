@@ -3,9 +3,9 @@ export const T = {
   surface: "#FFFFFF",
   border: "#E3E3DE",
   borderStrong: "#D2D2CC",
-  text: "#2C3639", // Deep Forest
-  muted: "#687274",
-  subtle: "#AEB4B6",
+  text: "#172125", // Deeper Forest
+  muted: "#3D484C",
+  subtle: "#5C686D",
   gold: "#D88A63", // Brighter terracotta accent
   goldLight: "#FCF4EE",
   goldBorder: "#EFD9CC",
@@ -36,6 +36,7 @@ export const CAT_COLORS: Record<string, any> = {
   "Marketing":   { dot: T.purple, bg: T.purpleLight, border: T.purpleBorder, icon: "📣" },
   "Financials":  { dot: T.green,  bg: T.greenLight,  border: T.greenBorder,  icon: "💰" },
   "Operations":  { dot: T.orange, bg: T.orangeLight, border: T.orangeBorder, icon: "⚙️" },
+  "IT & Systems": { dot: T.blue, bg: T.blueLight, border: T.blueBorder, icon: "💻" },
 };
 
 export const STATUS_COLORS: Record<string, any> = {
@@ -61,7 +62,7 @@ export const NOTE_TAG_COLORS: Record<string, any> = {
   "Marketing":  { bg: T.purpleLight,text: T.purple,dot: T.purple },
 };
 
-export const CATEGORIES = ["Lease & TI","Menu & Bar","Staffing","Permits","Marketing","Financials","Operations"];
+export const CATEGORIES = ["Lease & TI","Menu & Bar","Staffing","Permits","Marketing","Financials","Operations","IT & Systems"];
 export const INV_CATEGORIES = ["One-Time Deco", "Furniture", "China/Glassware", "Operating Supplies"];
 export const DEPARTMENTS = ["Kitchen", "Bar", "FOH"];
 export const MENU_SECTIONS = ["Small Plates","Shared Plates","Catering","Main Plates","Desserts","Drinks","Wine","Specials"];
@@ -85,6 +86,7 @@ export interface ChecklistItem {
   id: number;
   text: string;
   done: boolean;
+  assignedTo?: string;
 }
 
 export interface Task {
@@ -97,6 +99,16 @@ export interface Task {
   checklist: ChecklistItem[];
   assignedTo?: string;
   isCritical?: boolean;
+}
+
+export interface TaskTodoItem {
+  id: number;
+  title: string;
+  category: string;
+  status: "Inbox" | "Linked" | "Done";
+  assignedTo?: string;
+  linkedTaskId?: number | null;
+  created_at?: string;
 }
 
 export interface Ingredient {

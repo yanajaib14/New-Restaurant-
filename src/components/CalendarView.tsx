@@ -39,7 +39,7 @@ export function LaunchWindow({ tasks, permits, candidates }: { tasks: Task[], pe
 
             return (
               <div key={dateStr} style={{ border: `1px solid ${isToday ? T.gold : T.border}`, borderRadius: 12, padding: isMobile ? 8 : 12, background: isToday ? T.goldLight : "none", minHeight: isMobile ? 90 : 140, transition: "all .3s ease" }}>
-                <div style={{ fontSize: isMobile ? 9 : 10, color: T.muted, marginBottom: 4, textAlign: "center", fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, letterSpacing: 0.5 }}>
+                <div style={{ fontSize: isMobile ? 9 : 10, color: T.muted, marginBottom: 4, textAlign: "center", fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontWeight: 700, letterSpacing: 0.5 }}>
                   {date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'America/Phoenix' }).slice(0, isMobile ? 1 : 3).toUpperCase()}
                 </div>
                 <div style={{ 
@@ -134,7 +134,7 @@ export function FullCalendar({
         action={
           <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12 }}>
             <button onClick={prevMonth} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: isMobile ? 8 : 6, cursor: "pointer" }}><ChevronLeft size={16} /></button>
-            <span style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 700, fontSize: isMobile ? 14 : 16, minWidth: isMobile ? 110 : 140, textAlign: "center" }}>
+            <span style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontWeight: 700, fontSize: isMobile ? 14 : 16, minWidth: isMobile ? 110 : 140, textAlign: "center" }}>
               {currentDate.toLocaleDateString('en-US', { month: isMobile ? 'short' : 'long', year: 'numeric', timeZone: 'America/Phoenix' })}
             </span>
             <button onClick={nextMonth} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: isMobile ? 8 : 6, cursor: "pointer" }}><ChevronRight size={16} /></button>
@@ -206,4 +206,5 @@ export function FullCalendar({
     </div>
   );
 }
+
 

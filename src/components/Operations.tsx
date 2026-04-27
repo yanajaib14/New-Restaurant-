@@ -14,7 +14,7 @@ export function VendorManager({ vendors, onAdd, onEdit, onDelete }: { vendors: V
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
               <div>
                 <div style={{ fontSize: 11, color: T.muted, fontFamily: "'IBM Plex Mono',monospace", marginBottom: 4 }}>{v.category.toUpperCase()}</div>
-                <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 16, fontWeight: 700, color: T.text }}>{v.name}</div>
+                <div style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: 16, fontWeight: 700, color: T.text }}>{v.name}</div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
                 <button onClick={() => onEdit(v)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
@@ -23,13 +23,13 @@ export function VendorManager({ vendors, onAdd, onEdit, onDelete }: { vendors: V
             </div>
             <div style={{ fontSize: 13, color: T.text, marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: 14 }}>�x�</span> {v.contact}
+                <span style={{ fontSize: 12, fontWeight: 700 }}>Contact:</span> {v.contact}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: 14 }}>�x�</span> {v.email}
+                <span style={{ fontSize: 12, fontWeight: 700 }}>Email:</span> {v.email}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 14 }}>�x~</span> {v.phone}
+                <span style={{ fontSize: 12, fontWeight: 700 }}>Phone:</span> {v.phone}
               </div>
             </div>
             <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 12, marginTop: 12 }}>
@@ -264,7 +264,7 @@ export function PermitTracker({ permits, onAdd, onEdit, onDelete }: { permits: P
                 </div>
               </div>
               <div>
-                <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 4 }}>{p.name}</div>
+                <div style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 4 }}>{p.name}</div>
                 <div style={{ fontSize: 12, color: T.muted }}>Issuer: {p.issuer}</div>
               </div>
               <div style={{ background: T.bg, borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -273,7 +273,7 @@ export function PermitTracker({ permits, onAdd, onEdit, onDelete }: { permits: P
               </div>
               {p.fileUrl && (
                 <button onClick={() => window.open(p.fileUrl, "_blank")} style={{ width: "100%", background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: "8px", color: T.blue, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
-                  �x View Document
+                  View Document
                 </button>
               )}
             </div>
@@ -359,7 +359,7 @@ export function PermitModal({ permit, onSave, onClose }: { permit: Permit | null
         )}
         {!isUploading && getFileName() && (
           <div style={{ fontSize: 11, color: T.green, marginTop: 8, fontWeight: 600 }}>
-            �S {getFileName()}
+            Uploaded: {getFileName()}
           </div>
         )}
       </Field>
@@ -389,7 +389,7 @@ export function UtilityTracker({ utilities, onAdd, onEdit, onDelete }: { utiliti
           <div key={u.id} style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
-                <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 2 }}>{u.name}</div>
+                <div style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 2 }}>{u.name}</div>
                 <div style={{ fontSize: 11, color: T.muted }}>Started: {u.startDate}</div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
@@ -422,7 +422,7 @@ export function UtilityTracker({ utilities, onAdd, onEdit, onDelete }: { utiliti
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 {u.fileUrl ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 4, color: T.green, fontSize: 11, fontWeight: 600 }}>
-                    <span>�S</span>
+                    <span>Attached</span>
                     <button onClick={() => window.open(u.fileUrl, "_blank")} style={{ background: "none", border: "none", color: T.blue, cursor: "pointer", fontSize: 11, textDecoration: "underline", padding: 0 }}>View Bill</button>
                   </div>
                 ) : (
@@ -460,7 +460,7 @@ export function UtilityModal({ account, onSave, onClose }: { account: UtilityAcc
         <button onClick={handleMockUpload} style={{ width: "100%", background: T.bg, border: `1px dashed ${T.borderStrong}`, borderRadius: 8, padding: "12px", color: T.muted, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
           <span>Attach</span> {form.fileUrl ? "Document Uploaded" : "Upload Document"}
         </button>
-        {form.fileUrl && <div style={{ fontSize: 11, color: T.green, textAlign: "center", marginTop: 6 }}>�S Mock document stored successfully</div>}
+        {form.fileUrl && <div style={{ fontSize: 11, color: T.green, textAlign: "center", marginTop: 6 }}>Mock document stored successfully</div>}
       </div>
 
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
@@ -470,4 +470,5 @@ export function UtilityModal({ account, onSave, onClose }: { account: UtilityAcc
     </Modal>
   );
 }
+
 

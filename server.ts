@@ -8,6 +8,7 @@ import session from "express-session";
 import { Readable } from "stream";
 import pg from "pg";
 import { InsForgeClient } from "@insforge/sdk";
+import { GoogleGenAI } from "@google/genai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,6 +37,7 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
   const pool = new Pool({ connectionString: DB_CONNECTION });
+  const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS app_access_users (
@@ -167,6 +169,67 @@ async function startServer() {
     } catch (error) {
       console.error("Drive Save Error:", error);
       res.status(500).json({ error: "Failed to save to Drive" });
+    }
+  });
+
+  app.post("/api/ai/chat", async (req, res) => {
+    if (!geminiApiKey) {
+      return res.status(500).json({ error: "AI service is not configured" });
+    }
+
+    const { message, systemInstruction } = req.body || {};
+    if (!message || !systemInstruction) {
+      return res.status(400).json({ error: "Missing message or system instruction" });
+    }
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+      const result = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: String(message),
+        config: {
+          systemInstruction: String(systemInstruction),
+        },
+      });
+
+      return res.json({ text: result.text || "" });
+    } catch (error: any) {
+      console.error("AI chat error:", error);
+      return res.status(500).json({ error: error?.message || "AI request failed" });
+    }
+  });
+
+  app.post("/api/ai/invoice", async (req, res) => {
+    if (!geminiApiKey) {
+      return res.status(500).json({ error: "AI service is not configured" });
+    }
+
+    const { base64Data, mimeType } = req.body || {};
+    if (!base64Data || !mimeType) {
+      return res.status(400).json({ error: "Missing invoice image data" });
+    }
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+      const prompt = "Extract invoice details: Vendor Name, Date (YYYY-MM-DD), Total Amount, Category (Operations, Food, Beverage, Marketing, Utilities), and a list of items (name, quantity, price). Return as JSON.";
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: {
+          parts: [
+            { text: prompt },
+            { inlineData: { data: String(base64Data), mimeType: String(mimeType) } },
+          ],
+        },
+        config: {
+          responseMimeType: "application/json",
+        },
+      });
+
+      return res.json({ text: response.text || "{}" });
+    } catch (error: any) {
+      console.error("AI invoice error:", error);
+      return res.status(500).json({ error: error?.message || "Invoice AI request failed" });
     }
   });
 

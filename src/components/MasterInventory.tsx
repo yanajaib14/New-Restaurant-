@@ -69,7 +69,7 @@ export function MasterInventory({ items, vendors, onEdit, onDelete, onAdd }: {
       <SectionHeader title="Master Inventory List" subtitle="Consolidated view of all assets and supplies"
         action={
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Btn onClick={handleExport} variant="outline" small>�x� Export CSV</Btn>
+            <Btn onClick={handleExport} variant="outline" small>Export CSV</Btn>
             <Btn onClick={onAdd} variant="primary">+ Add Item</Btn>
           </div>
         } 

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Charm:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Charm:wght@400;700&display=swap');
 @import "tailwindcss";
 
 @font-face {
@@ -8,8 +8,8 @@
 }
 
 @theme {
-  --font-sans: "Cormorant Garamond", serif;
-  --font-serif: "Cormorant Garamond", serif;
+  --font-sans: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Georgia", "Times New Roman", serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
   --font-thai-display: "TH Charm of AU", "Charm", "Noto Sans Thai", serif;
 }
@@ -25,6 +25,10 @@
     text-size-adjust: 100%;
     overflow-x: hidden;
     touch-action: manipulation;
+    color: #172125;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.55;
   }
 
   @keyframes pulse {
@@ -49,6 +53,10 @@
   }
 
   @media (max-width: 1024px) {
+    body {
+      line-height: 1.5;
+    }
+
     button,
     [role="button"] {
       touch-action: manipulation;
@@ -77,3 +85,4 @@
     background: #B2B7B9;
   }
 }
+

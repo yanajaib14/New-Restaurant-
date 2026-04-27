@@ -162,7 +162,7 @@ export function CostCalculator({
                   >
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 2 }}>{item.name}</div>
-                      <div style={{ fontSize: 11, color: T.muted, fontFamily: "'Cormorant Garamond', serif" }}>{item.section}</div>
+                      <div style={{ fontSize: 11, color: T.muted, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif" }}>{item.section}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: isWarning ? T.red : T.green }}>{actualFoodCost}%</div>
@@ -181,8 +181,8 @@ export function CostCalculator({
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, gap: 20 }}>
                 <div>
                   <div style={{ fontSize: 11, color: T.gold, fontWeight: 700, letterSpacing: 1.5, marginBottom: 8, fontFamily: "'IBM Plex Mono', monospace" }}>{selected.section.toUpperCase()}</div>
-                  <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 30, margin: 0, color: T.text, letterSpacing: -1 }}>{selected.name}</h2>
-                  <p style={{ fontSize: 14, color: T.muted, marginTop: 10, maxWidth: 520, lineHeight: 1.6, fontFamily: "'Cormorant Garamond', serif" }}>{selected.desc}</p>
+                  <h2 style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: 30, margin: 0, color: T.text, letterSpacing: -1 }}>{selected.name}</h2>
+                  <p style={{ fontSize: 14, color: T.muted, marginTop: 10, maxWidth: 520, lineHeight: 1.6, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif" }}>{selected.desc}</p>
                 </div>
               </div>
 
@@ -214,15 +214,15 @@ export function CostCalculator({
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20, marginBottom: 30 }}>
                 <div style={{ background: T.bg, padding: 18, borderRadius: 14 }}>
                   <div style={{ fontSize: 10, color: T.muted, marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>ACTUAL FOOD COST</div>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: T.text, fontFamily: "'Cormorant Garamond', serif" }}>{calculateFoodCostPct(selected)}%</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: T.text, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif" }}>{calculateFoodCostPct(selected)}%</div>
                 </div>
                 <div style={{ background: T.bg, padding: 18, borderRadius: 14 }}>
                   <div style={{ fontSize: 10, color: T.muted, marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>PLATE COST</div>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: T.text, fontFamily: "'Cormorant Garamond', serif" }}>${calculateTotalCost(selected).toFixed(2)}</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: T.text, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif" }}>${calculateTotalCost(selected).toFixed(2)}</div>
                 </div>
                 <div style={{ background: T.bg, padding: 18, borderRadius: 14 }}>
                   <div style={{ fontSize: 10, color: T.muted, marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>GROSS MARGIN</div>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: T.green, fontFamily: "'Cormorant Garamond', serif" }}>${(getManualPrice(selected) - calculateTotalCost(selected)).toFixed(2)}</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: T.green, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif" }}>${(getManualPrice(selected) - calculateTotalCost(selected)).toFixed(2)}</div>
                 </div>
               </div>
 
@@ -277,8 +277,8 @@ export function CostCalculator({
           ) : (
             <div style={{ height: '100%', minHeight: 400, border: `2px dashed ${T.border}`, borderRadius: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: T.subtle, background: '#FFF' }}>
               <div style={{ fontSize: 36, marginBottom: 12 }}>Scale</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: T.text, fontFamily: "'Cormorant Garamond', serif" }}>Select a menu item to analyze</div>
-              <div style={{ fontSize: 14, marginTop: 8, fontFamily: "'Cormorant Garamond', serif" }}>You can manually edit costs, quantities, and targets.</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: T.text, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif" }}>Select a menu item to analyze</div>
+              <div style={{ fontSize: 14, marginTop: 8, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif" }}>You can manually edit costs, quantities, and targets.</div>
             </div>
           )}
         </div>
@@ -286,4 +286,5 @@ export function CostCalculator({
     </div>
   );
 }
+
 

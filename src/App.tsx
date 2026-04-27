@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { GoogleGenAI } from "@google/genai";
 import { 
   T, CAT_COLORS, STATUS_COLORS, PRIORITY_COLORS, NOTE_TAG_COLORS, 
   CATEGORIES, INV_CATEGORIES, DEPARTMENTS, MENU_SECTIONS, Task, 
@@ -192,11 +191,11 @@ const INIT_TIMELINE: Milestone[] = [
   { id:6, milestone:"POS Live", date:"May 15", phase:"Operations", done:false },
   { id:7, milestone:"Staff Training", date:"May 18", phase:"Training", done:false },
   { id:8, milestone:"Soft Opening", date:"May 28", phase:"Launch", done:false },
-  { id:9, milestone:"�x}0 Grand Opening", date:"Jun 7", phase:"Launch", done:false },
+  { id:9, milestone:"Grand Opening", date:"Jun 7", phase:"Launch", done:false },
 ];
 
 const INIT_NOTES: Note[] = [
-  { id:1, tag:"Vendor", title:"Produce Supplier", body:"Green Valley Farms � ask about net-30 terms. Contact: Maria ext. 204", date:"Apr 8", files:[] },
+  { id:1, tag:"Vendor", title:"Produce Supplier", body:"Green Valley Farms - ask about net-30 terms. Contact: Maria ext. 204", date:"Apr 8", files:[] },
   { id:2, tag:"Menu", title:"Seasonal Additions", body:"Consider stone fruit for summer desserts. Peach cobbler or apricot tart?", date:"Apr 9", files:[] },
   { id:3, tag:"Operations", title:"Opening Checklists", body:"Need AM and PM opening/closing checklists. Check competitor templates.", date:"Apr 9", files:[] },
 ];
@@ -300,7 +299,6 @@ export default function App() {
   const isPartnerAccount = currentUserEmail === "yanajaib@gmail.com";
   const canManageAccess = userRole === "Owner" || isPartnerAccount;
 
-  const genAI = useMemo(() => new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' }), []);
 
   const loadAllData = useCallback(async () => {
     try {
@@ -593,7 +591,7 @@ export default function App() {
   const [noteTagF, setNoteTagF] = useState("All");
 
   // AI
-  const [aiMsgs, setAiMsgs] = useState([{ role: "assistant", content: "Welcome! I'm your restaurant launch assistant. Ask me anything � task status, budget, menu, or what needs attention.", suggestions: ["What tasks are due this week?", "Which permits are pending?", "What's over budget?"] }]);
+  const [aiMsgs, setAiMsgs] = useState([{ role: "assistant", content: "Welcome! I'm your restaurant launch assistant. Ask me anything about task status, budget, menu, or what needs attention.", suggestions: ["What tasks are due this week?", "Which permits are pending?", "What's over budget?"] }]);
   const [aiLoad, setAiLoad] = useState(false);
 
   // ���� Derived ����
@@ -1115,15 +1113,22 @@ export default function App() {
         Example: "Your current food cost is 34%. [[How can I lower food costs?]] [[Which menu items are most profitable?]]"
       `;
 
-      const result = await genAI.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: msg,
-        config: {
-          systemInstruction: promptContext
-        }
+      const aiRes = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: msg,
+          systemInstruction: promptContext,
+        }),
       });
 
-      const response = result.text || "I'm sorry, I couldn't process that request.";
+      if (!aiRes.ok) {
+        const errorBody = await aiRes.json().catch(() => ({}));
+        throw new Error(errorBody?.error || "AI request failed");
+      }
+
+      const data = await aiRes.json();
+      const response = data.text || "I'm sorry, I couldn't process that request.";
       
       const suggestions: string[] = [];
       const cleanResponse = response.replace(/\[\[(.*?)\]\]/g, (_, q) => {
@@ -1134,7 +1139,10 @@ export default function App() {
       setAiMsgs(p => [...p, { role: "assistant", content: cleanResponse, suggestions }]);
     } catch (error) {
       console.error("AI Error:", error);
-      setAiMsgs(p => [...p, { role: "assistant", content: "I encountered an error connecting to my core intelligence. Please ensure your API key is configured." }]);
+      const message = error instanceof Error && /not configured/i.test(error.message)
+        ? "AI assistant is not configured on the server yet. Add a Gemini API key to the deployment environment and redeploy."
+        : "I hit an error while processing that request. Please try again.";
+      setAiMsgs(p => [...p, { role: "assistant", content: message }]);
     } finally {
       setAiLoad(false);
     }
@@ -1280,7 +1288,7 @@ export default function App() {
     const fromRows = dbShoppingItems
       .filter(item => item.purchaseType === "Store" && item.storeName)
       .map(item => String(item.storeName));
-    return ["All", ...Array.from(new Set(fromRows)).sort((a, b) => a.localeCompare(b))];
+    return ["All", ...Array.from(new Set<string>(fromRows)).sort((a, b) => a.localeCompare(b))];
   }, [dbShoppingItems]);
 
   const openNewShopItem = () => {
@@ -1509,7 +1517,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ minHeight:"100dvh", background:T.bg, color:T.text, fontFamily:"'Cormorant Garamond', serif", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+    <div style={{ minHeight:"100dvh", background:T.bg, color:T.text, fontFamily:"'Segoe UI', 'Helvetica Neue', Arial, sans-serif", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
       {/* ���� LOGIN SCREEN ���� */}
       {isAuthLoading ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100dvh', background: T.bg }}>Loading...</div>
@@ -1518,18 +1526,18 @@ export default function App() {
       ) : (
         <>
           {/* ���� HEADER ���� */}
-          <div className="glass" style={{ borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 100, paddingTop: "env(safe-area-inset-top, 0px)" }}>
+          <div className="glass" style={{ borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 100, paddingTop: "calc(env(safe-area-inset-top, 0px) + 20px)" }}>
             {/* Critical Banner */}
             {criticalOverdue > 0 && (
               <div style={{ 
                 background: T.red, color: "#FFF", padding: "8px 32px", textAlign: "center", 
                 fontSize: 12, fontWeight: 700, letterSpacing: 0.5, animation: "pulse 2s infinite" 
               }}>
-                �xa� CRITICAL PATH ALERT: {criticalOverdue} MANDATORY TASKS ARE OVERDUE. LAUNCH DATE AT RISK.
+                CRITICAL PATH ALERT: {criticalOverdue} MANDATORY TASKS ARE OVERDUE. LAUNCH DATE AT RISK.
               </div>
             )}
             {/* Row 1: Logo, Search, Stats */}
-        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", justifyContent: "space-between", gap: isMobile ? 10 : 0, padding: isMobile ? "12px 14px" : "18px 32px", borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", justifyContent: "space-between", gap: isMobile ? 14 : 0, padding: isMobile ? "20px 16px 16px" : "28px 32px 20px", borderBottom: `1px solid ${T.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
             {isMobile && (
               <button 
@@ -1539,13 +1547,13 @@ export default function App() {
                 {isMenuOpen ? "✕" : "☰"}
               </button>
             )}
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
-              <span style={{ fontFamily: appTitle === "ไกลกังวล" ? "var(--font-thai-display)" : "'Cormorant Garamond',serif", fontSize: isMobile ? 20 : 24, fontWeight: 700, color: T.text, letterSpacing: -0.8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{appTitle}</span>
-              {!isMobile && <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 10, color: T.subtle, letterSpacing: 1, fontWeight: 600 }}>LAUNCH DASHBOARD</span>}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+              <span style={{ fontFamily: appTitle === "ไกลกังวล" ? "var(--font-thai-display)" : "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: isMobile ? 27 : 32, lineHeight: 1.3, fontWeight: 700, color: T.text, letterSpacing: -0.3, paddingTop: appTitle === "ไกลกังวล" ? 12 : 2, whiteSpace: "nowrap", overflow: appTitle === "ไกลกังวล" ? "visible" : "hidden", textOverflow: "ellipsis", display: "block" }}>{appTitle}</span>
+              {!isMobile && <span style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: 12, color: T.subtle, letterSpacing: 1.05, fontWeight: 700 }}>LAUNCH DASHBOARD</span>}
             </div>
           </div>
           
-          <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: isMobile ? "space-between" : "flex-end", width: isMobile ? "100%" : "auto" }}>
+          <div style={{ display: "flex", gap: isMobile ? 10 : 8, alignItems: "center", justifyContent: isMobile ? "space-between" : "flex-end", width: isMobile ? "100%" : "auto" }}>
             {isUnlocked && (
               <button 
                 onClick={() => setIsUnlocked(false)}
@@ -1553,24 +1561,24 @@ export default function App() {
                 style={{ background: T.goldLight, border: `1px solid ${T.goldBorder}`, borderRadius: 10, padding: isMobile ? "6px 10px" : "6px 12px", cursor: "pointer", color: T.gold, display: "flex", alignItems: "center", gap: 6 }}
               >
                 <ShieldCheck size={14} />
-                <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "'Cormorant Garamond', serif" }}>LOCK</span>
+                <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif" }}>LOCK</span>
               </button>
             )}
             <button 
               onClick={() => { logout(); setIsUnlocked(false); }}
-              style={{ background: T.stone, border: `1px solid ${T.border}`, borderRadius: 10, padding: isMobile ? "6px 10px" : "6px 16px", fontSize: 11, fontWeight: 600, color: T.text, cursor: "pointer", whiteSpace: "nowrap" }}
+              style={{ background: T.stone, border: `1px solid ${T.border}`, borderRadius: 10, padding: isMobile ? "8px 12px" : "8px 16px", fontSize: 13, fontWeight: 700, color: T.text, cursor: "pointer", whiteSpace: "nowrap" }}
             >
               Sign Out ({isPartnerAccount ? 'Admin' : (userRole || 'User')})
             </button>
-            {!isMobile && <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 11, color: T.subtle, fontWeight: 500 }}>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Phoenix" })}</span>}
+            {!isMobile && <span style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: 13, color: T.subtle, fontWeight: 600 }}>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Phoenix" })}</span>}
           </div>
 
           {/* AI Search Bar */}
-          <div style={{ display: "flex", alignItems: "center", background: T.goldLight, borderRadius: 24, padding: isMobile ? "6px 14px" : "8px 16px", border: `2px solid ${T.gold}`, width: isMobile ? "100%" : 300, height: isMobile ? 40 : 44, marginLeft: isMobile ? 0 : 24, boxShadow: `0 4px 16px rgba(192, 108, 71, 0.15)`, transition: "all .2s" }}>
-            <span style={{ fontSize: 14, marginRight: 10, opacity: 0.8 }}>�S�</span>
+          <div style={{ display: "flex", alignItems: "center", background: T.goldLight, borderRadius: 24, padding: isMobile ? "10px 16px" : "10px 18px", border: `2px solid ${T.gold}`, width: isMobile ? "100%" : 360, height: isMobile ? 50 : 52, marginLeft: isMobile ? 0 : 24, boxShadow: `0 4px 16px rgba(192, 108, 71, 0.15)`, transition: "all .2s" }}>
+            <Sparkles size={15} style={{ marginRight: 10, opacity: 0.85, flexShrink: 0 }} />
             <input 
               placeholder="Ask assistant..." 
-              style={{ background: "none", border: "none", outline: "none", fontSize: isMobile ? 12 : 13, width: "100%", color: T.text, fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}
+              style={{ background: "none", border: "none", outline: "none", fontSize: isMobile ? 15 : 16, width: "100%", color: T.text, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontWeight: 600 }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && e.currentTarget.value.trim()) {
                   const val = e.currentTarget.value;
@@ -1596,7 +1604,7 @@ export default function App() {
                 }}
                 style={{ 
                   background: "none", border: "none", borderBottom: `2px solid ${activeGroup === g ? T.gold : "transparent"}`,
-                  padding: "16px 0", cursor: "pointer", fontSize: 14, fontFamily: "'Cormorant Garamond', serif",
+                  padding: "16px 0", cursor: "pointer", fontSize: 15, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
                   color: activeGroup === g ? T.text : T.muted, fontWeight: activeGroup === g ? 700 : 500,
                   letterSpacing: 0.5, transition: "all .2s",
                   opacity: activeGroup === g ? 1 : 0.6
@@ -1638,15 +1646,15 @@ export default function App() {
 
         {/* Mobile Menu Overlay */}
         {isMobile && isMenuOpen && (
-          <div style={{ position:"fixed", inset:0, top:"calc(112px + env(safe-area-inset-top, 0px))", background:"#FFF", zIndex:100, padding:"16px 16px calc(20px + env(safe-area-inset-bottom, 0px))", display:"flex", flexDirection:"column", gap:4, overflowY:"auto", WebkitOverflowScrolling:"touch" }}>
+          <div style={{ position:"fixed", inset:0, top:"calc(112px + env(safe-area-inset-top, 0px))", background:"#FFF", zIndex:100, padding:"18px 16px calc(20px + env(safe-area-inset-bottom, 0px))", display:"flex", flexDirection:"column", gap:6, overflowY:"auto", WebkitOverflowScrolling:"touch" }}>
             {GROUPS.map(group => (
               <div key={group} style={{ marginBottom:16 }}>
-                <div style={{ fontSize:10, fontFamily:"'IBM Plex Mono',monospace", color:T.subtle, letterSpacing:1, padding:"0 12px", marginBottom:8 }}>{group}</div>
+                <div style={{ fontSize:10, fontFamily:"'IBM Plex Mono',monospace", color:T.subtle, letterSpacing:1, padding:"0 12px", marginBottom:10 }}>{group}</div>
                 {TABS.filter(t => t.group === group).map(t => (
                   <button 
                     key={t.id} 
                     onClick={() => { setTab(t.id); setIsMenuOpen(false); }}
-                    style={{ textAlign:"left", background:tab===t.id ? T.goldLight : "none", border:"none", padding:"10px 16px", borderRadius:8, color:tab===t.id ? T.gold : T.text, fontWeight:tab===t.id ? 600 : 400, fontSize:14, width:"100%", display:"flex", alignItems:"center", gap:10 }}
+                    style={{ textAlign:"left", background:tab===t.id ? T.goldLight : "none", border:"none", padding:"12px 16px", borderRadius:8, color:tab===t.id ? T.gold : T.text, fontWeight:tab===t.id ? 600 : 400, fontSize:14, lineHeight:1.35, width:"100%", display:"flex", alignItems:"center", gap:10 }}
                   >
                     <t.icon size={16} />
                     {t.label}
@@ -1730,7 +1738,7 @@ export default function App() {
       {delConfirm && (
         <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.3)",zIndex:998,display:"flex",alignItems:"center",justifyContent:"center" }} onClick={()=>setDelConfirm(null)}>
           <div style={{ background:"#FFF",borderRadius:14,padding:26,width:340,boxShadow:"0 16px 40px rgba(0,0,0,.12)" }} onClick={e=>e.stopPropagation()}>
-            <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:17,marginBottom:10 }}>Remove this item?</div>
+            <div style={{ fontFamily:"'Segoe UI', 'Helvetica Neue', Arial, sans-serif",fontSize:17,marginBottom:10 }}>Remove this item?</div>
             <div style={{ fontSize:13,color:T.muted,marginBottom:22 }}><strong style={{color:T.text}}>{delConfirm.label}</strong> will be permanently removed.</div>
             <div style={{ display:"flex",gap:10,justifyContent:"flex-end" }}>
               <Btn onClick={()=>setDelConfirm(null)} variant="ghost">Cancel</Btn>
@@ -1761,7 +1769,7 @@ export default function App() {
                         <div style={{ fontSize: 18, fontWeight: 700, color: overdue > 0 ? T.red : T.green }}>{overdue}</div>
                       </div>
                       <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
-                        <div style={{ fontSize: 10, color: T.subtle }}>Permit Risks �0�14d</div>
+                        <div style={{ fontSize: 11, color: T.subtle }}>Permit Risks {"<="} 14d</div>
                         <div style={{ fontSize: 18, fontWeight: 700, color: permitAlerts.filter(x => (x.daysLeft as number) <= 14).length > 0 ? T.red : T.green }}>{permitAlerts.filter(x => (x.daysLeft as number) <= 14).length}</div>
                       </div>
                       <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
@@ -1789,7 +1797,7 @@ export default function App() {
                   <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 28 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                       <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>MUST ACT NOW</div>
-                      <Btn onClick={() => setTab("tasks")} variant="ghost" small>Open Tasks � </Btn>
+                      <Btn onClick={() => setTab("tasks")} variant="ghost" small>Open Tasks</Btn>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       {mustActNow.length === 0 ? (
@@ -1808,7 +1816,7 @@ export default function App() {
                 <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 28, marginTop: isMobile ? 16 : 24 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                     <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>PERMIT COUNTDOWN ALERTS (30/14/7 DAYS)</div>
-                    <Btn onClick={() => setTab("permits")} variant="ghost" small>Open Permits � </Btn>
+                    <Btn onClick={() => setTab("permits")} variant="ghost" small>Open Permits</Btn>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {permitAlerts.length === 0 ? (
@@ -1835,7 +1843,7 @@ export default function App() {
         {/* �"��"��"��"��"��"� TASKS �"��"��"��"��"��"� */}
         {tab==="tasks" && (
           <div className="fu">
-            <SectionHeader title="Task Boards" subtitle={`${tasks.length} tasks · Click �� to expand subtask checklist`}
+            <SectionHeader title="Task Boards" subtitle={`${tasks.length} tasks · Click > to expand subtask checklist`}
               action={
                 <div style={{ display: "flex", gap: 10 }}>
                   <Btn onClick={() => exportToCSV(tasks, 'Restaurant_Launch_Tasks', [
@@ -1845,7 +1853,7 @@ export default function App() {
                     { key: 'status', label: 'Status' },
                     { key: 'priority', label: 'Priority' },
                     { key: 'checklist', label: 'Checklist Details' }
-                  ])} variant="outline" small>�x� Export CSV</Btn>
+                  ])} variant="outline" small>Export CSV</Btn>
                   <Btn onClick={()=>setTaskModal("new")} variant="primary">+ New Task</Btn>
                 </div>
               }/>
@@ -1872,7 +1880,7 @@ export default function App() {
                               <span style={{ fontSize: 10, color: sc.text, background: sc.bg, border: `1px solid ${sc.border}`, borderRadius: 10, padding: "2px 8px" }}>{t.status}</span>
                             </div>
                             <div style={{ marginTop: 8, fontSize: 11, color: T.muted }}>
-                              Due {t.due || "�"} ⬢ {t.assignedTo || "Unassigned"}
+                              Due {t.due || "-"} ⬢ {t.assignedTo || "Unassigned"}
                             </div>
                           </div>
                           <div style={{ display: "flex", gap: 6 }}>
@@ -1930,7 +1938,7 @@ export default function App() {
             <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap" }}>
               {["All",...MENU_SECTIONS].map(s=>(
                 <button key={s} onClick={()=>setMenuSecF(s)}
-                  style={{ cursor:"pointer", borderRadius:24, padding:isMobile?"8px 14px":"6px 16px", fontSize:isMobile?12:11, fontFamily:"'Cormorant Garamond', serif", border:`1px solid ${menuSecF===s?T.gold:T.border}`, background:menuSecF===s?T.goldLight:"#FFF", color:menuSecF===s?T.gold:T.muted, fontWeight:menuSecF===s?700:500 }}>
+                  style={{ cursor:"pointer", borderRadius:24, padding:isMobile?"8px 14px":"6px 16px", fontSize:isMobile?12:11, fontFamily:"'Segoe UI', 'Helvetica Neue', Arial, sans-serif", border:`1px solid ${menuSecF===s?T.gold:T.border}`, background:menuSecF===s?T.goldLight:"#FFF", color:menuSecF===s?T.gold:T.muted, fontWeight:menuSecF===s?700:500 }}>
                   {s}
                 </button>
               ))}
@@ -1941,12 +1949,12 @@ export default function App() {
                   <div key={item.id} style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 12 }}>
                     <div style={{ display: "flex", gap: 10 }}>
                       <div style={{ width: 52, height: 52, borderRadius: 8, background: T.bg, border: `1px solid ${T.border}`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        {item.imageUrl ? <img src={item.imageUrl} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 18 }}>�x��️</span>}
+                        {item.imageUrl ? <img src={item.imageUrl} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 12, fontWeight: 700 }}>IMG</span>}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{item.name}</div>
                         <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{item.section}</div>
-                        <div style={{ fontSize: 11, color: T.muted, marginTop: 4 }}>{item.desc || "�"}</div>
+                        <div style={{ fontSize: 11, color: T.muted, marginTop: 4 }}>{item.desc || "-"}</div>
                         <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                           <span style={{ fontSize: 12, fontFamily: "'IBM Plex Mono',monospace", color: T.green, fontWeight: 700 }}>
                             {item.section === "Wine" ? `B ${item.sellPriceBottle} / G ${item.sellPriceGlass}` : `$${item.price}`}
@@ -1974,9 +1982,9 @@ export default function App() {
                   <div key={item.id} style={{ display:"grid", gridTemplateColumns:"110px 44px 1fr 1.8fr 70px 80px 52px 1fr 70px", padding:"13px 18px", borderBottom:`1px solid ${T.border}`, background:i%2===0?"#FFF":T.bg, alignItems:"center" }}>
                     <div style={{ fontSize:10, color:T.muted, fontFamily:"'IBM Plex Mono',monospace" }}>{item.section}</div>
                     <div style={{ width:32, height:32, borderRadius:6, background:T.bg, border:`1px solid ${T.border}`, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      {item.imageUrl ? <img src={item.imageUrl} alt={item.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ fontSize:12 }}>�x��️</span>}
+                      {item.imageUrl ? <img src={item.imageUrl} alt={item.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ fontSize:12, fontWeight:700 }}>IMG</span>}
                     </div>
-                    <div style={{ fontSize:13, fontFamily:"'Cormorant Garamond',serif", fontWeight:600, color:T.text }}>{item.name}</div>
+                    <div style={{ fontSize:13, fontFamily:"'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontWeight:600, color:T.text }}>{item.name}</div>
                     <div style={{ fontSize:11, color:T.muted, fontStyle:"italic" }}>{item.desc}</div>
                     <div style={{ fontSize:13, fontFamily:"'IBM Plex Mono',monospace", color:T.green, fontWeight:600 }}>
                       {item.section === "Wine" ? (
@@ -1987,8 +1995,8 @@ export default function App() {
                       ) : `$${item.price}`}
                     </div>
                     <div><span style={{ fontSize:11, fontFamily:"'IBM Plex Mono',monospace", fontWeight:600, color:item.foodCost>30?T.red:T.green, background:item.foodCost>30?T.redLight:T.greenLight, padding:"2px 8px", borderRadius:4 }}>{item.foodCost}%</span></div>
-                    <div style={{ textAlign:"center", fontSize:14 }}>{item.hero?"⭐":"�"}</div>
-                    <div style={{ fontSize:11, color:T.muted }}>{item.notes||"�"}</div>
+                    <div style={{ textAlign:"center", fontSize:14 }}>{item.hero ? "⭐" : "-"}</div>
+                    <div style={{ fontSize:11, color:T.muted }}>{item.notes || "-"}</div>
                     <div style={{ display:"flex", gap:5 }}>
                       <button onClick={()=>setMenuModal(item)} style={{ background:"none",border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 7px",color:T.muted,cursor:"pointer",fontSize:11 }}>Edit</button>
                       <button onClick={()=>setDelConfirm({label:item.name,onConfirm:()=>deleteRecord('menu_items', item.id, item.name, setMenuItems)})} style={{ background:"none",border:`1px solid ${T.redBorder}`,borderRadius:6,padding:"3px 7px",color:T.red,cursor:"pointer",fontSize:11 }}>Delete</button>
@@ -2004,7 +2012,7 @@ export default function App() {
         {tab === "shopping" && (
           <div className="fu">
             <SectionHeader title="Consolidated Shopping List" subtitle="All ingredients required for your current menu items"
-              action={<div style={{ display: "flex", gap: 8 }}><Btn onClick={openNewShopItem} variant="primary">+ Add Item</Btn><Btn onClick={() => window.print()} variant="outline">�x�️ Print List</Btn></div>} />
+              action={<div style={{ display: "flex", gap: 8 }}><Btn onClick={openNewShopItem} variant="primary">+ Add Item</Btn><Btn onClick={() => window.print()} variant="outline">Print List</Btn></div>} />
             
             {/* Filters */}
             <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: "16px 20px", marginBottom: 18 }}>
@@ -2167,7 +2175,7 @@ export default function App() {
                       { key: 'budgeted', label: 'Budgeted/Monthly' },
                       { key: 'actual', label: 'Actual' },
                     ]);
-                  }} variant="outline" small>�x� Export</Btn>
+                  }} variant="outline" small>Export</Btn>
                   {canManageAccess && <Btn onClick={() => setIsChangePinOpen(true)} variant="outline" small>Change PIN</Btn>}
                   {canManageAccess && (
                     <Btn onClick={() => setDelConfirm({
@@ -2181,7 +2189,7 @@ export default function App() {
                         setOp([]);
                         logActivity("Reset all financial data");
                       }
-                    })} variant="danger" small>�x Reset All</Btn>
+                    })} variant="danger" small>Reset All</Btn>
                   )}
                 </div>
               }
@@ -2196,7 +2204,7 @@ export default function App() {
               ].map(k=>(
                 <div key={k.label} style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, padding: isMobile ? "14px 16px" : 20 }}>
                   <div style={{ fontSize:11, color:T.muted, fontFamily:"'IBM Plex Mono',monospace", marginBottom:6, letterSpacing:.5 }}>{k.label.toUpperCase()}</div>
-                  <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize: isMobile ? 28 : 24, fontWeight:700, color:k.color }}>{k.value}</div>
+                  <div style={{ fontFamily:"'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: isMobile ? 28 : 24, fontWeight:700, color:k.color }}>{k.value}</div>
                   <div style={{ fontSize:11, color:T.muted, marginTop:4 }}>{k.sub}</div>
                 </div>
               ))}
@@ -2277,9 +2285,7 @@ export default function App() {
               action={
                 <div style={{ display: "flex", gap: 10 }}>
                   {!isDriveConnected && (
-                    <Btn onClick={handleGoogleConnect} variant="outline" small>
-                      <span style={{ color: T.blue }}>��</span> Connect Drive
-                    </Btn>
+                    <Btn onClick={handleGoogleConnect} variant="outline" small>Connect Drive</Btn>
                   )}
                   <Btn onClick={()=>setNoteModal("new")} variant="primary">+ New Note</Btn>
                 </div>
@@ -2294,12 +2300,12 @@ export default function App() {
                   placeholder="Search notes..." 
                   style={{ ...inpStyle, paddingLeft: 36 }} 
                 />
-                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", opacity: 0.4 }}>�x�</span>
+                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", opacity: 0.4 }}>?</span>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {["All", ...Object.keys(NOTE_TAG_COLORS)].map(tag => (
                   <button key={tag} onClick={() => setNoteTagF(tag)}
-                    style={{ cursor: "pointer", borderRadius: 20, padding: "6px 14px", fontSize: 12, fontFamily: "'Cormorant Garamond', serif", border: `1px solid ${noteTagF === tag ? T.gold : T.border}`, background: noteTagF === tag ? T.goldLight : "#FFF", color: noteTagF === tag ? T.gold : T.muted, fontWeight: noteTagF === tag ? 600 : 400 }}>
+                    style={{ cursor: "pointer", borderRadius: 20, padding: "6px 14px", fontSize: 12, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", border: `1px solid ${noteTagF === tag ? T.gold : T.border}`, background: noteTagF === tag ? T.goldLight : "#FFF", color: noteTagF === tag ? T.gold : T.muted, fontWeight: noteTagF === tag ? 600 : 400 }}>
                     {tag}
                   </button>
                 ))}
@@ -2426,7 +2432,7 @@ export default function App() {
                   <input
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
-                    style={{ ...inpStyle, flex: 1, fontFamily: /[\u0E00-\u0E7F]/.test(editTitle) ? "var(--font-thai-display)" : "'Cormorant Garamond', serif" }}
+                    style={{ ...inpStyle, flex: 1, fontFamily: /[\u0E00-\u0E7F]/.test(editTitle) ? "var(--font-thai-display)" : "'Segoe UI', 'Helvetica Neue', Arial, sans-serif" }}
                     placeholder="Restaurant name"
                   />
                   <Btn onClick={async () => {
@@ -2452,8 +2458,8 @@ export default function App() {
               <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 20, marginBottom: 18 }}>
                 <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: .8, marginBottom: 12 }}>ACCOUNT SECURITY</div>
                 <div style={{ display: "flex", gap: 10, flexDirection: "column" }}>
-                  <Btn onClick={() => setIsChangePinOpen(true)} variant="outline" style={{ width: "100%", justifyContent: "flex-start" }}>�x� Change Security PIN</Btn>
-                  <Btn onClick={() => setIsChangePasswordOpen(true)} variant="outline" style={{ width: "100%", justifyContent: "flex-start" }}>�x Change Sign-In Password</Btn>
+                  <Btn onClick={() => setIsChangePinOpen(true)} variant="outline" style={{ width: "100%", justifyContent: "flex-start" }}>Change Security PIN</Btn>
+                  <Btn onClick={() => setIsChangePasswordOpen(true)} variant="outline" style={{ width: "100%", justifyContent: "flex-start" }}>Change Sign-In Password</Btn>
                 </div>
               </div>
 
@@ -2617,4 +2623,5 @@ export default function App() {
 </div>
   );
 }
+
 

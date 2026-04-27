@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
 import { T, Invoice, Vendor } from '../types';
 import { Modal, Field, inpStyle, selStyle, Btn, SectionHeader, Pill } from './UI';
-import { GoogleGenAI } from "@google/genai";
-
-// Initialize Gemini
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || "" });
 
 export function InvoiceModal({ invoice, vendors, onSave, onClose }: { invoice: Invoice | null, vendors: Vendor[], onSave: (form: any) => void, onClose: () => void }) {
   const blank = { vendorName: "", date: new Date().toISOString().split('T')[0], amount: "", category: "Operations", status: "Pending", items: [] };
@@ -26,20 +22,18 @@ export function InvoiceModal({ invoice, vendors, onSave, onClose }: { invoice: I
         try {
           const prompt = "Extract invoice details: Vendor Name, Date (YYYY-MM-DD), Total Amount, Category (Operations, Food, Beverage, Marketing, Utilities), and a list of items (name, quantity, price). Return as JSON.";
           
-          const response = await ai.models.generateContent({
-            model: "gemini-3-flash-preview",
-            contents: {
-              parts: [
-                { text: prompt },
-                { inlineData: { data: base64Data, mimeType: file.type } }
-              ]
-            },
-            config: {
-              responseMimeType: "application/json"
-            }
+          const response = await fetch('/api/ai/invoice', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ base64Data, mimeType: file.type, prompt }),
           });
-          
-          const text = response.text;
+
+          if (!response.ok) {
+            throw new Error('Invoice AI request failed');
+          }
+
+          const payload = await response.json();
+          const text = payload.text;
           if (text) {
             const data = JSON.parse(text);
             setForm({
@@ -68,9 +62,9 @@ export function InvoiceModal({ invoice, vendors, onSave, onClose }: { invoice: I
     <Modal title={invoice ? "Edit Invoice" : "Smart Import Invoice"} onClose={onClose} width={500}>
       {!invoice && (
         <div style={{ background: T.goldLight, border: `1px solid ${T.goldBorder}`, borderRadius: 24, padding: 24, marginBottom: 28, textAlign: "center", boxShadow: "0 4px 12px rgba(212, 175, 55, 0.08)" }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>�x</div>
+          <div style={{ fontSize: 24, marginBottom: 12, fontWeight: 700 }}>AI</div>
           <div style={{ fontSize: 14, fontWeight: 700, color: T.gold, marginBottom: 6, letterSpacing: 0.5 }}>SMART AI ARCHITECTURE</div>
-          <div style={{ fontSize: 12, color: T.muted, marginBottom: 16, lineHeight: 1.5, fontFamily: "'Cormorant Garamond', serif" }}>Upload a clear photo of your invoice and Gemini will analyze the data structure automatically.</div>
+          <div style={{ fontSize: 12, color: T.muted, marginBottom: 16, lineHeight: 1.5, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif" }}>Upload a clear photo of your invoice and Gemini will analyze the data structure automatically.</div>
           <input 
             type="file" 
             accept="image/*,application/pdf" 
@@ -161,4 +155,5 @@ export function InvoicesSection({ invoices, onEdit, onDelete, onAdd }: { invoice
     </div>
   );
 }
+
 
