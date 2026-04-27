@@ -2321,7 +2321,39 @@ export default function App() {
                               style={{ width: 14, height: 14, cursor: "pointer", accentColor: T.green, marginTop: 2, flexShrink: 0 }}
                             />
                             <div style={{ minWidth: 0 }}>
-                              <div style={{ fontSize: 13, color: isDone ? T.muted : T.text, textDecoration: isDone ? "line-through" : "none", overflowWrap: "anywhere" }}>{todo.title}</div>
+                              <button
+                                onClick={() => openEditTodo(todo)}
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  padding: 0,
+                                  margin: 0,
+                                  textAlign: "left",
+                                  fontSize: 13,
+                                  color: isDone ? T.muted : T.text,
+                                  textDecoration: isDone ? "line-through" : "none",
+                                  overflowWrap: "anywhere",
+                                  cursor: "pointer",
+                                  width: "100%",
+                                }}
+                                title="Edit todo"
+                              >
+                                {todo.title}
+                              </button>
+                              <div style={{ display: "flex", gap: 6, marginTop: 5 }}>
+                                <button
+                                  onClick={() => openEditTodo(todo)}
+                                  style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "2px 8px", color: T.muted, cursor: "pointer", fontSize: 10 }}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => deleteTaskTodo(todo)}
+                                  style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "2px 8px", color: T.red, cursor: "pointer", fontSize: 10 }}
+                                >
+                                  Delete
+                                </button>
+                              </div>
                               {subtasks.length > 0 && (
                                 <div style={{ marginTop: 5, display: "flex", flexDirection: "column", gap: 4 }}>
                                   {subtasks.map(sub => (
