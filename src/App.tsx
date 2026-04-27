@@ -320,6 +320,7 @@ export default function App() {
   const [accessUsers, setAccessUsers] = useState<AccessUser[]>([]);
   const [accessLoading, setAccessLoading] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState("");
+  const [taskTodoStore, setTaskTodoStore] = useState<"local" | "db">("local");
   const currentUserEmail = String(currentUser?.email || "").toLowerCase();
   const isPartnerAccount = currentUserEmail === "yanajaib@gmail.com";
   const canManageAccess = userRole === "Owner" || isPartnerAccount;
@@ -600,7 +601,6 @@ export default function App() {
   }, [dbShoppingItems]);
 
   const [delConfirm, setDelConfirm] = useState<any>(null); // {label, onConfirm}
-  const [taskTodoStore, setTaskTodoStore] = useState<"local" | "db">("local");
   const [todoDraft, setTodoDraft] = useState({
     title: "",
     category: CATEGORIES[0],
