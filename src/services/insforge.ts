@@ -30,7 +30,12 @@ const shouldUseFallback = (res: any) => {
 
   const errCode = String(res?.error?.code || "");
   const errMsg = String(res?.error?.message || "");
-  return errCode === "404" || errCode === "405" || /HTTP\s*40[45]/i.test(errMsg);
+  if (errCode === "404" || errCode === "405" || /HTTP\s*40[45]/i.test(errMsg)) return true;
+
+  // Some SDK responses return an empty error object {} for unsupported writes.
+  if (res?.error && typeof res.error === "object" && Object.keys(res.error).length === 0) return true;
+
+  return false;
 };
 
 const normalizeError = async (res: Response) => {

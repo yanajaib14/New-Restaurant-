@@ -6,7 +6,7 @@ const DB_WRITE_TABLES = new Set([
   "tasks", "menu_items", "startup_costs", "operating_costs", "milestones", "notes",
   "vendors", "inventory_items", "utility_accounts", "permits", "marketing_posts",
   "training_modules", "daily_checklists", "invoices", "positions", "candidates",
-  "digital_assets", "activity_logs"
+  "digital_assets", "activity_logs", "task_todos", "shopping_list_items", "cost_calculator_overrides"
 ]);
 
 const DB_CONNECTION =
