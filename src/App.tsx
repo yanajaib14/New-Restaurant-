@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { 
-  T, CAT_COLORS, STATUS_COLORS, PRIORITY_COLORS, NOTE_TAG_COLORS, 
+import {
+  T, CAT_COLORS, STATUS_COLORS, PRIORITY_COLORS, NOTE_TAG_COLORS,
   CATEGORIES, INV_CATEGORIES, DEPARTMENTS, MENU_SECTIONS, Task, TaskTodoItem, TodoSubtask, TODO_STATUS_COLORS, TODO_STATUSES,
-  MenuItem, StartupCost, OperatingCost, Milestone, Note, Vendor, 
-  InventoryItem, Permit, MarketingPost, TrainingModule, DailyChecklist, 
-  UtilityAccount, DigitalAsset, User, ActivityLog, UserRole, Invoice, Position, Candidate
+  MenuItem, StartupCost, OperatingCost, Milestone, Note, Vendor,
+  InventoryItem, Permit, MarketingPost, TrainingModule, DailyChecklist,
+  UtilityAccount, DigitalAsset, User, ActivityLog, UserRole, Invoice, Position, Candidate,
+  CalendarEvent
 } from "./types";
 import { Pill, Btn, SectionHeader, PinGate, ChangePinModal, ChangePasswordModal, inpStyle, dropdownStyle, ProgressRing, Modal, Field } from "./components/UI";
 import { TaskModal, TaskRow } from "./components/TaskBoard";
@@ -77,6 +78,7 @@ const sanitizeTaskTodo = (todo: any): TaskTodoItem => ({
   linkedTaskId: todo?.linkedTaskId ? Number(todo.linkedTaskId) : null,
   linkUrl: todo?.linkUrl ? String(todo.linkUrl) : undefined,
   note: todo?.note ? String(todo.note) : undefined,
+  subtasks: Array.isArray(todo?.subtasks) ? todo.subtasks : [],
   created_at: todo?.created_at ? String(todo.created_at) : new Date().toISOString(),
 });
 
@@ -306,6 +308,7 @@ export default function App() {
   const [marketing, setMarketing] = useState<MarketingPost[]>(INIT_MARKETING);
   const [training, setTraining]   = useState<TrainingModule[]>(INIT_TRAINING);
   const [checklists, setChecklists] = useState<DailyChecklist[]>(INIT_CHECKLISTS);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
 
   // Modal states
   const [taskModal, setTaskModal]   = useState<any>(null); // null | "new" | task obj
@@ -375,17 +378,20 @@ export default function App() {
         { table: "digital_assets", set: setAssets as any },
         { table: "shopping_list_items", set: setDbShoppingItems as any },
         { table: "cost_calculator_overrides", set: setDbCostCalcOverrides as any },
+        { table: "calendar_events", set: setCalendarEvents as any },
       ];
 
       await Promise.all(
         tableBindings.map(async ({ table, set }) => {
           const { data, error } = await dbSelect(table);
-          if (!error) set(data as any);
+          // Only update state when we get a real response (data is a non-null array).
+          // A null data + no error means the SDK silently failed; keep current state.
+          if (!error && Array.isArray(data)) set(data as any);
         })
       );
 
       const { data: todoRows, error: todoError } = await dbSelect("task_todos");
-      if (!todoError) {
+      if (!todoError && Array.isArray(todoRows)) {
         setTaskTodos(((todoRows as TaskTodoItem[]) || []).map(sanitizeTaskTodo));
         setTaskTodoStore("db");
       } else {
@@ -1125,6 +1131,36 @@ export default function App() {
     const matchSearch = !noteSearch || n.title.toLowerCase().includes(noteSearch.toLowerCase()) || n.body?.toLowerCase().includes(noteSearch.toLowerCase());
     return matchTag && matchSearch;
   });
+
+  // ─── Calendar Events CRUD ───────────────────────────────────────────────────
+  const saveCalendarEvent = async (form: any) => {
+    const { _editId, id, ...rest } = form;
+    const editId = _editId ?? (id && id !== 0 ? id : null);
+    try {
+      if (editId) {
+        const { error } = await dbUpdate('calendar_events', editId, rest);
+        if (error) throw error;
+      } else {
+        const { error } = await dbInsert('calendar_events', rest);
+        if (error) throw error;
+      }
+      await refetch('calendar_events', setCalendarEvents as any);
+    } catch (e: any) {
+      console.error('Save Calendar Event Error:', e);
+      alert(`Failed to save event: ${e.message || JSON.stringify(e)}`);
+    }
+  };
+
+  const deleteCalendarEvent = async (id: number) => {
+    try {
+      const { error } = await dbDelete('calendar_events', id);
+      if (error) throw error;
+      await refetch('calendar_events', setCalendarEvents as any);
+    } catch (e: any) {
+      console.error('Delete Calendar Event Error:', e);
+      alert(`Failed to delete event: ${e.message || JSON.stringify(e)}`);
+    }
+  };
 
   // ���� Vendor CRUD ����
   const saveVendor = async (form: any) => {
@@ -2168,7 +2204,7 @@ export default function App() {
                 {/* 7-Day Overview */}
                 <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 24, marginBottom: isMobile ? 16 : 24 }}>
                   <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, marginBottom: 12, fontWeight: 600 }}>7-DAY OVERVIEW</div>
-                  <LaunchWindow tasks={tasks} permits={permits} candidates={candidates} />
+                  <LaunchWindow tasks={tasks} permits={permits} candidates={candidates} calendarEvents={calendarEvents} />
                 </div>
 
                 {/* Must Act Now */}
@@ -3019,16 +3055,18 @@ export default function App() {
 
         {/* �"��"��"��"��"��"� CALENDAR �"��"��"��"��"��"� */}
         {tab === "calendar" && (
-          <FullCalendar 
-            tasks={tasks} 
-            marketing={marketing} 
-            training={training} 
-            candidates={candidates} 
+          <FullCalendar
+            tasks={tasks}
+            marketing={marketing}
+            training={training}
+            candidates={candidates}
+            calendarEvents={calendarEvents}
             onEditTask={setTaskModal}
             onEditMkt={setMktModal}
             onEditTrain={setTrainModal}
             onEditCan={setCanModal}
-            onAddEvent={(d) => { setCalDate(d); setTaskModal("new"); }}
+            onSaveCalendarEvent={saveCalendarEvent}
+            onDeleteCalendarEvent={deleteCalendarEvent}
           />
         )}
 

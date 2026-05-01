@@ -332,3 +332,23 @@ export interface DigitalAsset {
   loginInfo?: string;
   notes?: string;
 }
+
+export type CalendarEventType = "Event" | "Meeting" | "Deadline" | "Reminder";
+
+export interface CalendarEvent {
+  id: number;
+  title: string;
+  date: string;
+  time?: string;
+  type: CalendarEventType;
+  notes?: string;
+}
+
+export const CALENDAR_EVENT_TYPES: CalendarEventType[] = ["Event", "Meeting", "Deadline", "Reminder"];
+
+export const CALENDAR_EVENT_COLORS: Record<CalendarEventType, { bg: string; text: string; dot: string; border: string }> = {
+  "Event":    { bg: "#F1F6FB", text: "#5E7691", dot: "#5E7691", border: "#D3E0ED" },
+  "Meeting":  { bg: "#FCF4EE", text: "#D88A63", dot: "#D88A63", border: "#EFD9CC" },
+  "Deadline": { bg: "#FAF2F2", text: "#AA6464", dot: "#AA6464", border: "#EBD6D6" },
+  "Reminder": { bg: "#F5F1FA", text: "#846FA0", dot: "#846FA0", border: "#DFD4EC" },
+};

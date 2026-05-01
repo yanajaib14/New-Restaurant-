@@ -38,6 +38,17 @@ const shouldUseFallback = (res: any) => {
   return false;
 };
 
+// For inserts/updates, also fall back when SDK returns no data and no meaningful error
+// (silent failure — the SDK accepted the call but didn't actually write anything).
+const shouldUseFallbackWrite = (res: any) => {
+  if (shouldUseFallback(res)) return true;
+  const hasData = res?.data !== null && res?.data !== undefined &&
+    !(Array.isArray(res.data) && res.data.length === 0);
+  const hasError = res?.error && Object.keys(res.error || {}).length > 0;
+  if (!hasData && !hasError) return true;
+  return false;
+};
+
 const normalizeError = async (res: Response) => {
   try {
     const body = await res.json();
@@ -77,12 +88,17 @@ const publishDbChange = async (table: string, action: DbWriteAction, id?: number
 
 export async function dbSelect(table: string) {
   const res = await insforge.database.from(table).select("*");
+  // Treat null data with no error as a silent failure so callers don't
+  // accidentally clear their in-memory state with an empty array.
+  if (res.data === null && !res.error) {
+    return { data: null, error: { message: "No data returned from SDK" } };
+  }
   return { data: res.data || [], error: res.error };
 }
 
 export async function dbInsert(table: string, payload: Record<string, unknown>) {
   const res = await insforge.database.from(table).insert([payload]);
-  if (shouldUseFallback(res)) {
+  if (shouldUseFallbackWrite(res)) {
     const fb = await fallbackWrite(table, "insert", payload);
     if (!fb.error) {
       await publishDbChange(table, "insert");
@@ -97,7 +113,7 @@ export async function dbInsert(table: string, payload: Record<string, unknown>) 
 
 export async function dbUpdate(table: string, id: number | string, payload: Record<string, unknown>) {
   const res = await insforge.database.from(table).update(payload).eq("id", id);
-  if (shouldUseFallback(res)) {
+  if (shouldUseFallbackWrite(res)) {
     const fb = await fallbackWrite(table, "update", payload, id);
     if (!fb.error) {
       await publishDbChange(table, "update", id);
