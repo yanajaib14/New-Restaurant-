@@ -28,7 +28,7 @@ import { LaunchWindow, FullCalendar } from "./components/CalendarView";
 import { getGoogleAuthUrl, getGoogleDriveStatus, saveToGoogleDrive, fileToBase64 } from "./services/googleDriveService";
 import { exportToCSV } from "./lib/exportUtils";
 
-import { LayoutDashboard, CheckSquare, Utensils, ShoppingCart, Package, DollarSign, FileText, Box, Users, ShieldCheck, Megaphone, GraduationCap, ClipboardList, Calculator, UserPlus, Calendar, FileEdit, Sparkles } from "lucide-react";
+import { LayoutDashboard, CheckSquare, Utensils, ShoppingCart, Package, DollarSign, FileText, Box, Users, ShieldCheck, Megaphone, GraduationCap, ClipboardList, Calculator, UserPlus, Calendar, FileEdit, Sparkles, PenLine, Trash2, Printer, Download, Upload } from "lucide-react";
 
 type ShoppingListItem = {
   id: string;
@@ -333,6 +333,7 @@ export default function App() {
   const [teamMapModal, setTeamMapModal] = useState<Candidate | "new" | null>(null);
   const [assetModal, setAssetModal] = useState<DigitalAsset | "new" | null>(null);
   const [calDate, setCalDate]       = useState<string | null>(null);
+  const [calendarFocusDate, setCalendarFocusDate] = useState<string | null>(null);
   const [invoiceModal, setInvoiceModal] = useState<any>(null);
   const [isMobile, setIsMobile]     = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -651,6 +652,8 @@ export default function App() {
   });
   const [quickTodoTitle, setQuickTodoTitle] = useState("");
   const [quickTodoCategory, setQuickTodoCategory] = useState(CATEGORIES[0]);
+  const [expandedTaskCards, setExpandedTaskCards] = useState<Record<number, boolean>>({});
+  const [subtaskDrafts, setSubtaskDrafts] = useState<Record<number, string>>({});
   const [expandedPlanningCats, setExpandedPlanningCats] = useState<Record<string, boolean>>(() =>
     CATEGORIES.reduce((acc, category) => ({ ...acc, [category]: true }), {} as Record<string, boolean>)
   );
@@ -801,6 +804,41 @@ export default function App() {
       .filter(x => (x.daysLeft as number) <= 14)
       .map(x => ({ id: `permit-${x.permit.id}`, title: `${x.permit.name} permit follow-up`, meta: `${x.daysLeft as number} days left` })),
   ].slice(0, 4);
+
+  const priorityUrgency: Record<string, number> = { Critical: 40, High: 25, Medium: 15, Low: 5 };
+  const statusUrgency: Record<string, number> = { Overdue: 40, "In Progress": 20, "Not Started": 10, Complete: 0 };
+
+  const urgentTaskSubtasks = tasks
+    .flatMap(task => {
+      const dueDate = parsePlannerDate(task.due);
+      const daysLeft = dueDate ? Math.ceil((dueDate.getTime() - startOfToday.getTime()) / (1000 * 60 * 60 * 24)) : null;
+      const dueBonus = daysLeft === null ? 0 : daysLeft < 0 ? 30 : daysLeft <= 3 ? 20 : daysLeft <= 7 ? 12 : daysLeft <= 14 ? 6 : 0;
+      const taskScore = (priorityUrgency[task.priority] || 0) + (statusUrgency[task.status] || 0) + dueBonus + (task.isCritical ? 16 : 0);
+
+      const parentItem = task.status === "Complete"
+        ? []
+        : [{
+            id: `task-${task.id}`,
+            label: task.task,
+            type: "Task",
+            meta: `${task.category} · ${task.status}${task.due ? ` · Due ${task.due}` : ""}`,
+            score: taskScore,
+          }];
+
+      const subtaskItems = task.checklist
+        .filter(sub => !sub.done)
+        .map(sub => ({
+          id: `task-${task.id}-sub-${sub.id}`,
+          label: sub.text,
+          type: "Subtask",
+          meta: `${task.task} · ${task.category}${task.due ? ` · Due ${task.due}` : ""}`,
+          score: Math.max(taskScore - 2, 0),
+        }));
+
+      return [...parentItem, ...subtaskItems];
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
 
   // ���� Helper: re-fetch a single table and update state ����
   const refetch = async (table: string, setter: (d: any[]) => void) => {
@@ -995,11 +1033,38 @@ export default function App() {
     }
   };
 
+  const saveTaskChecklist = async (tid: number, checklist: Task["checklist"]) => {
+    await updateRecord('tasks', tid, { checklist }, 'Task Checklist', setTasks);
+  };
+
   const toggleTaskCheck = async (tid: number, cid: number) => {
     const t = tasks.find(x => x.id === tid);
     if (!t) return;
     const newChecklist = t.checklist.map(c => c.id === cid ? { ...c, done: !c.done } : c);
-    await updateRecord('tasks', tid, { checklist: newChecklist }, 'Task Checklist', setTasks);
+    await saveTaskChecklist(tid, newChecklist);
+  };
+
+  const updateTaskSubtaskText = async (tid: number, cid: number, text: string) => {
+    const t = tasks.find(x => x.id === tid);
+    if (!t) return;
+    const newChecklist = t.checklist.map(c => c.id === cid ? { ...c, text } : c);
+    await saveTaskChecklist(tid, newChecklist);
+  };
+
+  const deleteTaskSubtask = async (tid: number, cid: number) => {
+    const t = tasks.find(x => x.id === tid);
+    if (!t) return;
+    const newChecklist = t.checklist.filter(c => c.id !== cid);
+    await saveTaskChecklist(tid, newChecklist);
+  };
+
+  const addTaskSubtask = async (tid: number, text: string) => {
+    const value = text.trim();
+    if (!value) return;
+    const t = tasks.find(x => x.id === tid);
+    if (!t) return;
+    const newChecklist = [...t.checklist, { id: Date.now(), text: value, done: false, assignedTo: "" }];
+    await saveTaskChecklist(tid, newChecklist);
   };
 
   const toggleTrainingStep = async (mid: number, sid: number) => {
@@ -1397,6 +1462,19 @@ export default function App() {
     }
   };
 
+  const importInvoicesFromCSV = async (rows: Partial<Invoice>[]) => {
+    try {
+      for (const row of rows) {
+        await dbInsert('invoices', row);
+      }
+      await refetch('invoices', setInvoices);
+      alert(`${rows.length} invoice(s) imported successfully.`);
+    } catch (e: any) {
+      console.error("CSV Invoice Import Error:", e);
+      alert(`Import failed: ${e.message || JSON.stringify(e)}`);
+    }
+  };
+
   // ���� Checklist CRUD ����
   const saveChk = async (form: any) => {
     const { id, ...rest } = form;
@@ -1431,9 +1509,33 @@ export default function App() {
     });
   }, [operating, totalMonthlyUtilities]);
 
+  const buildLocalAiFallback = (msg: string) => {
+    const q = msg.toLowerCase();
+    if (q.includes("overdue") || q.includes("task") || q.includes("due")) {
+      return {
+        content: `I could not reach the AI service, but here is a live task snapshot. You currently have ${overdue} overdue task(s), and overall launch progress is ${prog}%. Start by clearing overdue critical items first, then move to tasks due in the next 7 days.`,
+        suggestions: ["Show me the highest-priority overdue tasks", "Which tasks are due in the next 7 days?"]
+      };
+    }
+
+    if (q.includes("budget") || q.includes("cost") || q.includes("expense") || q.includes("financial")) {
+      return {
+        content: `I could not reach the AI service, but your financial snapshot is available. Startup budget is $${totBudget.toLocaleString()} and actual spend is $${totActual.toLocaleString()}. Estimated monthly operating cost is $${totOp.toLocaleString()}.`,
+        suggestions: ["What is currently over budget?", "How can I reduce monthly operating costs?"]
+      };
+    }
+
+    return {
+      content: `I am having trouble reaching the AI service right now, but your data is loaded. Launch progress is ${prog}%, overdue tasks are ${overdue}, startup spend is $${totActual.toLocaleString()}, and monthly operating cost is $${totOp.toLocaleString()}.`,
+      suggestions: ["What should I focus on this week?", "Show a quick risk summary"]
+    };
+  };
+
   const sendAi = async (msg: string) => {
     setAiMsgs(p => [...p, { role: "user", content: msg }]);
     setAiLoad(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
 
     try {
       const promptContext = `
@@ -1456,6 +1558,7 @@ export default function App() {
       const aiRes = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           message: msg,
           systemInstruction: promptContext,
@@ -1479,11 +1582,20 @@ export default function App() {
       setAiMsgs(p => [...p, { role: "assistant", content: cleanResponse, suggestions }]);
     } catch (error) {
       console.error("AI Error:", error);
-      const message = error instanceof Error && /not configured/i.test(error.message)
-        ? "AI assistant is not configured on the server yet. Add a Gemini API key to the deployment environment and redeploy."
-        : "I hit an error while processing that request. Please try again.";
-      setAiMsgs(p => [...p, { role: "assistant", content: message }]);
+      const fallback = buildLocalAiFallback(msg);
+      const reason = error instanceof Error && /not configured/i.test(error.message)
+        ? "AI is not configured on the server yet."
+        : error instanceof Error && /abort/i.test(error.name)
+          ? "AI request timed out."
+          : "AI request failed.";
+
+      setAiMsgs(p => [...p, {
+        role: "assistant",
+        content: `${reason} ${fallback.content}`,
+        suggestions: fallback.suggestions
+      }]);
     } finally {
+      clearTimeout(timeoutId);
       setAiLoad(false);
     }
   };
@@ -2006,7 +2118,7 @@ export default function App() {
         )}
 
       {/* ���� MODALS ���� */}
-      {taskModal  && <TaskModal task={taskModal==="new"?null:taskModal} initialDate={calDate || undefined} onSave={saveTask} onClose={()=>{setTaskModal(null); setCalDate(null);}}/>}
+      {taskModal  && <TaskModal task={taskModal==="new"?null:taskModal} initialDate={calDate || undefined} notes={notes} onSave={saveTask} onClose={()=>{setTaskModal(null); setCalDate(null);}}/>}
       {todoModal && (
         <Modal title={todoModal === "new" ? "Add Todo Item" : "Edit Todo Item"} onClose={() => setTodoModal(null)} width={460}>
           <Field label="TODO TITLE"><input value={todoDraft.title} onChange={e => setTodoDraft(d => ({ ...d, title: e.target.value }))} style={inpStyle} placeholder="e.g. Confirm POS training schedule" /></Field>
@@ -2086,12 +2198,19 @@ export default function App() {
       {menuModal  && <MenuModal item={menuModal==="new"?null:menuModal} onSave={saveMenu} onClose={()=>setMenuModal(null)}/>}
       {finModal   && <FinModal item={finModal.item||null} type={finModal.type} onSave={saveFin} onClose={()=>setFinModal(null)} userRole={currentUser?.role} />}
       {tlModal    && <TimelineModal item={tlModal==="new"?null:tlModal} onSave={saveTL} onClose={()=>setTlModal(null)}/>}
-      {noteModal  && <NoteModal note={noteModal==="new"?null:noteModal} onSave={saveNote} onClose={()=>setNoteModal(null)}/>}
+      {noteModal  && <NoteModal note={noteModal==="new"?null:noteModal} tasks={tasks} onSave={saveNote} onClose={()=>setNoteModal(null)}/>} 
       {noteDetail && <NoteDetailModal note={noteDetail} onClose={() => setNoteDetail(null)} onEdit={(n) => { setNoteDetail(null); setNoteModal(n); }} onDelete={(id) => {
         const selected = noteDetail;
         setNoteDetail(null);
         setDelConfirm({ label: selected.title, onConfirm: () => deleteRecord('notes', id, selected.title, setNotes) });
-      }} isDriveConnected={isDriveConnected} onSaveToDrive={handleSaveToDrive} />}
+      }} isDriveConnected={isDriveConnected} onSaveToDrive={handleSaveToDrive} onOpenLinkedTask={(taskId) => {
+        const linked = tasks.find(t => t.id === taskId);
+        if (linked) {
+          setNoteDetail(null);
+          setTab("tasks");
+          setTaskModal(linked);
+        }
+      }} />}
       {invoiceModal && <InvoiceModal invoice={invoiceModal === "new" ? null : invoiceModal} vendors={vendors} onSave={saveInvoice} onClose={() => setInvoiceModal(null)} />}
       {vendorModal && <VendorModal vendor={vendorModal === "new" ? null : vendorModal} onSave={saveVendor} onClose={() => setVendorModal(null)} />}
       {invModal && <InventoryModal item={invModal === "new" ? null : invModal} vendors={vendors} onSave={saveInv} onClose={() => setInvModal(null)} />}
@@ -2210,7 +2329,16 @@ export default function App() {
                 {/* 7-Day Overview */}
                 <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 24, marginBottom: isMobile ? 16 : 24 }}>
                   <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, marginBottom: 12, fontWeight: 600 }}>7-DAY OVERVIEW</div>
-                  <LaunchWindow tasks={tasks} permits={permits} candidates={candidates} calendarEvents={calendarEvents} />
+                  <LaunchWindow
+                    tasks={tasks}
+                    permits={permits}
+                    candidates={candidates}
+                    calendarEvents={calendarEvents}
+                    onOpenDay={(dateStr) => {
+                      setCalendarFocusDate(dateStr);
+                      setTab("calendar");
+                    }}
+                  />
                 </div>
 
                 {/* Must Act Now */}
@@ -2236,41 +2364,24 @@ export default function App() {
                 <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, padding: isMobile ? "16px" : 28, marginTop: isMobile ? 16 : 24 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 12, flexWrap: "wrap" }}>
                     <div>
-                      <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>TODAY'S TOP TODOS</div>
-                      <div style={{ fontSize: 11, color: T.subtle, marginTop: 2 }}>{openTaskTodos.length} open · showing top 5</div>
+                      <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>TOP 5 URGENT TASKS / SUBTASKS</div>
+                      <div style={{ fontSize: 11, color: T.subtle, marginTop: 2 }}>Sorted by urgency and due date</div>
                     </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <Btn onClick={openNewTodo} variant="outline" small>+ Add Todo</Btn>
-                      <Btn onClick={() => setTab("tasks")} variant="ghost" small>View All</Btn>
-                    </div>
+                    <Btn onClick={() => setTab("tasks")} variant="ghost" small>Open Task Manager</Btn>
                   </div>
-                  {openTaskTodos.length === 0 ? (
-                    <div style={{ fontSize: 12, color: T.green, background: T.greenLight, border: `1px solid ${T.greenBorder}`, borderRadius: 10, padding: "10px 12px" }}>All clear — no open todos!</div>
+                  {urgentTaskSubtasks.length === 0 ? (
+                    <div style={{ fontSize: 12, color: T.green, background: T.greenLight, border: `1px solid ${T.greenBorder}`, borderRadius: 10, padding: "10px 12px" }}>All clear — no urgent task items right now.</div>
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {openTaskTodos.slice(0, 5).map(todo => {
-                        const sc = TODO_STATUS_COLORS[todo.status];
-                        const cc = CAT_COLORS[todo.category] || { dot: T.muted, bg: T.bg, border: T.border };
-                        const doneCount = (todo.subtasks || []).filter(s => s.done).length;
-                        const totalSubs = (todo.subtasks || []).length;
-                        return (
-                          <div key={`dash-todo-${todo.id}`} style={{ display: "flex", alignItems: "center", gap: 10, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 14px", background: T.bg }}>
-                            <input
-                              type="checkbox"
-                              checked={todo.status === "Done"}
-                              onChange={() => toggleTodoDone(todo)}
-                              style={{ width: 15, height: 15, accentColor: T.green, flexShrink: 0, cursor: "pointer" }}
-                            />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: todo.status === "Done" ? T.muted : T.text, textDecoration: todo.status === "Done" ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{todo.title}</div>
-                              {totalSubs > 0 && <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>{doneCount}/{totalSubs} subtasks</div>}
-                            </div>
-                            <span style={{ fontSize: 10, background: cc.bg, color: cc.dot, border: `1px solid ${cc.border}`, borderRadius: 999, padding: "2px 7px", whiteSpace: "nowrap", flexShrink: 0 }}>{todo.category}</span>
-                            <span style={{ fontSize: 10, background: sc.bg, color: sc.text, border: `1px solid ${sc.border}`, borderRadius: 999, padding: "2px 7px", whiteSpace: "nowrap", flexShrink: 0 }}>{todo.status}</span>
-                            <button onClick={() => openEditTodo(todo)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 8px", color: T.muted, cursor: "pointer", fontSize: 11, flexShrink: 0 }}>Edit</button>
+                      {urgentTaskSubtasks.map(item => (
+                        <div key={`urgent-${item.id}`} style={{ border: `1px solid ${T.redBorder}`, borderRadius: 10, padding: "10px 12px", background: T.redLight }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: T.text, overflowWrap: "anywhere" }}>{item.label}</div>
+                            <span style={{ fontSize: 10, borderRadius: 999, border: `1px solid ${T.redBorder}`, padding: "2px 8px", color: T.red, background: "#FFF" }}>{item.type}</span>
                           </div>
-                        );
-                      })}
+                          <div style={{ fontSize: 11, color: T.muted, marginTop: 3 }}>{item.meta}</div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -2559,36 +2670,99 @@ export default function App() {
               </div>
 
               {isMobile ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   {filteredTasks.length === 0 ? (
-                    <div style={{ border: `1px dashed ${T.border}`, borderRadius: 10, padding: "14px 12px", color: T.muted, fontSize: 12 }}>
+                    <div style={{ border: `1px dashed ${T.border}`, borderRadius: 16, padding: "24px 16px", color: T.muted, fontSize: 13, textAlign: "center", background: "#FFF" }}>
                       No tasks match current filters.
                     </div>
                   ) : (
                     filteredTasks.map(task => {
+                      const cc = CAT_COLORS[task.category] || {};
+                      const sc = STATUS_COLORS[task.status] || {};
+                      const pc = PRIORITY_COLORS[task.priority] || {};
                       const total = task.checklist.length;
                       const done = task.checklist.filter(item => item.done).length;
                       const pct = total ? Math.round((done / total) * 100) : 0;
+                      const expanded = !!expandedTaskCards[task.id];
+                      const newSubtaskValue = subtaskDrafts[task.id] || "";
                       return (
-                        <div key={`task-mobile-${task.id}`} style={{ border: `1px solid ${T.border}`, borderRadius: 12, padding: "10px 12px", background: "#FFF" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start", marginBottom: 8 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: T.text, overflowWrap: "anywhere" }}>{task.task}</div>
-                            <button onClick={() => setTaskModal(task)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
+                        <div key={`task-mobile-${task.id}`} className="mobile-card" style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
+                          {/* Color accent bar */}
+                          <div style={{ height: 4, background: `linear-gradient(90deg, ${cc.dot || T.gold} 0%, ${cc.dot || T.gold}55 100%)` }} />
+                          
+                          <div style={{ padding: "14px 16px 0" }}>
+                            {/* Top row: title + actions */}
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", marginBottom: 10 }}>
+                              <button onClick={() => setExpandedTaskCards(prev => ({ ...prev, [task.id]: !prev[task.id] }))} style={{ background: "none", border: "none", padding: 0, margin: 0, fontSize: 15, fontWeight: 700, color: T.text, lineHeight: 1.3, textAlign: "left", cursor: "pointer", flex: 1, minWidth: 0 }}>{task.task}</button>
+                              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                                <button onClick={() => setTaskModal(task)} title="Edit" style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center" }}><PenLine size={15} /></button>
+                                <button onClick={() => setDelConfirm({ label: task.task, onConfirm: () => deleteRecord('tasks', task.id, task.task, setTasks) })} title="Delete" style={{ background: T.redLight, border: `1px solid ${T.redBorder}`, borderRadius: 10, padding: "8px 10px", color: T.red, cursor: "pointer", display: "flex", alignItems: "center" }}><Trash2 size={15} /></button>
+                              </div>
+                            </div>
+
+                            {/* Meta badges */}
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+                              <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 99, background: cc.bg || T.bg, color: cc.dot || T.muted, border: `1px solid ${cc.border || T.border}`, fontWeight: 600 }}>{task.category}</span>
+                              <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 99, background: sc.bg || T.bg, color: sc.text || T.muted, border: `1px solid ${sc.border || T.border}`, fontWeight: 600 }}>{task.status}</span>
+                              <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 99, background: pc.bg || T.bg, color: pc.text || T.muted, border: `1px solid ${pc.border || T.border}`, fontWeight: 700 }}>{task.priority}</span>
+                              {task.due && <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 99, background: T.bg, color: T.muted, border: `1px solid ${T.border}` }}>Due {new Date(task.due + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
+                            </div>
+
+                            {/* Progress bar */}
+                            {total > 0 && (
+                              <div style={{ marginBottom: 12 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                                  <span style={{ fontSize: 11, color: T.muted }}>Subtasks</span>
+                                  <span style={{ fontSize: 11, color: pct === 100 ? T.green : T.muted, fontWeight: 600 }}>{done}/{total}</span>
+                                </div>
+                                <div style={{ height: 6, borderRadius: 999, background: T.bg, overflow: "hidden" }}>
+                                  <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? T.green : T.gold, transition: "width .3s ease", borderRadius: 999 }} />
+                                </div>
+                              </div>
+                            )}
                           </div>
-                          <div style={{ height: 6, borderRadius: 999, background: T.bg, border: `1px solid ${T.border}`, overflow: "hidden", marginBottom: 8 }}>
-                            <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? T.green : T.gold }} />
-                          </div>
-                          <div style={{ fontSize: 11, color: T.muted, marginBottom: 8 }}>{done}/{total} subtasks complete</div>
-                          {task.checklist.length === 0 ? (
-                            <div style={{ fontSize: 11, color: T.muted }}>No subtasks yet. Tap Edit to add checklist items.</div>
-                          ) : (
-                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                              {task.checklist.map(item => (
-                                <label key={`task-mobile-check-${task.id}-${item.id}`} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                                  <input type="checkbox" checked={item.done} onChange={() => toggleTaskCheck(task.id, item.id)} style={{ width: 14, height: 14, accentColor: T.green }} />
-                                  <span style={{ fontSize: 12, color: item.done ? T.muted : T.text, textDecoration: item.done ? "line-through" : "none" }}>{item.text}</span>
-                                </label>
-                              ))}
+
+                          {/* Expand toggle button */}
+                          <button
+                            onClick={() => setExpandedTaskCards(prev => ({ ...prev, [task.id]: !prev[task.id] }))}
+                            style={{ width: "100%", background: "none", border: "none", borderTop: `1px solid ${T.border}`, padding: "11px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: T.muted, cursor: "pointer", fontSize: 12, fontWeight: 600 }}
+                          >
+                            {expanded ? "▲ Hide subtasks" : `▼ ${total > 0 ? `${total} subtask${total !== 1 ? "s" : ""}` : "Add subtasks"}`}
+                          </button>
+
+                          {/* Subtask panel */}
+                          {expanded && (
+                            <div style={{ background: T.bg, borderTop: `1px solid ${T.border}`, padding: "14px 16px 16px" }}>
+                              {task.checklist.length === 0 && <div style={{ fontSize: 12, color: T.muted, marginBottom: 10, textAlign: "center" }}>No subtasks yet — add one below.</div>}
+                              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+                                {task.checklist.map(item => (
+                                  <div key={`task-mobile-check-${task.id}-${item.id}`} style={{ display: "flex", alignItems: "center", gap: 10, background: "#FFF", borderRadius: 12, padding: "10px 12px", border: `1px solid ${T.border}` }}>
+                                    <button onClick={() => toggleTaskCheck(task.id, item.id)} style={{ width: 22, height: 22, minWidth: 22, border: `2px solid ${item.done ? T.green : T.border}`, borderRadius: 6, background: item.done ? T.greenLight : "#FFF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer", padding: 0 }}>
+                                      {item.done && <span style={{ color: T.green, fontSize: 12, fontWeight: 700 }}>✓</span>}
+                                    </button>
+                                    <span style={{ flex: 1, fontSize: 13, color: item.done ? T.muted : T.text, textDecoration: item.done ? "line-through" : "none", lineHeight: 1.4 }}>{item.text}</span>
+                                    <button onClick={() => deleteTaskSubtask(task.id, item.id)} style={{ background: "none", border: "none", padding: 4, color: T.subtle, cursor: "pointer", display: "flex", alignItems: "center" }}><Trash2 size={13} /></button>
+                                  </div>
+                                ))}
+                              </div>
+                              <div style={{ display: "flex", gap: 8 }}>
+                                <input
+                                  value={newSubtaskValue}
+                                  onChange={e => setSubtaskDrafts(prev => ({ ...prev, [task.id]: e.target.value }))}
+                                  onKeyDown={e => {
+                                    if (e.key === "Enter") {
+                                      addTaskSubtask(task.id, newSubtaskValue);
+                                      setSubtaskDrafts(prev => ({ ...prev, [task.id]: "" }));
+                                    }
+                                  }}
+                                  placeholder="Add subtask..."
+                                  style={{ ...inpStyle, fontSize: 13, padding: "10px 14px", flex: 1, borderRadius: 12 }}
+                                />
+                                <Btn onClick={() => {
+                                  addTaskSubtask(task.id, newSubtaskValue);
+                                  setSubtaskDrafts(prev => ({ ...prev, [task.id]: "" }));
+                                }} variant="primary" small>+ Add</Btn>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -2597,7 +2771,8 @@ export default function App() {
                   )}
                 </div>
               ) : (
-                <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
+                <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" as any }}>
+                <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden", minWidth: 780 }}>
                   <div style={{ display: "grid", gridTemplateColumns: "28px minmax(260px, 1.8fr) 120px 140px 100px 90px minmax(120px, auto)", gap: 0, padding: "10px 18px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
                     {["", "TASK / PROGRESS", "DUE", "STATUS", "OWNER", "PRIORITY", ""].map((h, i) => (
                       <div key={`task-head-${i}`} style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, color: T.subtle, letterSpacing: .8 }}>{h}</div>
@@ -2615,17 +2790,18 @@ export default function App() {
                         onEdit={setTaskModal}
                         onDelete={t => setDelConfirm({ label: t.task, onConfirm: () => deleteRecord('tasks', t.id, t.task, setTasks) })}
                         onStatusChange={(id, s) => updateRecord('tasks', id, { status: s }, 'Task Status', setTasks)}
-                        onToggleCheck={toggleTaskCheck}
+                        onSaveChecklist={saveTaskChecklist}
                       />
                     ))
                   )}
+                </div>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* �"��"��"��"��"��"� MENU & BAR �"��"��"��"��"��"� */}
+        {/* ═══ MENU & BAR */}
         {tab==="menu" && (
           <div className="fu">
             <SectionHeader title="Menu & Bar Planner" subtitle="Track items, costs, and hero dishes"
@@ -2708,7 +2884,84 @@ export default function App() {
         {tab === "shopping" && (
           <div className="fu">
             <SectionHeader title="Consolidated Shopping List" subtitle="All ingredients required for your current menu items"
-              action={<div style={{ display: "flex", gap: 8 }}><Btn onClick={openNewShopItem} variant="primary">+ Add Item</Btn><Btn onClick={() => window.print()} variant="outline">Print List</Btn></div>} />
+              action={
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <Btn onClick={() => {
+                    // Download CSV template
+                    const header = "name,category,department,quantity,unit,totalCost,purchaseType,vendorName,storeName,storeUrl";
+                    const eg = "Avocados,Operating Supplies,Kitchen,10,flats,35.00,Vendor,Green Valley Farms,,";
+                    const blob = new Blob([header + "\n" + eg], { type: "text/csv" });
+                    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "shopping_import_template.csv"; a.click();
+                  }} variant="ghost" small><Download size={13} style={{ marginRight: 4 }} />Template</Btn>
+                  <label style={{ cursor: "pointer" }}>
+                    <input type="file" accept=".csv" style={{ display: "none" }} onChange={async e => {
+                      const file = e.target.files?.[0]; if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = async () => {
+                        try {
+                          const text = String(reader.result || "");
+                          const lines = text.trim().split("\n");
+                          const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ""));
+                          const rows = lines.slice(1).map(line => {
+                            const vals = line.split(",").map(v => v.trim().replace(/^"|"$/g, ""));
+                            const obj: any = {};
+                            headers.forEach((h, i) => { obj[h] = vals[i] ?? ""; });
+                            return obj;
+                          }).filter(r => r.name);
+                          for (const row of rows) {
+                            await dbInsert("shopping_list_items", {
+                              name: row.name,
+                              category: row.category || "Operating Supplies",
+                              department: row.department || "Kitchen",
+                              quantity: parseFloat(row.quantity) || 0,
+                              unit: row.unit || "",
+                              totalCost: parseFloat(row.totalCost) || 0,
+                              items: "",
+                              purchaseType: row.purchaseType || null,
+                              vendorName: row.purchaseType === "Vendor" ? (row.vendorName || null) : null,
+                              storeName: row.purchaseType === "Store" ? (row.storeName || null) : null,
+                              storeUrl: row.purchaseType === "Store" ? (row.storeUrl || null) : null,
+                              sourceKey: null,
+                            });
+                          }
+                          await refetch("shopping_list_items", setDbShoppingItems);
+                          alert(`${rows.length} item(s) imported.`);
+                        } catch { alert("Failed to parse CSV. Please use the template."); }
+                        e.target.value = "";
+                      };
+                      reader.readAsText(file);
+                    }} />
+                    <Btn onClick={() => {}} variant="outline" small style={{ pointerEvents: "none" }}><Upload size={13} style={{ marginRight: 4 }} />Import CSV</Btn>
+                  </label>
+                  <Btn onClick={() => {
+                    const rows = consolidatedShoppingRows.map(ing => `
+                      <tr>
+                        <td>${ing.name}</td><td>${ing.category}</td><td>${ing.department}</td>
+                        <td>${ing.purchaseType === "Vendor" ? (ing.vendorName || "—") : ing.purchaseType === "Store" ? (ing.storeName || "—") : "—"}</td>
+                        <td style="text-align:right">${ing.quantity} ${ing.unit}</td>
+                        <td style="text-align:right;font-weight:700">$${ing.totalCost.toFixed(2)}</td>
+                      </tr>`).join("");
+                    const html = `<html><head><title>Shopping List</title><style>
+                      body{font-family:sans-serif;font-size:11px;color:#172125}
+                      table{width:100%;border-collapse:collapse}
+                      th{background:#F5F2EE;text-align:left;padding:8px 10px;font-size:9px;letter-spacing:1px;border-bottom:2px solid #E8E0D6}
+                      td{padding:8px 10px;border-bottom:1px solid #EAE6E0}
+                      tr:nth-child(even) td{background:#FAFAF8}
+                      h2{font-size:16px;margin:0 0 4px}p{margin:0 0 16px;color:#8B9298;font-size:11px}
+                      .total{text-align:right;margin-top:12px;font-weight:700;font-size:13px}
+                    </style></head><body>
+                      <h2>Shopping List</h2>
+                      <p>Printed ${new Date().toLocaleDateString()} · ${consolidatedShoppingRows.length} items</p>
+                      <table><thead><tr>${["INGREDIENT","CATEGORY","DEPT","WHERE TO BUY","QTY","COST"].map(h=>`<th>${h}</th>`).join("")}</tr></thead>
+                      <tbody>${rows}</tbody></table>
+                      <div class="total">Total: $${consolidatedShoppingRows.reduce((s,r)=>s+r.totalCost,0).toFixed(2)}</div>
+                    </body></html>`;
+                    const w = window.open("", "_blank"); if (!w) return;
+                    w.document.write(html); w.document.close(); w.focus(); w.print();
+                  }} variant="outline" small><Printer size={13} style={{ marginRight: 4 }} />Print</Btn>
+                  <Btn onClick={openNewShopItem} variant="primary">+ Add Item</Btn>
+                </div>
+              } />
             
             {/* Filters */}
             <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: "16px 20px", marginBottom: 18 }}>
@@ -2748,12 +3001,12 @@ export default function App() {
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
                   <Field label="FILTER VENDOR">
-                    <select value={shopVendorF} onChange={e => setShopVendorF(e.target.value)} style={{ ...inpStyle, height: 38 }}>
+                    <select value={shopVendorF} onChange={e => setShopVendorF(e.target.value)} style={{ ...dropdownStyle, height: 36, fontSize: 11, padding: "6px 10px" }}>
                       {shopVendorOptions.map(v => <option key={v} value={v}>{v}</option>)}
                     </select>
                   </Field>
                   <Field label="FILTER STORE">
-                    <select value={shopStoreF} onChange={e => setShopStoreF(e.target.value)} style={{ ...inpStyle, height: 38 }}>
+                    <select value={shopStoreF} onChange={e => setShopStoreF(e.target.value)} style={{ ...dropdownStyle, height: 36, fontSize: 11, padding: "6px 10px" }}>
                       {shopStoreOptions.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </Field>
@@ -2799,7 +3052,8 @@ export default function App() {
                 )}
               </div>
             ) : (
-              <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
+              <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" as any }}>
+              <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden", minWidth: 900 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr 1.2fr 120px 120px 1.8fr 130px", padding: "10px 18px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
                   {["INGREDIENT", "CATEGORY", "DEPT", "WHERE TO BUY", "TOTAL QTY", "TOTAL COST", "USED IN DISHES", "ACTIONS"].map(h => (
                     <div key={h} style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, color: T.subtle, letterSpacing: .8 }}>{h}</div>
@@ -2833,6 +3087,7 @@ export default function App() {
                     </div>
                   ))
                 )}
+              </div>
               </div>
             )}
           </div>
@@ -3022,6 +3277,13 @@ export default function App() {
                     onDelete={id => setDelConfirm({ label: n.title, onConfirm: () => deleteRecord('notes', id, n.title, setNotes) })}
                     isDriveConnected={isDriveConnected}
                     onSaveToDrive={handleSaveToDrive}
+                    onOpenLinkedTask={(taskId) => {
+                      const linked = tasks.find(t => t.id === taskId);
+                      if (linked) {
+                        setTab("tasks");
+                        setTaskModal(linked);
+                      }
+                    }}
                   />
                 ))
               )}
@@ -3073,6 +3335,7 @@ export default function App() {
             onEditCan={setCanModal}
             onSaveCalendarEvent={saveCalendarEvent}
             onDeleteCalendarEvent={deleteCalendarEvent}
+            initialSelectedDate={calendarFocusDate}
           />
         )}
 
@@ -3218,7 +3481,8 @@ export default function App() {
             invoices={invoices} 
             onEdit={setInvoiceModal} 
             onDelete={inv => setDelConfirm({ label: `Invoice from ${inv.vendorName}`, onConfirm: () => deleteRecord('invoices', inv.id, `Invoice ${inv.vendorName}`, setInvoices) })} 
-            onAdd={() => setInvoiceModal("new")} 
+            onAdd={() => setInvoiceModal("new")}
+            onImportCSV={importInvoicesFromCSV}
           />
         )}
 

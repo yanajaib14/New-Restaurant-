@@ -100,6 +100,7 @@ export interface Task {
   checklist: ChecklistItem[];
   assignedTo?: string;
   isCritical?: boolean;
+  linkedNoteId?: number | null;
 }
 
 export interface TodoSubtask {
@@ -192,6 +193,7 @@ export interface Note {
   body: string;
   date: string;
   files: NoteFile[];
+  linkedTaskId?: number | null;
 }
 
 export interface Vendor {
@@ -274,6 +276,10 @@ export interface DailyChecklist {
 export interface Invoice {
   id: number;
   vendorName: string;
+  paidBy?: string;
+  paymentMethod?: "Cash" | "Credit Card" | "Check" | "Other";
+  creditCardName?: string;
+  checkNumber?: string;
   date: string;
   amount: number;
   category: string;

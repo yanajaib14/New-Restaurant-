@@ -142,14 +142,14 @@ function DayPanel({
 
   const panel: React.CSSProperties = isMobile
     ? {
-        background: '#FFF', borderRadius: '20px 20px 0 0', width: '100%',
-        maxHeight: '85vh', overflowY: 'auto', padding: '0 0 32px',
-        boxShadow: '0 -8px 40px rgba(0,0,0,.12)',
+        background: '#FFF', borderRadius: '28px 28px 0 0', width: '100%',
+        maxHeight: '90vh', overflowY: 'auto', padding: '0 0 env(safe-area-inset-bottom, 32px)',
+        boxShadow: '0 -12px 48px rgba(0,0,0,.16)',
       }
     : {
-        background: '#FFF', borderRadius: 20, width: 480, maxWidth: '92vw',
-        maxHeight: '80vh', overflowY: 'auto',
-        boxShadow: '0 16px 48px rgba(0,0,0,.14)', padding: '0 0 28px',
+        background: '#FFF', borderRadius: 24, width: 520, maxWidth: '94vw',
+        maxHeight: '82vh', overflowY: 'auto',
+        boxShadow: '0 20px 60px rgba(0,0,0,.14)', padding: '0 0 28px',
       };
 
   return (
@@ -159,7 +159,7 @@ function DayPanel({
         <div style={{ position: 'sticky', top: 0, background: '#FFF', padding: isMobile ? '16px 20px 12px' : '20px 24px 14px',
           borderBottom: `1px solid ${T.border}`, zIndex: 1, borderRadius: isMobile ? '20px 20px 0 0' : 20 }}>
           {isMobile && (
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: T.border, margin: '0 auto 12px' }} />
+            <div style={{ width: 44, height: 5, borderRadius: 3, background: '#D5D5D0', margin: '8px auto 12px' }} />
           )}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
@@ -284,10 +284,11 @@ function DayPanel({
 
 // ─── LaunchWindow ─────────────────────────────────────────────────────────────
 
-export function LaunchWindow({ tasks, permits, candidates, calendarEvents }: {
-  tasks: Task[], permits: Permit[], candidates: Candidate[], calendarEvents?: CalendarEvent[]
+export function LaunchWindow({ tasks, permits, candidates, calendarEvents, onOpenDay }: {
+  tasks: Task[], permits: Permit[], candidates: Candidate[], calendarEvents?: CalendarEvent[], onOpenDay?: (dateStr: string) => void
 }) {
   const isMobile = window.innerWidth < 1024;
+  const [hoveredDay, setHoveredDay] = React.useState<string | null>(null);
   const today = new Date();
   today.setHours(12, 0, 0, 0);
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -321,9 +322,13 @@ export function LaunchWindow({ tasks, permits, candidates, calendarEvents }: {
               ...dayEvents.map(e => ({ label: e.title, color: CALENDAR_EVENT_COLORS[e.type as CalendarEventType]?.dot || T.gold })),
             ];
             return (
-              <div key={dateStr} style={{ border: `1px solid ${isToday ? T.gold : T.border}`, borderRadius: 12,
+              <div key={dateStr}
+                onClick={() => onOpenDay?.(dateStr)}
+                onMouseEnter={() => !isMobile && setHoveredDay(dateStr)}
+                onMouseLeave={() => !isMobile && setHoveredDay(null)}
+                style={{ border: `1px solid ${isToday ? T.gold : T.border}`, borderRadius: 12,
                 padding: isMobile ? 8 : 12, background: isToday ? T.goldLight : 'none',
-                minHeight: isMobile ? 90 : 140, transition: 'all .3s ease' }}>
+                minHeight: isMobile ? 90 : 140, transition: 'all .3s ease', position: 'relative', cursor: 'pointer' }}>
                 <div style={{ fontSize: isMobile ? 9 : 10, color: T.muted, marginBottom: 4, textAlign: 'center',
                   fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontWeight: 700, letterSpacing: 0.5 }}>
                   {date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'America/Phoenix' }).slice(0, isMobile ? 1 : 3).toUpperCase()}
@@ -348,6 +353,23 @@ export function LaunchWindow({ tasks, permits, candidates, calendarEvents }: {
                     </div>
                   )}
                 </div>
+                {!isMobile && hoveredDay === dateStr && events.length > 0 && (
+                  <div style={{ position: 'absolute', left: 8, right: 8, top: '100%', marginTop: 6, zIndex: 20,
+                    background: '#FFF', border: `1px solid ${T.border}`, borderRadius: 10, padding: '8px 10px',
+                    boxShadow: '0 8px 20px rgba(0,0,0,.08)' }}>
+                    <div style={{ fontSize: 9, color: T.subtle, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: 0.7, marginBottom: 5 }}>
+                      DAY OVERVIEW
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {events.slice(0, 5).map((ev, idx) => (
+                        <div key={`hover-${idx}`} style={{ fontSize: 10, color: T.text, display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                          <span style={{ color: ev.color, lineHeight: 1.1 }}>•</span>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -363,6 +385,7 @@ export function FullCalendar({
   tasks, marketing, training, candidates, calendarEvents,
   onEditTask, onEditMkt, onEditTrain, onEditCan,
   onSaveCalendarEvent, onDeleteCalendarEvent,
+  initialSelectedDate,
 }: {
   tasks: Task[];
   marketing: MarketingPost[];
@@ -375,10 +398,12 @@ export function FullCalendar({
   onEditCan: (c: any) => void;
   onSaveCalendarEvent: (form: any) => void;
   onDeleteCalendarEvent: (id: number) => void;
+  initialSelectedDate?: string | null;
 }) {
   const [currentDate, setCurrentDate] = React.useState(() => new Date());
   const [selectedDay, setSelectedDay] = React.useState<string | null>(null);
   const [eventModal, setEventModal] = React.useState<CalendarEvent | 'new' | null>(null);
+  const [expandedAgendaDates, setExpandedAgendaDates] = React.useState<Record<string, boolean>>({});
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -427,7 +452,17 @@ export function FullCalendar({
 
   const handleDayClick = (ds: string) => {
     setSelectedDay(ds);
+    setExpandedAgendaDates(prev => ({ ...prev, [ds]: true }));
   };
+
+  React.useEffect(() => {
+    if (!initialSelectedDate) return;
+    const d = new Date(initialSelectedDate + 'T12:00:00');
+    if (Number.isNaN(d.getTime())) return;
+    setCurrentDate(new Date(d.getFullYear(), d.getMonth(), 1));
+    setSelectedDay(initialSelectedDate);
+    setExpandedAgendaDates(prev => ({ ...prev, [initialSelectedDate]: true }));
+  }, [initialSelectedDate]);
 
   const handleSaveEvent = (form: any) => {
     onSaveCalendarEvent({ ...form, _editId: eventModal !== 'new' ? (eventModal as CalendarEvent)?.id : undefined });
@@ -438,6 +473,16 @@ export function FullCalendar({
   const handleDeleteEvent = (id: number) => {
     onDeleteCalendarEvent(id);
   };
+
+  const upcomingAgenda = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date();
+    d.setHours(12, 0, 0, 0);
+    d.setDate(d.getDate() + i);
+    const ds = toDateStr(d);
+    const dayItems = getItemsForDate(d);
+    const dayEvents = calendarEvents.filter(e => e.date === ds).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+    return { ds, dayItems, dayEvents, total: dayItems.length + dayEvents.length };
+  }).filter(x => x.total > 0);
 
   return (
     <div>
@@ -486,10 +531,11 @@ export function FullCalendar({
         ))}
       </div>
 
-      {/* Calendar grid */}
-      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any }}>
-        <div style={{ background: '#FFF', border: `1px solid ${T.border}`, borderRadius: 16,
-          overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,.02)', minWidth: isMobile ? 340 : 'auto' }}>
+      {/* Calendar + Agenda */}
+      <div style={{ display: isMobile ? 'block' : 'grid', gridTemplateColumns: isMobile ? undefined : '3fr 1fr', gap: 14, alignItems: 'start' }}>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any }}>
+          <div style={{ background: '#FFF', border: `1px solid ${T.border}`, borderRadius: 16,
+            overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,.02)', minWidth: isMobile ? 340 : 'auto' }}>
 
           {/* Day headers */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
@@ -501,9 +547,9 @@ export function FullCalendar({
             ))}
           </div>
 
-          {/* Day cells */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
-            gridAutoRows: `minmax(${isMobile ? 56 : 110}px, auto)` }}>
+            {/* Day cells */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
+              gridAutoRows: `minmax(${isMobile ? 72 : 104}px, auto)` }}>
             {calendarDays.map((date, i) => {
               if (!date) return (
                 <div key={`empty-${i}`} style={{ background: '#FAFAFA',
@@ -519,18 +565,18 @@ export function FullCalendar({
               return (
                 <div key={ds} onClick={() => handleDayClick(ds)}
                   style={{ borderRight: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}`,
-                    padding: isMobile ? '4px 3px' : '8px 8px', cursor: 'pointer', transition: 'background .1s',
+                    padding: isMobile ? '6px 4px' : '8px 8px', cursor: 'pointer', transition: 'background .12s',
                     background: isSelected ? '#FFF3E8' : isToday ? T.goldLight : '#FFF',
                     outline: isSelected ? `2px solid ${T.gold}` : 'none',
-                    outlineOffset: -2, position: 'relative' }}>
+                    outlineOffset: -2, position: 'relative', WebkitTapHighlightColor: 'transparent' }}>
 
                   {/* Date number */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'space-between',
                     marginBottom: isMobile ? 3 : 6 }}>
-                    <div style={{ width: isMobile ? 20 : 24, height: isMobile ? 20 : 24, borderRadius: '50%',
+                    <div style={{ width: isMobile ? 26 : 24, height: isMobile ? 26 : 24, borderRadius: '50%',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: isToday ? T.gold : 'none', color: isToday ? '#FFF' : isSelected ? T.gold : T.text,
-                      fontSize: isMobile ? 11 : 12, fontWeight: 700 }}>
+                      fontSize: isMobile ? 13 : 12, fontWeight: 700 }}>
                       {date.getDate()}
                     </div>
                     {!isMobile && totalCount > 0 && (
@@ -584,20 +630,118 @@ export function FullCalendar({
                 </div>
               );
             })}
+            </div>
           </div>
         </div>
+
+        {!isMobile && (
+          <div style={{ background: '#FFF', border: `1px solid ${T.border}`, borderRadius: 16, padding: 12, maxHeight: 'calc(100vh - 220px)', overflowY: 'auto' }}>
+            <div style={{ fontSize: 10, color: T.muted, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: 1, fontWeight: 700, marginBottom: 8 }}>
+              UPCOMING (NEXT 30 DAYS)
+            </div>
+            {upcomingAgenda.length === 0 ? (
+              <div style={{ fontSize: 12, color: T.subtle, padding: '8px 4px' }}>No upcoming items.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {upcomingAgenda.map(day => {
+                  const expanded = !!expandedAgendaDates[day.ds] || selectedDay === day.ds;
+                  const preview = [
+                    ...day.dayEvents.map(e => `${e.time ? `${e.time} ` : ''}${e.title}`),
+                    ...day.dayItems.map(i => i.label),
+                  ];
+                  return (
+                    <div key={`agenda-${day.ds}`} style={{ border: `1px solid ${T.border}`, borderRadius: 10, background: selectedDay === day.ds ? T.goldLight : '#FFF' }}>
+                      <button
+                        onClick={() => {
+                          setSelectedDay(day.ds);
+                          setExpandedAgendaDates(prev => ({ ...prev, [day.ds]: !prev[day.ds] }));
+                        }}
+                        style={{ width: '100%', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', padding: '8px 10px' }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: T.text }}>{fmtDate(day.ds)}</div>
+                          <span style={{ fontSize: 10, color: T.muted }}>{day.total} item{day.total !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div style={{ marginTop: 5, paddingLeft: 14 }}>
+                          {(expanded ? preview : preview.slice(0, 3)).map((line, idx) => (
+                            <div key={`preview-${day.ds}-${idx}`} style={{ fontSize: 11, color: T.muted, lineHeight: 1.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              • {line}
+                            </div>
+                          ))}
+                        </div>
+                      </button>
+                      {expanded && (
+                        <div style={{ borderTop: `1px solid ${T.border}`, padding: '8px 10px' }}>
+                          <button onClick={() => { setSelectedDay(day.ds); setEventModal('new'); }} style={{ background: T.goldLight, border: `1px solid ${T.goldBorder}`, color: T.gold, borderRadius: 8, padding: '6px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', marginBottom: 8 }}>+ Add Event</button>
+
+                          {day.dayEvents.length > 0 && (
+                            <div style={{ marginBottom: 8 }}>
+                              <div style={{ fontSize: 10, color: T.subtle, fontFamily: "'IBM Plex Mono', monospace", marginBottom: 6 }}>EVENTS</div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                {day.dayEvents.map(ev => {
+                                  const c = CALENDAR_EVENT_COLORS[ev.type as CalendarEventType] || CALENDAR_EVENT_COLORS['Event'];
+                                  return (
+                                    <div key={`day-ev-${ev.id}`} style={{ border: `1px solid ${c.border}`, background: c.bg, borderRadius: 8, padding: '7px 8px' }}>
+                                      <div style={{ fontSize: 12, fontWeight: 700, color: T.text }}>{ev.time ? `${ev.time} · ` : ''}{ev.title}</div>
+                                      {ev.notes && <div style={{ fontSize: 11, color: T.muted, marginTop: 3 }}>{ev.notes}</div>}
+                                      <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                                        <button onClick={() => { setSelectedDay(day.ds); setEventModal(ev); }} style={{ background: 'none', border: `1px solid ${T.border}`, borderRadius: 6, padding: '3px 8px', fontSize: 10, color: T.muted, cursor: 'pointer' }}>Edit</button>
+                                        <button onClick={() => handleDeleteEvent(ev.id)} style={{ background: 'none', border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: '3px 8px', fontSize: 10, color: T.red, cursor: 'pointer' }}>Delete</button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {day.dayItems.length > 0 && (
+                            <div>
+                              <div style={{ fontSize: 10, color: T.subtle, fontFamily: "'IBM Plex Mono', monospace", marginBottom: 6 }}>SCHEDULED ITEMS</div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                {day.dayItems.map((item, idx) => (
+                                  <div key={`day-item-${day.ds}-${idx}`} style={{ border: `1px solid ${item.border}`, background: item.bg, borderRadius: 8, padding: '7px 8px' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: T.text }}>{item.label}</div>
+                                    {item.sublabel && <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>{item.sublabel}</div>}
+                                    <div style={{ marginTop: 6 }}>
+                                      <button
+                                        onClick={() => {
+                                          if (item.type === 'task') onEditTask(item.original);
+                                          else if (item.type === 'marketing') onEditMkt(item.original);
+                                          else if (item.type === 'training') onEditTrain(item.original);
+                                          else if (item.type === 'hiring') onEditCan(item.original);
+                                        }}
+                                        style={{ background: 'none', border: `1px solid ${T.border}`, borderRadius: 6, padding: '3px 8px', fontSize: 10, color: T.muted, cursor: 'pointer' }}
+                                      >
+                                        Open
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Mobile hint */}
       {isMobile && (
-        <div style={{ textAlign: 'center', marginTop: 10, fontSize: 11, color: T.subtle,
-          fontFamily: "'Segoe UI', sans-serif" }}>
+        <div style={{ textAlign: 'center', marginTop: 14, fontSize: 12, color: T.subtle,
+          fontFamily: "'Segoe UI', sans-serif", padding: '0 16px', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
           Tap any day to view or add events
         </div>
       )}
 
       {/* Day Panel */}
-      {selectedDay && (
+      {isMobile && selectedDay && (
         <DayPanel
           dateStr={selectedDay}
           items={getItemsForDate(new Date(selectedDay + 'T12:00:00'))}

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { T, CAT_COLORS, STATUS_COLORS, PRIORITY_COLORS, CATEGORIES, Task } from '../types';
+import { T, CAT_COLORS, STATUS_COLORS, PRIORITY_COLORS, CATEGORIES, Task, Note } from '../types';
 import { Modal, Field, inpStyle, selStyle, Btn } from './UI';
+import { PenLine, Trash2 } from 'lucide-react';
 
-export function TaskModal({ task, initialDate, onSave, onClose }: { task: Task | null, initialDate?: string, onSave: (form: any) => void, onClose: () => void }) {
+export function TaskModal({ task, initialDate, notes, onSave, onClose }: { task: Task | null, initialDate?: string, notes: Note[], onSave: (form: any) => void, onClose: () => void }) {
   const isMobile = window.innerWidth < 1024;
-  const blank = { task: "", category: "Lease & TI", due: initialDate || "", status: "Not Started", priority: "Medium", checklist: [], assignedTo: "", isCritical: false };
+  const blank = { task: "", category: "Lease & TI", due: initialDate || "", status: "Not Started", priority: "Medium", checklist: [], assignedTo: "", isCritical: false, linkedNoteId: null };
   const [form, setForm] = useState<any>(task ? { ...task, checklist: task.checklist.map(c => ({ ...c })) } : blank);
   const [newItem, setNewItem] = useState("");
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
@@ -25,6 +26,12 @@ export function TaskModal({ task, initialDate, onSave, onClose }: { task: Task |
         <Field label="STATUS"><select value={form.status} onChange={e => set("status", e.target.value)} style={selStyle}>{["Not Started", "In Progress", "Complete", "Overdue"].map(s => <option key={s}>{s}</option>)}</select></Field>
       </div>
       <Field label="ASSIGNED TO"><input value={form.assignedTo} onChange={e => set("assignedTo", e.target.value)} placeholder="e.g. Partner Name, Manager" style={inpStyle} /></Field>
+      <Field label="LINKED NOTE (OPTIONAL)">
+        <select value={form.linkedNoteId || ""} onChange={e => set("linkedNoteId", e.target.value ? Number(e.target.value) : null)} style={selStyle}>
+          <option value="">None</option>
+          {notes.map(n => <option key={n.id} value={n.id}>{n.title}</option>)}
+        </select>
+      </Field>
       <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 18, marginTop: 4 }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
           <label style={{ fontSize: 11, fontFamily: "'IBM Plex Mono',monospace", color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>SUBTASK CHECKLIST</label>
@@ -58,8 +65,9 @@ export function TaskModal({ task, initialDate, onSave, onClose }: { task: Task |
   );
 }
 
-export function TaskRow({ task, onEdit, onDelete, onStatusChange, onToggleCheck }: { task: Task, onEdit: (t: Task) => void, onDelete: (t: Task) => void, onStatusChange: (id: number, s: string) => void, onToggleCheck: (tid: number, cid: number) => void, key?: any }) {
+export function TaskRow({ task, onEdit, onDelete, onStatusChange, onSaveChecklist }: { task: Task, onEdit: (t: Task) => void, onDelete: (t: Task) => void, onStatusChange: (id: number, s: string) => void, onSaveChecklist: (tid: number, checklist: any[]) => void, key?: any }) {
   const [open, setOpen] = useState(false);
+  const [newSubtask, setNewSubtask] = useState("");
   const isCompact = typeof window !== "undefined" && window.innerWidth < 1320;
   const total = task.checklist.length, done = task.checklist.filter(c => c.done).length;
   const pct = total > 0 ? Math.round((done / total) * 100) : null;
@@ -67,6 +75,31 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange, onToggleCheck 
   const sc = STATUS_COLORS[task.status];
   const pc = PRIORITY_COLORS[task.priority];
   const rowTemplate = isCompact ? "28px minmax(240px, 1.7fr) 90px 120px 90px 78px minmax(120px, auto)" : "28px minmax(260px, 1.8fr) 120px 140px 100px 90px minmax(120px, auto)";
+
+  const updateChecklist = (nextChecklist: any[]) => onSaveChecklist(task.id, nextChecklist);
+
+  const toggleSubtask = (cid: number) => {
+    const nextChecklist = task.checklist.map(c => c.id === cid ? { ...c, done: !c.done } : c);
+    updateChecklist(nextChecklist);
+  };
+
+  const updateSubtaskText = (cid: number, text: string) => {
+    const nextChecklist = task.checklist.map(c => c.id === cid ? { ...c, text } : c);
+    updateChecklist(nextChecklist);
+  };
+
+  const removeSubtask = (cid: number) => {
+    const nextChecklist = task.checklist.filter(c => c.id !== cid);
+    updateChecklist(nextChecklist);
+  };
+
+  const addSubtask = () => {
+    const text = newSubtask.trim();
+    if (!text) return;
+    const nextChecklist = [...task.checklist, { id: Date.now(), text, done: false, assignedTo: "" }];
+    updateChecklist(nextChecklist);
+    setNewSubtask("");
+  };
 
   return (
     <div style={{ borderBottom: `1px solid ${T.border}` }}>
@@ -77,7 +110,7 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange, onToggleCheck 
         <div style={{ minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: total > 0 ? 4 : 0, flexWrap: "wrap" }}>
             <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: cc.dot, flexShrink: 0 }} />
-            <span style={{ fontSize: 13, color: T.text, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontWeight: 600, minWidth: 0, overflowWrap: "anywhere" }}>{task.task}</span>
+            <button onClick={() => setOpen(x => !x)} style={{ background: "none", border: "none", padding: 0, margin: 0, fontSize: 13, color: T.text, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontWeight: 600, minWidth: 0, overflowWrap: "anywhere", cursor: "pointer", textAlign: "left" }}>{task.task}</button>
             <span style={{ fontSize: 10, color: cc.dot, background: cc.bg, border: `1px solid ${cc.border}`, borderRadius: 12, padding: "2px 8px", fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontWeight: 600 }}>{task.category}</span>
           </div>
           {total > 0 && (
@@ -102,22 +135,64 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange, onToggleCheck 
         <div style={{ textAlign: "center" }}>
           <span style={{ fontSize: 10, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontWeight: 700, padding: "3px 10px", borderRadius: 24, background: pc.bg, color: pc.text, border: `1px solid ${pc.border}` }}>{task.priority.toUpperCase()}</span>
         </div>
-        <div style={{ display: "flex", gap: 5, justifyContent: "flex-end", flexWrap: "wrap", minWidth: 0 }}>
-          <button onClick={() => onEdit(task)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 12 }}>Edit</button>
-          <button onClick={() => onDelete(task)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 12 }}>Delete</button>
+        <div style={{ display: "flex", gap: 4, justifyContent: "flex-end", flexWrap: "wrap", minWidth: 0 }}>
+          <button onClick={() => onEdit(task)} title="Edit task" style={{ background: "none", border: "none", borderRadius: 6, padding: "4px", color: T.muted, cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" }}><PenLine size={14} /></button>
+          <button onClick={() => onDelete(task)} title="Delete task" style={{ background: "none", border: "none", borderRadius: 6, padding: "4px", color: T.red, cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={14} /></button>
         </div>
       </div>
       {open && total > 0 && (
         <div style={{ background: T.bg, borderTop: `1px solid ${T.border}`, padding: "12px 18px 14px 54px" }}>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
+            <span style={{ fontSize: 10, color: T.muted }}>Due: <strong style={{ color: T.text }}>{task.due || "-"}</strong></span>
+            <span style={{ fontSize: 10, color: T.muted }}>Priority: <strong style={{ color: T.text }}>{task.priority}</strong></span>
+            <span style={{ fontSize: 10, color: T.muted }}>Status: <strong style={{ color: T.text }}>{task.status}</strong></span>
+            <span style={{ fontSize: 10, color: T.muted }}>Linked Note ID: <strong style={{ color: T.text }}>{task.linkedNoteId || "-"}</strong></span>
+          </div>
           <div style={{ fontSize: 10, fontFamily: "'IBM Plex Mono',monospace", color: T.subtle, letterSpacing: .8, marginBottom: 10 }}>SUBTASKS - {done}/{total} COMPLETE</div>
           {task.checklist.map(item => (
-            <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8, cursor: "pointer" }} onClick={() => onToggleCheck(task.id, item.id)}>
-              <div style={{ width: 15, height: 15, minWidth: 15, border: `2px solid ${item.done ? T.green : T.border}`, borderRadius: 3, background: item.done ? T.greenLight : "#FFF", display: "flex", alignItems: "center", justifyItems: "center", flexShrink: 0, transition: "all .15s" }}>
+            <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
+              <button onClick={() => toggleSubtask(item.id)} style={{ width: 15, height: 15, minWidth: 15, border: `2px solid ${item.done ? T.green : T.border}`, borderRadius: 3, background: item.done ? T.greenLight : "#FFF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .15s", cursor: "pointer", padding: 0 }}>
                 {item.done && <span style={{ color: T.green, fontSize: 10 }}>x</span>}
-              </div>
-              <span style={{ fontSize: 12, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", color: item.done ? T.muted : T.text, textDecoration: item.done ? "line-through" : "none", userSelect: "none" }}>{item.text}</span>
+              </button>
+              <input
+                value={item.text}
+                onChange={e => updateSubtaskText(item.id, e.target.value)}
+                style={{ ...inpStyle, padding: "6px 8px", fontSize: 12, flex: 1, textDecoration: item.done ? "line-through" : "none", color: item.done ? T.muted : T.text }}
+              />
+              <button onClick={() => removeSubtask(item.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>Delete</button>
             </div>
           ))}
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <input
+              value={newSubtask}
+              onChange={e => setNewSubtask(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && addSubtask()}
+              placeholder="Add subtask..."
+              style={{ ...inpStyle, padding: "6px 10px", fontSize: 12, flex: 1 }}
+            />
+            <Btn onClick={addSubtask} variant="outline" small>+ Add</Btn>
+          </div>
+        </div>
+      )}
+      {open && total === 0 && (
+        <div style={{ background: T.bg, borderTop: `1px solid ${T.border}`, padding: "12px 18px 14px 54px" }}>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
+            <span style={{ fontSize: 10, color: T.muted }}>Due: <strong style={{ color: T.text }}>{task.due || "-"}</strong></span>
+            <span style={{ fontSize: 10, color: T.muted }}>Priority: <strong style={{ color: T.text }}>{task.priority}</strong></span>
+            <span style={{ fontSize: 10, color: T.muted }}>Status: <strong style={{ color: T.text }}>{task.status}</strong></span>
+            <span style={{ fontSize: 10, color: T.muted }}>Linked Note ID: <strong style={{ color: T.text }}>{task.linkedNoteId || "-"}</strong></span>
+          </div>
+          <div style={{ fontSize: 10, fontFamily: "'IBM Plex Mono',monospace", color: T.subtle, letterSpacing: .8, marginBottom: 10 }}>SUBTASKS - 0/0 COMPLETE</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              value={newSubtask}
+              onChange={e => setNewSubtask(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && addSubtask()}
+              placeholder="Add subtask..."
+              style={{ ...inpStyle, padding: "6px 10px", fontSize: 12, flex: 1 }}
+            />
+            <Btn onClick={addSubtask} variant="outline" small>+ Add</Btn>
+          </div>
         </div>
       )}
     </div>
