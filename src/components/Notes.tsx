@@ -55,8 +55,8 @@ const makePreview = (text: string, max = 180) => {
   return `${normalized.slice(0, max)}...`;
 };
 
-const MAX_NOTE_FILE_BYTES = 2 * 1024 * 1024;
-const MAX_NOTE_TOTAL_BYTES = 8 * 1024 * 1024;
+const MAX_NOTE_FILE_BYTES = 900 * 1024;
+const MAX_NOTE_TOTAL_BYTES = 2 * 1024 * 1024;
 
 const resizeImageFile = (file: File, maxWidth = 1600, quality = 0.82) => new Promise<string>((resolve, reject) => {
   const reader = new FileReader();
@@ -120,14 +120,14 @@ export function NoteModal({ note, tasks, onSave, onClose }: { note: Note | null,
         };
       }));
 
-      setForm((frm: any) => {
-        const nextFiles = [...frm.files, ...mapped];
-        const totalSize = nextFiles.reduce((sum: number, file: any) => sum + Number(file.size || 0), 0);
-        if (totalSize > MAX_NOTE_TOTAL_BYTES) {
-          throw new Error("Attachments are too large in total. Keep total note attachments under 8MB.");
-        }
-        return { ...frm, files: nextFiles };
-      });
+      const currentFiles = Array.isArray(form.files) ? form.files : [];
+      const nextFiles = [...currentFiles, ...mapped];
+      const totalSize = nextFiles.reduce((sum: number, file: any) => sum + Number(file.size || 0), 0);
+      if (totalSize > MAX_NOTE_TOTAL_BYTES) {
+        throw new Error("Attachments are too large in total. Keep total note attachments under 2MB.");
+      }
+
+      setForm((frm: any) => ({ ...frm, files: nextFiles }));
     } catch (err) {
       console.error("Attachment read error:", err);
       alert((err as Error)?.message || "Failed to attach one or more files. Please try again.");

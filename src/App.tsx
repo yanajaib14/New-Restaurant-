@@ -1237,7 +1237,13 @@ export default function App() {
       setNoteModal(null);
     } catch (e: any) {
       console.error("Save Note Error:", e);
-      alert(`Failed to save note: ${e.message || JSON.stringify(e)}`);
+      const msg = String(e?.message || "");
+      const raw = JSON.stringify(e || {});
+      if (/payload|413|too\s*large|request\s*entity/i.test(`${msg} ${raw}`)) {
+        alert("Failed to save note attachments. Please use fewer/smaller files (under ~2MB total).");
+      } else {
+        alert(`Failed to save note: ${msg || raw}`);
+      }
     }
   };
 
