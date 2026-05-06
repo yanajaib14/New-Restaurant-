@@ -347,8 +347,8 @@ export default function App() {
   const [isChangePinOpen, setIsChangePinOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isPasswordUpdating, setIsPasswordUpdating] = useState(false);
-  const [appTitle, setAppTitle] = useState("ไกลกังวล");
-  const [editTitle, setEditTitle] = useState("ไกลกังวล");
+  const [appTitle, setAppTitle] = useState("Glaigungwon");
+  const [editTitle, setEditTitle] = useState("Glaigungwon");
   const [accessUsers, setAccessUsers] = useState<AccessUser[]>([]);
   const [accessLoading, setAccessLoading] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState("");
@@ -429,12 +429,12 @@ export default function App() {
       try {
         const res = await fetch("/api/settings/title");
         const body = await res.json();
-        const title = body?.title || "ไกลกังวล";
+        const title = body?.title || "Glaigungwon";
         setAppTitle(title);
         setEditTitle(title);
       } catch {
-        setAppTitle("ไกลกังวล");
-        setEditTitle("ไกลกังวล");
+        setAppTitle("Glaigungwon");
+        setEditTitle("Glaigungwon");
       }
     };
     loadTitle();
@@ -2049,7 +2049,7 @@ export default function App() {
               </button>
             )}
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-              <span style={{ fontFamily: appTitle === "ไกลกังวล" ? "var(--font-thai-display)" : "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: isMobile ? 27 : 32, lineHeight: 1.3, fontWeight: 700, color: T.text, letterSpacing: -0.3, paddingTop: appTitle === "ไกลกังวล" ? 12 : 2, whiteSpace: "nowrap", overflow: appTitle === "ไกลกังวล" ? "visible" : "hidden", textOverflow: "ellipsis", display: "block" }}>{appTitle}</span>
+              <span style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: isMobile ? 27 : 32, lineHeight: 1.3, fontWeight: 700, color: T.text, letterSpacing: -0.3, paddingTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block" }}>{appTitle}</span>
               {!isMobile && <span style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: 12, color: T.subtle, letterSpacing: 1.05, fontWeight: 700 }}>LAUNCH DASHBOARD</span>}
             </div>
           </div>

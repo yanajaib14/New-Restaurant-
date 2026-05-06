@@ -28,7 +28,7 @@ export const Login: React.FC = () => {
   return (
     <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #F9F8F6 0%, #E1D9D1 100%)", padding: 20 }}>
       <div style={{ background: "#FFF", padding: "3rem", borderRadius: 24, boxShadow: "0 32px 64px rgba(0,0,0,0.1)", width: "100%", maxWidth: 440, textAlign: "center" }}>
-        <div style={{ fontFamily: "var(--font-thai-display)", fontSize: 36, lineHeight: 1.32, fontWeight: 700, color: "#1A1A1A", marginBottom: 10, paddingTop: 10, overflow: "visible" }}>ไกลกังวล</div>
+        <div style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: 36, lineHeight: 1.32, fontWeight: 700, color: "#1A1A1A", marginBottom: 10, paddingTop: 10, overflow: "visible" }}>Glaigungwon</div>
         <p style={{ color: "#666", fontSize: 14, marginBottom: 40 }}>{isRegistering ? "Create your account" : "Sign in to access the launch dashboard"}</p>
         
         {errorMsg && (
