@@ -26,12 +26,31 @@ export function VendorManager({ vendors, onAdd, onEdit, onDelete }: { vendors: V
                 <span style={{ fontSize: 12, fontWeight: 700 }}>Contact:</span> {v.contact}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: 12, fontWeight: 700 }}>Email:</span> {v.email}
+                <span style={{ fontSize: 12, fontWeight: 700 }}>Email:</span>
+                <a
+                  href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(v.email || "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: T.blue, textDecoration: "underline" }}
+                >
+                  {v.email}
+                </a>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 700 }}>Phone:</span> {v.phone}
+                <span style={{ fontSize: 12, fontWeight: 700 }}>Phone:</span>
+                <a
+                  href={`tel:${String(v.phone || "").replace(/[^\d+]/g, "")}`}
+                  style={{ color: T.blue, textDecoration: "underline" }}
+                >
+                  {v.phone}
+                </a>
               </div>
             </div>
+            {v.notes && (
+              <div style={{ marginTop: 10, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, padding: "8px 10px", fontSize: 12, color: T.muted, lineHeight: 1.5 }}>
+                {v.notes}
+              </div>
+            )}
             <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 12, marginTop: 12 }}>
               <div style={{ fontSize: 10, color: T.muted, fontFamily: "'IBM Plex Mono',monospace", marginBottom: 6 }}>DELIVERY DAYS</div>
               <div style={{ display: "flex", gap: 4 }}>
@@ -72,6 +91,15 @@ export function VendorModal({ vendor, onSave, onClose }: { vendor: Vendor | null
         <Field label="EMAIL"><input value={form.email} onChange={e => set("email", e.target.value)} placeholder="email@example.com" style={inpStyle} /></Field>
         <Field label="PHONE"><input value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="555-0123" style={inpStyle} /></Field>
       </div>
+      <Field label="SHORT NOTE">
+        <textarea
+          value={form.notes || ""}
+          onChange={e => set("notes", e.target.value.slice(0, 180))}
+          placeholder="Quick context, terms, or reminders..."
+          rows={2}
+          style={{ ...inpStyle, resize: "vertical", lineHeight: 1.5 }}
+        />
+      </Field>
       <Field label="DELIVERY DAYS">
         <div style={{ display: "flex", gap: 8 }}>
           {["M", "T", "W", "Th", "F", "S", "Su"].map(day => {

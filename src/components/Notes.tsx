@@ -55,6 +55,35 @@ const makePreview = (text: string, max = 180) => {
   return `${normalized.slice(0, max)}...`;
 };
 
+const MAX_NOTE_FILE_BYTES = 2 * 1024 * 1024;
+const MAX_NOTE_TOTAL_BYTES = 8 * 1024 * 1024;
+
+const resizeImageFile = (file: File, maxWidth = 1600, quality = 0.82) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const ratio = img.width > maxWidth ? maxWidth / img.width : 1;
+      const width = Math.max(1, Math.round(img.width * ratio));
+      const height = Math.max(1, Math.round(img.height * ratio));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Canvas context unavailable"));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = () => reject(new Error(`Failed to process ${file.name}`));
+    img.src = String(reader.result || "");
+  };
+  reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+  reader.readAsDataURL(file);
+});
+
 export function NoteModal({ note, tasks, onSave, onClose }: { note: Note | null, tasks: Task[], onSave: (form: any) => void, onClose: () => void }) {
   const blank = { title: "", body: "", tag: "General", files: [], linkedTaskId: null };
   const [form, setForm] = React.useState<any>(note ? { ...note, files: [...(note.files || [])] } : blank);
@@ -73,19 +102,35 @@ export function NoteModal({ note, tasks, onSave, onClose }: { note: Note | null,
     if (picked.length === 0) return;
 
     try {
-      const mapped = await Promise.all(picked.map(async (f: File) => ({
-        id: Date.now() + Math.random(),
-        name: f.name,
-        size: f.size,
-        type: f.type,
-        // Data URLs persist after reload; blob URLs do not.
-        url: await toDataUrl(f),
-        isImage: f.type.startsWith("image/"),
-      })));
-      setForm((frm: any) => ({ ...frm, files: [...frm.files, ...mapped] }));
+      const mapped = await Promise.all(picked.map(async (f: File) => {
+        const isImage = f.type.startsWith("image/");
+        const url = isImage ? await resizeImageFile(f) : await toDataUrl(f);
+        const estSize = Math.round((url.length * 3) / 4);
+        if (estSize > MAX_NOTE_FILE_BYTES) {
+          throw new Error(`${f.name} is too large after compression. Please use a smaller image.`);
+        }
+        return {
+          id: Date.now() + Math.random(),
+          name: f.name,
+          size: estSize,
+          type: isImage ? "image/jpeg" : f.type,
+          // Data URLs persist after reload; blob URLs do not.
+          url,
+          isImage,
+        };
+      }));
+
+      setForm((frm: any) => {
+        const nextFiles = [...frm.files, ...mapped];
+        const totalSize = nextFiles.reduce((sum: number, file: any) => sum + Number(file.size || 0), 0);
+        if (totalSize > MAX_NOTE_TOTAL_BYTES) {
+          throw new Error("Attachments are too large in total. Keep total note attachments under 8MB.");
+        }
+        return { ...frm, files: nextFiles };
+      });
     } catch (err) {
       console.error("Attachment read error:", err);
-      alert("Failed to attach one or more files. Please try again.");
+      alert((err as Error)?.message || "Failed to attach one or more files. Please try again.");
     }
   };
 

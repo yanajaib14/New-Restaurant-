@@ -293,7 +293,7 @@ export default function App() {
   const [tasks, setTasks]       = useState<Task[]>(INIT_TASKS);
   const [taskTodos, setTaskTodos] = useState<TaskTodoItem[]>(() => {
     const stored = readStoredTaskTodos();
-    return stored.length ? stored.map(sanitizeTaskTodo) : INIT_TASK_TODOS.map(sanitizeTaskTodo);
+    return stored && stored.length ? stored.map(sanitizeTaskTodo) : INIT_TASK_TODOS.map(sanitizeTaskTodo);
   });
   const [menuItems, setMenuItems] = useState<MenuItem[]>(INIT_MENU);
   const [startup, setStartup]   = useState<StartupCost[]>(INIT_STARTUP);
