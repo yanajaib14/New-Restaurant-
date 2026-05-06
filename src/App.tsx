@@ -14,7 +14,7 @@ import { FinModal } from "./components/Financials";
 import { CostCalculator } from "./components/CostCalculator";
 import { TeamOnboarding } from "./components/TeamOnboarding";
 import { Timeline, TimelineModal } from "./components/Timeline";
-import { NoteModal, NoteCard } from "./components/Notes";
+import { NoteModal, NoteCard, NoteDetailModal } from "./components/Notes";
 import { AIAssistant } from "./components/AI";
 import { useAuth } from "./context/AuthContext";
 import { Login } from "./components/Login";
@@ -317,6 +317,7 @@ export default function App() {
   const [finModal, setFinModal]     = useState<any>(null); // {type, item|null}
   const [tlModal, setTlModal]       = useState<any>(null);
   const [noteModal, setNoteModal]   = useState<any>(null);
+  const [noteDetail, setNoteDetail] = useState<Note | null>(null);
   const [vendorModal, setVendorModal] = useState<any>(null);
   const [invModal, setInvModal]     = useState<any>(null);
   const [permitModal, setPermitModal] = useState<any>(null);
@@ -2086,6 +2087,11 @@ export default function App() {
       {finModal   && <FinModal item={finModal.item||null} type={finModal.type} onSave={saveFin} onClose={()=>setFinModal(null)} userRole={currentUser?.role} />}
       {tlModal    && <TimelineModal item={tlModal==="new"?null:tlModal} onSave={saveTL} onClose={()=>setTlModal(null)}/>}
       {noteModal  && <NoteModal note={noteModal==="new"?null:noteModal} onSave={saveNote} onClose={()=>setNoteModal(null)}/>}
+      {noteDetail && <NoteDetailModal note={noteDetail} onClose={() => setNoteDetail(null)} onEdit={(n) => { setNoteDetail(null); setNoteModal(n); }} onDelete={(id) => {
+        const selected = noteDetail;
+        setNoteDetail(null);
+        setDelConfirm({ label: selected.title, onConfirm: () => deleteRecord('notes', id, selected.title, setNotes) });
+      }} isDriveConnected={isDriveConnected} onSaveToDrive={handleSaveToDrive} />}
       {invoiceModal && <InvoiceModal invoice={invoiceModal === "new" ? null : invoiceModal} vendors={vendors} onSave={saveInvoice} onClose={() => setInvoiceModal(null)} />}
       {vendorModal && <VendorModal vendor={vendorModal === "new" ? null : vendorModal} onSave={saveVendor} onClose={() => setVendorModal(null)} />}
       {invModal && <InventoryModal item={invModal === "new" ? null : invModal} vendors={vendors} onSave={saveInv} onClose={() => setInvModal(null)} />}
@@ -3012,7 +3018,7 @@ export default function App() {
                   <NoteCard 
                     key={n.id} 
                     note={n} 
-                    onEdit={setNoteModal} 
+                    onOpen={setNoteDetail} 
                     onDelete={id => setDelConfirm({ label: n.title, onConfirm: () => deleteRecord('notes', id, n.title, setNotes) })}
                     isDriveConnected={isDriveConnected}
                     onSaveToDrive={handleSaveToDrive}

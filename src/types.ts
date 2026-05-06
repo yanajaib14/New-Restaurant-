@@ -60,6 +60,7 @@ export const NOTE_TAG_COLORS: Record<string, any> = {
   "Operations": { bg: T.orangeLight,text: T.orange,dot: T.orange },
   "Finance":    { bg: T.greenLight, text: T.green, dot: T.green },
   "Marketing":  { bg: T.purpleLight,text: T.purple,dot: T.purple },
+  "Ideas":      { bg: "#EEF7F7", text: "#2E7C7C", dot: "#2E7C7C" },
 };
 
 export const CATEGORIES = ["Lease & TI","Menu & Bar","Staffing","Permits","Marketing","Financials","Operations","IT & Systems"];
