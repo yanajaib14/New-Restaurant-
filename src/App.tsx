@@ -2417,7 +2417,7 @@ export default function App() {
         {/* �"��"��"��"��"��"� TASKS �"��"��"��"��"��"� */}
         {tab==="tasks" && (
           <div className="fu">
-            <SectionHeader title="Planning" subtitle={`${taskTodos.length} inbox items · ${openTaskTodos.length} open · ${doneTaskTodos.length} completed`}
+            <SectionHeader title="Task Manager" subtitle={`${tasks.filter(t=>{const d=t.due?new Date(t.due+"T12:00:00"):null;return d&&d<new Date()&&t.status!=="Complete"}).length} overdue · ${tasks.filter(t=>t.status==="In Progress").length} in progress · ${tasks.filter(t=>t.status==="Complete").length} complete`}
               action={
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: isMobile ? "stretch" : "flex-end" }}>
                   <Btn onClick={openNewTodo} variant="outline" small>+ Full Todo Form</Btn>
@@ -2448,7 +2448,7 @@ export default function App() {
                       <button
                         key={status}
                         onClick={() => setTodoStatusFilter(status as TaskTodoItem["status"] | "All")}
-                        style={{ cursor: "pointer", borderRadius: 999, padding: "4px 10px", fontSize: 10, border: `1px solid ${todoStatusFilter === status ? T.gold : T.border}`, background: todoStatusFilter === status ? T.goldLight : "#FFF", color: todoStatusFilter === status ? T.gold : T.muted, fontWeight: todoStatusFilter === status ? 700 : 500 }}
+                        style={{ cursor: "pointer", borderRadius: 999, padding: "5px 13px", fontSize: 11, border: `1px solid ${todoStatusFilter === status ? T.gold : T.border}`, background: todoStatusFilter === status ? T.goldLight : "#FFF", color: todoStatusFilter === status ? T.gold : T.muted, fontWeight: todoStatusFilter === status ? 700 : 500 }}
                       >
                         {status}
                       </button>
@@ -2465,47 +2465,27 @@ export default function App() {
                       const subtasks = todo.subtasks || [];
                       const subDone = subtasks.filter(s => s.done).length;
                       return (
-                        <div key={todo.id} style={{ borderBottom: `1px solid ${T.border}`, padding: "9px 12px", background: isDone ? T.bg : "#FFF" }}>
+                        <div key={todo.id} style={{ borderBottom: `1px solid ${T.border}`, padding: "10px 12px", background: isDone ? T.bg : "#FFF", display: "grid", gridTemplateColumns: "3px 1fr", gap: 10 }}>
+                          <div style={{ background: isDone ? T.green : (CAT_COLORS[todo.category]?.dot || T.gold), borderRadius: 99 }} />
                           <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                            <input
-                              type="checkbox"
-                              checked={isDone}
-                              onChange={() => toggleTodoDone(todo)}
-                              style={{ width: 14, height: 14, cursor: "pointer", accentColor: T.green, marginTop: 2, flexShrink: 0 }}
-                            />
-                            <div style={{ minWidth: 0 }}>
+                            <button
+                              onClick={() => toggleTodoDone(todo)}
+                              style={{ width: 18, height: 18, minWidth: 18, border: `2px solid ${isDone ? T.green : T.border}`, borderRadius: 5, background: isDone ? T.greenLight : "#FFF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer", padding: 0, marginTop: 1, transition: "all .15s" }}
+                            >
+                              {isDone && <span style={{ color: T.green, fontSize: 11, fontWeight: 700, lineHeight: 1 }}>✓</span>}
+                            </button>
+                            <div style={{ minWidth: 0, flex: 1 }}>
                               <button
                                 onClick={() => openEditTodo(todo)}
-                                style={{
-                                  background: "none",
-                                  border: "none",
-                                  padding: 0,
-                                  margin: 0,
-                                  textAlign: "left",
-                                  fontSize: 13,
-                                  color: isDone ? T.muted : T.text,
-                                  textDecoration: isDone ? "line-through" : "none",
-                                  overflowWrap: "anywhere",
-                                  cursor: "pointer",
-                                  width: "100%",
-                                }}
+                                style={{ background: "none", border: "none", padding: 0, margin: 0, textAlign: "left", fontSize: 13, fontWeight: 600, color: isDone ? T.muted : T.text, textDecoration: isDone ? "line-through" : "none", overflowWrap: "anywhere", cursor: "pointer", width: "100%", lineHeight: 1.35 }}
                                 title="Edit todo"
                               >
                                 {todo.title}
                               </button>
-                              <div style={{ display: "flex", gap: 6, marginTop: 5 }}>
-                                <button
-                                  onClick={() => openEditTodo(todo)}
-                                  style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "2px 8px", color: T.muted, cursor: "pointer", fontSize: 10 }}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => deleteTaskTodo(todo)}
-                                  style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "2px 8px", color: T.red, cursor: "pointer", fontSize: 10 }}
-                                >
-                                  Delete
-                                </button>
+                              {todo.category && <div style={{ marginTop: 3, fontSize: 10, color: CAT_COLORS[todo.category]?.dot || T.muted, background: CAT_COLORS[todo.category]?.bg || T.bg, border: `1px solid ${CAT_COLORS[todo.category]?.border || T.border}`, borderRadius: 99, padding: "1px 7px", display: "inline-block", fontWeight: 600 }}>{todo.category}</div>}
+                              <div style={{ display: "flex", gap: 5, marginTop: 5 }}>
+                                <button onClick={() => openEditTodo(todo)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 8px", color: T.muted, cursor: "pointer", fontSize: 10 }}>Edit</button>
+                                <button onClick={() => deleteTaskTodo(todo)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "3px 8px", color: T.red, cursor: "pointer", fontSize: 10 }}>Delete</button>
                               </div>
                               {subtasks.length > 0 && (
                                 <div style={{ marginTop: 5, display: "flex", flexDirection: "column", gap: 4 }}>
