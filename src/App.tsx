@@ -28,7 +28,7 @@ import { LaunchWindow, FullCalendar } from "./components/CalendarView";
 import { getGoogleAuthUrl, getGoogleDriveStatus, saveToGoogleDrive, fileToBase64 } from "./services/googleDriveService";
 import { exportToCSV } from "./lib/exportUtils";
 
-import { LayoutDashboard, CheckSquare, Utensils, ShoppingCart, Package, DollarSign, FileText, Box, Users, ShieldCheck, Megaphone, GraduationCap, ClipboardList, Calculator, UserPlus, Calendar, FileEdit, Sparkles, PenLine, Trash2, Printer, Download, Upload } from "lucide-react";
+import { LayoutDashboard, CheckSquare, Utensils, ShoppingCart, Package, DollarSign, FileText, Box, Users, ShieldCheck, Megaphone, GraduationCap, ClipboardList, Calculator, UserPlus, Calendar, FileEdit, Sparkles, PenLine, Trash2, Printer, Download, Upload, ChevronRight, ChevronDown } from "lucide-react";
 
 type ShoppingListItem = {
   id: string;
@@ -652,8 +652,12 @@ export default function App() {
   });
   const [quickTodoTitle, setQuickTodoTitle] = useState("");
   const [quickTodoCategory, setQuickTodoCategory] = useState(CATEGORIES[0]);
+  const [expandedTodoCards, setExpandedTodoCards] = useState<Record<number, boolean>>({});
+  const [todoSubtaskDrafts, setTodoSubtaskDrafts] = useState<Record<number, string>>({});
+  const [editingTodoSubtaskDrafts, setEditingTodoSubtaskDrafts] = useState<Record<string, string>>({});
   const [expandedTaskCards, setExpandedTaskCards] = useState<Record<number, boolean>>({});
   const [subtaskDrafts, setSubtaskDrafts] = useState<Record<number, string>>({});
+  const [editingTaskSubtaskDrafts, setEditingTaskSubtaskDrafts] = useState<Record<string, string>>({});
   const [expandedPlanningCats, setExpandedPlanningCats] = useState<Record<string, boolean>>(() =>
     CATEGORIES.reduce((acc, category) => ({ ...acc, [category]: true }), {} as Record<string, boolean>)
   );
@@ -1031,6 +1035,51 @@ export default function App() {
       console.error("Toggle Todo Status Error:", e);
       alert(`Failed to update todo: ${e.message || JSON.stringify(e)}`);
     }
+  };
+
+  const saveTodoSubtasks = async (todo: TaskTodoItem, subtasks: TodoSubtask[], fallbackStatus?: TaskTodoItem["status"]) => {
+    const allDone = subtasks.length > 0 && subtasks.every(s => s.done);
+    const nextStatus = allDone ? "Done" : (todo.status === "Done" ? (fallbackStatus || "In Progress") : todo.status);
+    try {
+      if (taskTodoStore === "db") {
+        const { error } = await dbUpdate("task_todos", todo.id, { subtasks, status: nextStatus });
+        if (error) throw error;
+        await refetch("task_todos", setTaskTodos as any);
+      } else {
+        setTaskTodos(prev => prev.map(item => item.id === todo.id ? { ...item, subtasks, status: nextStatus } : item));
+      }
+    } catch (e: any) {
+      console.error("Save Todo Subtasks Error:", e);
+      alert(`Failed to update subtasks: ${e.message || JSON.stringify(e)}`);
+    }
+  };
+
+  const toggleTodoSubtaskDone = async (todo: TaskTodoItem, sid: number) => {
+    const subtasks = todo.subtasks || [];
+    const updated = subtasks.map(s => s.id === sid ? { ...s, done: !s.done } : s);
+    await saveTodoSubtasks(todo, updated);
+  };
+
+  const updateTodoSubtaskText = async (todo: TaskTodoItem, sid: number, text: string) => {
+    const value = text.trim();
+    if (!value) return;
+    const subtasks = todo.subtasks || [];
+    const updated = subtasks.map(s => s.id === sid ? { ...s, text: value } : s);
+    await saveTodoSubtasks(todo, updated);
+  };
+
+  const deleteTodoSubtask = async (todo: TaskTodoItem, sid: number) => {
+    const subtasks = todo.subtasks || [];
+    const updated = subtasks.filter(s => s.id !== sid);
+    await saveTodoSubtasks(todo, updated, "Not Started");
+  };
+
+  const addTodoSubtask = async (todo: TaskTodoItem, text: string) => {
+    const value = text.trim();
+    if (!value) return;
+    const subtasks = todo.subtasks || [];
+    const updated = [...subtasks, { id: Date.now(), text: value, done: false }];
+    await saveTodoSubtasks(todo, updated);
   };
 
   const saveTaskChecklist = async (tid: number, checklist: Task["checklist"]) => {
@@ -2464,50 +2513,117 @@ export default function App() {
                       const isDone = todo.status === "Done";
                       const subtasks = todo.subtasks || [];
                       const subDone = subtasks.filter(s => s.done).length;
+                      const isExpanded = !!expandedTodoCards[todo.id];
+                      const subtaskDraft = todoSubtaskDrafts[todo.id] || "";
                       return (
                         <div key={todo.id} style={{ borderBottom: `1px solid ${T.border}`, padding: "10px 12px", background: isDone ? T.bg : "#FFF", display: "grid", gridTemplateColumns: "3px 1fr", gap: 10 }}>
                           <div style={{ background: isDone ? T.green : (CAT_COLORS[todo.category]?.dot || T.gold), borderRadius: 99 }} />
                           <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                             <button
                               onClick={() => toggleTodoDone(todo)}
-                              style={{ width: 18, height: 18, minWidth: 18, border: `2px solid ${isDone ? T.green : T.border}`, borderRadius: 5, background: isDone ? T.greenLight : "#FFF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer", padding: 0, marginTop: 1, transition: "all .15s" }}
+                              style={{ width: isMobile ? 22 : 18, height: isMobile ? 22 : 18, minWidth: isMobile ? 22 : 18, border: `2px solid ${isDone ? T.green : T.border}`, borderRadius: 5, background: isDone ? T.greenLight : "#FFF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer", padding: 0, marginTop: 1, transition: "all .15s" }}
                             >
                               {isDone && <span style={{ color: T.green, fontSize: 11, fontWeight: 700, lineHeight: 1 }}>✓</span>}
                             </button>
                             <div style={{ minWidth: 0, flex: 1 }}>
-                              <button
-                                onClick={() => openEditTodo(todo)}
-                                style={{ background: "none", border: "none", padding: 0, margin: 0, textAlign: "left", fontSize: 13, fontWeight: 600, color: isDone ? T.muted : T.text, textDecoration: isDone ? "line-through" : "none", overflowWrap: "anywhere", cursor: "pointer", width: "100%", lineHeight: 1.35 }}
-                                title="Edit todo"
-                              >
-                                {todo.title}
-                              </button>
-                              {todo.category && <div style={{ marginTop: 3, fontSize: 10, color: CAT_COLORS[todo.category]?.dot || T.muted, background: CAT_COLORS[todo.category]?.bg || T.bg, border: `1px solid ${CAT_COLORS[todo.category]?.border || T.border}`, borderRadius: 99, padding: "1px 7px", display: "inline-block", fontWeight: 600 }}>{todo.category}</div>}
-                              <div style={{ display: "flex", gap: 5, marginTop: 5 }}>
-                                <button onClick={() => openEditTodo(todo)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "3px 8px", color: T.muted, cursor: "pointer", fontSize: 10 }}>Edit</button>
-                                <button onClick={() => deleteTaskTodo(todo)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "3px 8px", color: T.red, cursor: "pointer", fontSize: 10 }}>Delete</button>
-                              </div>
-                              {subtasks.length > 0 && (
-                                <div style={{ marginTop: 5, display: "flex", flexDirection: "column", gap: 4 }}>
-                                  {subtasks.map(sub => (
-                                    <label key={sub.id} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-                                      <input
-                                        type="checkbox"
-                                        checked={sub.done}
-                                        onChange={() => {
-                                          const updated = subtasks.map(s => s.id === sub.id ? { ...s, done: !s.done } : s);
-                                          const allDone = updated.every(s => s.done);
-                                          const newStatus: TaskTodoItem["status"] = allDone ? "Done" : todo.status === "Done" ? "In Progress" : todo.status;
-                                          setTaskTodos(prev => prev.map(t => t.id === todo.id ? { ...t, subtasks: updated, status: newStatus } : t));
-                                        }}
-                                        style={{ width: 12, height: 12, accentColor: T.green, flexShrink: 0 }}
-                                      />
-                                      <span style={{ fontSize: 11, color: sub.done ? T.muted : T.subtle, textDecoration: sub.done ? "line-through" : "none" }}>{sub.text}</span>
-                                    </label>
-                                  ))}
-                                  <div style={{ fontSize: 10, color: T.muted, marginTop: 1 }}>{subDone}/{subtasks.length} done</div>
+                              <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
+                                <button
+                                  onClick={() => setExpandedTodoCards(prev => ({ ...prev, [todo.id]: !prev[todo.id] }))}
+                                  style={{ background: "none", border: "none", padding: 0, margin: 0, textAlign: "left", fontSize: 13, fontWeight: 600, color: isDone ? T.muted : T.text, textDecoration: isDone ? "line-through" : "none", overflowWrap: "anywhere", cursor: "pointer", width: "100%", lineHeight: 1.35, display: "flex", alignItems: "center", gap: 6 }}
+                                  title={isExpanded ? "Collapse subtasks" : "Expand subtasks"}
+                                >
+                                  {isExpanded ? <ChevronDown size={14} style={{ flexShrink: 0 }} /> : <ChevronRight size={14} style={{ flexShrink: 0 }} />}
+                                  <span style={{ flex: 1 }}>{todo.title}</span>
+                                </button>
+                                <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                                  <button onClick={() => openEditTodo(todo)} title="Edit" style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: isMobile ? "8px 10px" : "5px 7px", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center" }}><PenLine size={12} /></button>
+                                  <button onClick={() => deleteTaskTodo(todo)} title="Delete" style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 8, padding: isMobile ? "8px 10px" : "5px 7px", color: T.red, cursor: "pointer", display: "flex", alignItems: "center" }}><Trash2 size={12} /></button>
                                 </div>
-                              )}
+                              </div>
+                              {todo.category && <div style={{ marginTop: 3, fontSize: 10, color: CAT_COLORS[todo.category]?.dot || T.muted, background: CAT_COLORS[todo.category]?.bg || T.bg, border: `1px solid ${CAT_COLORS[todo.category]?.border || T.border}`, borderRadius: 99, padding: "1px 7px", display: "inline-block", fontWeight: 600 }}>{todo.category}</div>}
+                              <div style={{ display: "grid", gridTemplateRows: isExpanded ? "1fr" : "0fr", transition: "grid-template-rows .22s ease", marginTop: isExpanded ? 8 : 0 }}>
+                                <div style={{ overflow: "hidden" }}>
+                                  <div style={{ display: "flex", flexDirection: "column", gap: 6, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 9px" }}>
+                                  {subtasks.length === 0 && <div style={{ fontSize: 11, color: T.muted }}>No subtasks yet. Add one below.</div>}
+                                  {subtasks.map(sub => {
+                                    const editKey = `${todo.id}:${sub.id}`;
+                                    const isEditing = Object.prototype.hasOwnProperty.call(editingTodoSubtaskDrafts, editKey);
+                                    const draftValue = editingTodoSubtaskDrafts[editKey] ?? sub.text;
+                                    return (
+                                      <div key={sub.id} style={{ display: "flex", alignItems: "center", gap: 6, border: `1px solid ${T.border}`, borderRadius: 8, background: "#FFF", padding: isMobile ? "8px 10px" : "6px 8px" }}>
+                                        <input
+                                          type="checkbox"
+                                          checked={sub.done}
+                                          onChange={() => toggleTodoSubtaskDone(todo, sub.id)}
+                                          style={{ width: isMobile ? 16 : 13, height: isMobile ? 16 : 13, accentColor: T.green, flexShrink: 0 }}
+                                        />
+                                        {isEditing ? (
+                                          <input
+                                            value={draftValue}
+                                            onChange={e => setEditingTodoSubtaskDrafts(prev => ({ ...prev, [editKey]: e.target.value }))}
+                                            onKeyDown={e => {
+                                              if (e.key === "Enter") {
+                                                updateTodoSubtaskText(todo, sub.id, draftValue);
+                                                setEditingTodoSubtaskDrafts(prev => {
+                                                  const next = { ...prev };
+                                                  delete next[editKey];
+                                                  return next;
+                                                });
+                                              }
+                                              if (e.key === "Escape") {
+                                                setEditingTodoSubtaskDrafts(prev => {
+                                                  const next = { ...prev };
+                                                  delete next[editKey];
+                                                  return next;
+                                                });
+                                              }
+                                            }}
+                                            onBlur={() => {
+                                              updateTodoSubtaskText(todo, sub.id, draftValue);
+                                              setEditingTodoSubtaskDrafts(prev => {
+                                                const next = { ...prev };
+                                                delete next[editKey];
+                                                return next;
+                                              });
+                                            }}
+                                            style={{ ...inpStyle, fontSize: 11, padding: "5px 8px", flex: 1 }}
+                                            autoFocus
+                                          />
+                                        ) : (
+                                          <span style={{ fontSize: 11, color: sub.done ? T.muted : T.subtle, textDecoration: sub.done ? "line-through" : "none", flex: 1, lineHeight: 1.35 }}>{sub.text}</span>
+                                        )}
+                                        <button onClick={() => setEditingTodoSubtaskDrafts(prev => ({ ...prev, [editKey]: sub.text }))} title="Edit subtask" style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 7, padding: isMobile ? "6px 8px" : "3px 5px", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}><PenLine size={11} /></button>
+                                        <button onClick={() => deleteTodoSubtask(todo, sub.id)} title="Delete subtask" style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 7, padding: isMobile ? "6px 8px" : "3px 5px", color: T.red, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}><Trash2 size={11} /></button>
+                                      </div>
+                                    );
+                                  })}
+                                  <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
+                                    <input
+                                      value={subtaskDraft}
+                                      onChange={e => setTodoSubtaskDrafts(prev => ({ ...prev, [todo.id]: e.target.value }))}
+                                      onKeyDown={e => {
+                                        if (e.key === "Enter") {
+                                          addTodoSubtask(todo, subtaskDraft);
+                                          setTodoSubtaskDrafts(prev => ({ ...prev, [todo.id]: "" }));
+                                        }
+                                      }}
+                                      placeholder="Add subtask..."
+                                      style={{ ...inpStyle, height: 30, fontSize: 11, flex: 1 }}
+                                    />
+                                    <button
+                                      onClick={() => {
+                                        addTodoSubtask(todo, subtaskDraft);
+                                        setTodoSubtaskDrafts(prev => ({ ...prev, [todo.id]: "" }));
+                                      }}
+                                      style={{ border: `1px solid ${T.border}`, background: "#FFF", borderRadius: 8, padding: "0 10px", fontSize: 11, color: T.text, cursor: "pointer" }}
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                  {subtasks.length > 0 && <div style={{ fontSize: 10, color: T.muted }}>{subDone}/{subtasks.length} done</div>}
+                                </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -2705,25 +2821,67 @@ export default function App() {
                           {/* Expand toggle button */}
                           <button
                             onClick={() => setExpandedTaskCards(prev => ({ ...prev, [task.id]: !prev[task.id] }))}
-                            style={{ width: "100%", background: "none", border: "none", borderTop: `1px solid ${T.border}`, padding: "11px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: T.muted, cursor: "pointer", fontSize: 12, fontWeight: 600 }}
+                            style={{ width: "100%", background: "none", border: "none", borderTop: `1px solid ${T.border}`, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: T.muted, cursor: "pointer", fontSize: 12, fontWeight: 600 }}
                           >
-                            {expanded ? "▲ Hide subtasks" : `▼ ${total > 0 ? `${total} subtask${total !== 1 ? "s" : ""}` : "Add subtasks"}`}
+                            {expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                            {expanded ? "Hide subtasks" : `${total > 0 ? `${total} subtask${total !== 1 ? "s" : ""}` : "Add subtasks"}`}
                           </button>
 
                           {/* Subtask panel */}
-                          {expanded && (
-                            <div style={{ background: T.bg, borderTop: `1px solid ${T.border}`, padding: "14px 16px 16px" }}>
+                          <div style={{ display: "grid", gridTemplateRows: expanded ? "1fr" : "0fr", transition: "grid-template-rows .22s ease" }}>
+                            <div style={{ overflow: "hidden" }}>
+                              <div style={{ background: T.bg, borderTop: `1px solid ${T.border}`, padding: "14px 16px 16px" }}>
                               {task.checklist.length === 0 && <div style={{ fontSize: 12, color: T.muted, marginBottom: 10, textAlign: "center" }}>No subtasks yet — add one below.</div>}
                               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
-                                {task.checklist.map(item => (
-                                  <div key={`task-mobile-check-${task.id}-${item.id}`} style={{ display: "flex", alignItems: "center", gap: 10, background: "#FFF", borderRadius: 12, padding: "10px 12px", border: `1px solid ${T.border}` }}>
-                                    <button onClick={() => toggleTaskCheck(task.id, item.id)} style={{ width: 22, height: 22, minWidth: 22, border: `2px solid ${item.done ? T.green : T.border}`, borderRadius: 6, background: item.done ? T.greenLight : "#FFF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer", padding: 0 }}>
-                                      {item.done && <span style={{ color: T.green, fontSize: 12, fontWeight: 700 }}>✓</span>}
-                                    </button>
-                                    <span style={{ flex: 1, fontSize: 13, color: item.done ? T.muted : T.text, textDecoration: item.done ? "line-through" : "none", lineHeight: 1.4 }}>{item.text}</span>
-                                    <button onClick={() => deleteTaskSubtask(task.id, item.id)} style={{ background: "none", border: "none", padding: 4, color: T.subtle, cursor: "pointer", display: "flex", alignItems: "center" }}><Trash2 size={13} /></button>
-                                  </div>
-                                ))}
+                                {task.checklist.map(item => {
+                                  const editKey = `${task.id}:${item.id}`;
+                                  const isEditing = Object.prototype.hasOwnProperty.call(editingTaskSubtaskDrafts, editKey);
+                                  const draftValue = editingTaskSubtaskDrafts[editKey] ?? item.text;
+                                  return (
+                                    <div key={`task-mobile-check-${task.id}-${item.id}`} style={{ display: "flex", alignItems: "center", gap: 10, background: "#FFF", borderRadius: 12, padding: "10px 12px", border: `1px solid ${T.border}` }}>
+                                      <button onClick={() => toggleTaskCheck(task.id, item.id)} style={{ width: 22, height: 22, minWidth: 22, border: `2px solid ${item.done ? T.green : T.border}`, borderRadius: 6, background: item.done ? T.greenLight : "#FFF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer", padding: 0 }}>
+                                        {item.done && <span style={{ color: T.green, fontSize: 12, fontWeight: 700 }}>✓</span>}
+                                      </button>
+                                      {isEditing ? (
+                                        <input
+                                          value={draftValue}
+                                          onChange={e => setEditingTaskSubtaskDrafts(prev => ({ ...prev, [editKey]: e.target.value }))}
+                                          onKeyDown={e => {
+                                            if (e.key === "Enter") {
+                                              updateTaskSubtaskText(task.id, item.id, draftValue);
+                                              setEditingTaskSubtaskDrafts(prev => {
+                                                const next = { ...prev };
+                                                delete next[editKey];
+                                                return next;
+                                              });
+                                            }
+                                            if (e.key === "Escape") {
+                                              setEditingTaskSubtaskDrafts(prev => {
+                                                const next = { ...prev };
+                                                delete next[editKey];
+                                                return next;
+                                              });
+                                            }
+                                          }}
+                                          onBlur={() => {
+                                            updateTaskSubtaskText(task.id, item.id, draftValue);
+                                            setEditingTaskSubtaskDrafts(prev => {
+                                              const next = { ...prev };
+                                              delete next[editKey];
+                                              return next;
+                                            });
+                                          }}
+                                          style={{ ...inpStyle, fontSize: 13, padding: "7px 10px", flex: 1, borderRadius: 10 }}
+                                          autoFocus
+                                        />
+                                      ) : (
+                                        <span style={{ flex: 1, fontSize: 13, color: item.done ? T.muted : T.text, textDecoration: item.done ? "line-through" : "none", lineHeight: 1.4 }}>{item.text}</span>
+                                      )}
+                                      <button onClick={() => setEditingTaskSubtaskDrafts(prev => ({ ...prev, [editKey]: item.text }))} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: 7, color: T.muted, cursor: "pointer", display: "flex", alignItems: "center" }}><PenLine size={13} /></button>
+                                      <button onClick={() => deleteTaskSubtask(task.id, item.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 8, padding: 7, color: T.red, cursor: "pointer", display: "flex", alignItems: "center" }}><Trash2 size={13} /></button>
+                                    </div>
+                                  );
+                                })}
                               </div>
                               <div style={{ display: "flex", gap: 8 }}>
                                 <input
@@ -2743,8 +2901,9 @@ export default function App() {
                                   setSubtaskDrafts(prev => ({ ...prev, [task.id]: "" }));
                                 }} variant="primary" small>+ Add</Btn>
                               </div>
+                              </div>
                             </div>
-                          )}
+                          </div>
                         </div>
                       );
                     })
@@ -3214,7 +3373,7 @@ export default function App() {
           <div className="fu">
             <SectionHeader title="Notes & Ideas" subtitle="Capture ideas, vendor contacts, recipes, and attach files"
               action={
-                <div style={{ display: "flex", gap: 10 }}>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", width: isMobile ? "100%" : undefined, justifyContent: isMobile ? "stretch" : "flex-end" }}>
                   {!isDriveConnected && (
                     <Btn onClick={handleGoogleConnect} variant="outline" small>Connect Drive</Btn>
                   )}
@@ -3223,29 +3382,29 @@ export default function App() {
               }/>
             
             {/* Search and Filters */}
-            <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
-              <div style={{ position: "relative", flex: 1, minWidth: 240 }}>
+            <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap", alignItems: "center", position: isMobile ? "sticky" : "static", top: isMobile ? 8 : undefined, zIndex: isMobile ? 5 : undefined, background: isMobile ? "rgba(247,247,243,0.95)" : "transparent", backdropFilter: isMobile ? "blur(6px)" : "none", padding: isMobile ? "8px" : 0, borderRadius: isMobile ? 12 : 0, border: isMobile ? `1px solid ${T.border}` : "none" }}>
+              <div style={{ position: "relative", flex: 1, minWidth: isMobile ? "100%" : 240 }}>
                 <input 
                   value={noteSearch} 
                   onChange={e => setNoteSearch(e.target.value)} 
                   placeholder="Search notes..." 
-                  style={{ ...inpStyle, paddingLeft: 36 }} 
+                  style={{ ...inpStyle, paddingLeft: 36, height: isMobile ? 44 : undefined, fontSize: isMobile ? 14 : undefined }} 
                 />
-                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", opacity: 0.4 }}>?</span>
+                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", opacity: 0.4 }}>⌕</span>
               </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: isMobile ? "nowrap" : "wrap", overflowX: isMobile ? "auto" : "visible", width: isMobile ? "100%" : "auto", paddingBottom: isMobile ? 2 : 0 }}>
                 {["All", ...Object.keys(NOTE_TAG_COLORS)].map(tag => (
                   <button key={tag} onClick={() => setNoteTagF(tag)}
-                    style={{ cursor: "pointer", borderRadius: 20, padding: "6px 14px", fontSize: 12, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", border: `1px solid ${noteTagF === tag ? T.gold : T.border}`, background: noteTagF === tag ? T.goldLight : "#FFF", color: noteTagF === tag ? T.gold : T.muted, fontWeight: noteTagF === tag ? 600 : 400 }}>
+                    style={{ cursor: "pointer", borderRadius: 20, padding: isMobile ? "8px 14px" : "6px 14px", fontSize: 12, whiteSpace: "nowrap", fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", border: `1px solid ${noteTagF === tag ? T.gold : T.border}`, background: noteTagF === tag ? T.goldLight : "#FFF", color: noteTagF === tag ? T.gold : T.muted, fontWeight: noteTagF === tag ? 600 : 400 }}>
                     {tag}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:14 }}>
+            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(280px,1fr))", gap:14 }}>
               {filteredNotes.length === 0 ? (
-                <div style={{ gridColumn: "1/-1", padding: 60, textAlign: "center", background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, color: T.muted }}>
+                <div style={{ gridColumn: "1/-1", padding: isMobile ? 30 : 60, textAlign: "center", background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, color: T.muted }}>
                   No notes found matching your search or filters.
                 </div>
               ) : (

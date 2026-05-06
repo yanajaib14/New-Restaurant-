@@ -68,6 +68,8 @@ export function TaskModal({ task, initialDate, notes, onSave, onClose }: { task:
 export function TaskRow({ task, onEdit, onDelete, onStatusChange, onSaveChecklist }: { task: Task, onEdit: (t: Task) => void, onDelete: (t: Task) => void, onStatusChange: (id: number, s: string) => void, onSaveChecklist: (tid: number, checklist: any[]) => void, key?: any }) {
   const [open, setOpen] = useState(false);
   const [newSubtask, setNewSubtask] = useState("");
+  const [editingSubtaskId, setEditingSubtaskId] = useState<number | null>(null);
+  const [editingSubtaskText, setEditingSubtaskText] = useState("");
   const total = task.checklist.length, done = task.checklist.filter(c => c.done).length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const cc = CAT_COLORS[task.category] || {};
@@ -81,6 +83,18 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange, onSaveChecklis
     const text = newSubtask.trim(); if (!text) return;
     updateChecklist([...task.checklist, { id: Date.now(), text, done: false, assignedTo: "" }]);
     setNewSubtask("");
+  };
+  const startEditSubtask = (cid: number, text: string) => {
+    setEditingSubtaskId(cid);
+    setEditingSubtaskText(text);
+  };
+  const saveEditedSubtask = () => {
+    if (editingSubtaskId === null) return;
+    const text = editingSubtaskText.trim();
+    if (!text) return;
+    updateChecklist(task.checklist.map(c => c.id === editingSubtaskId ? { ...c, text } : c));
+    setEditingSubtaskId(null);
+    setEditingSubtaskText("");
   };
 
   /* ── due-date colour ── */
@@ -108,6 +122,7 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange, onSaveChecklis
             <button
               onClick={() => setOpen(x => !x)}
               style={{ flexShrink: 0, marginTop: 2, width: 18, height: 18, border: `2px solid ${open ? T.gold : T.border}`, borderRadius: 5, background: open ? T.goldLight : "#FFF", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, transition: "all .15s" }}
+              title={open ? "Collapse subtasks" : "Expand subtasks"}
             >
               <span style={{ fontSize: 9, color: open ? T.gold : T.muted, fontWeight: 700, transform: open ? "rotate(90deg)" : "none", display: "inline-block", transition: "transform .15s" }}>▶</span>
             </button>
@@ -173,9 +188,24 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange, onSaveChecklis
                 >
                   {item.done && <span style={{ color: T.green, fontSize: 11, fontWeight: 700 }}>✓</span>}
                 </button>
-                <span style={{ flex: 1, fontSize: 12, color: item.done ? T.muted : T.text, textDecoration: item.done ? "line-through" : "none", lineHeight: 1.4 }}>{item.text}</span>
+                {editingSubtaskId === item.id ? (
+                  <input
+                    value={editingSubtaskText}
+                    onChange={e => setEditingSubtaskText(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") saveEditedSubtask();
+                      if (e.key === "Escape") { setEditingSubtaskId(null); setEditingSubtaskText(""); }
+                    }}
+                    onBlur={saveEditedSubtask}
+                    style={{ ...inpStyle, flex: 1, padding: "6px 9px", fontSize: 12, lineHeight: 1.4 }}
+                    autoFocus
+                  />
+                ) : (
+                  <span style={{ flex: 1, fontSize: 12, color: item.done ? T.muted : T.text, textDecoration: item.done ? "line-through" : "none", lineHeight: 1.4 }}>{item.text}</span>
+                )}
                 {item.assignedTo && <span style={{ fontSize: 10, color: T.muted, flexShrink: 0 }}>{item.assignedTo}</span>}
-                <button onClick={() => removeSubtask(item.id)} style={{ background: "none", border: "none", padding: "2px 4px", color: T.subtle, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}><Trash2 size={12} /></button>
+                <button onClick={() => startEditSubtask(item.id, item.text)} title="Edit subtask" style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: "4px 6px", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}><PenLine size={12} /></button>
+                <button onClick={() => removeSubtask(item.id)} title="Delete subtask" style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 8, padding: "4px 6px", color: T.red, cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}><Trash2 size={12} /></button>
               </div>
             ))}
           </div>

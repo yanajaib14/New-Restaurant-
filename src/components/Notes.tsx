@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { T, NOTE_TAG_COLORS, Note, Task } from '../types';
 import { Modal, Field, inpStyle, Btn, Pill } from './UI';
-import { Share2 } from 'lucide-react';
+import { Share2, Eye, Trash2 } from 'lucide-react';
 
 const LINK_PATTERN = /((?:https?:\/\/|www\.)[^\s]+|(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(?:\/[^\s]*)?)/gi;
 
@@ -149,11 +149,12 @@ export function NoteModal({ note, tasks, onSave, onClose }: { note: Note | null,
 export function NoteCard({ note, onOpen, onDelete, isDriveConnected, onSaveToDrive, onOpenLinkedTask }: { note: Note, onOpen: (n: Note) => void, onDelete: (id: number) => void, isDriveConnected: boolean, onSaveToDrive: (file: any) => void, onOpenLinkedTask?: (taskId: number) => void, key?: any }) {
   const tc = NOTE_TAG_COLORS[note.tag] || NOTE_TAG_COLORS["General"];
   const preview = makePreview(note.body);
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 1024;
   return (
     <div className="mobile-card" style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden", display: "flex", flexDirection: "column", transition: "all .25s cubic-bezier(0.4, 0, 0.2, 1)", cursor: "pointer", boxShadow: "0 2px 10px rgba(0,0,0,0.03)" }}
       onClick={() => onOpen(note)}
-      onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 12px 32px rgba(0,0,0,.08)"; e.currentTarget.style.transform = "translateY(-3px)"; }}
-      onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 2px 10px rgba(0,0,0,0.03)"; e.currentTarget.style.transform = "translateY(0)"; }}>
+      onMouseEnter={e => { if (isMobile) return; e.currentTarget.style.boxShadow = "0 12px 32px rgba(0,0,0,.08)"; e.currentTarget.style.transform = "translateY(-3px)"; }}
+      onMouseLeave={e => { if (isMobile) return; e.currentTarget.style.boxShadow = "0 2px 10px rgba(0,0,0,0.03)"; e.currentTarget.style.transform = "translateY(0)"; }}>
       {/* Tag accent bar */}
       <div style={{ height: 4, background: `linear-gradient(90deg, ${tc.dot} 0%, ${tc.dot}55 100%)` }} />
       <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
@@ -198,9 +199,9 @@ export function NoteCard({ note, onOpen, onDelete, isDriveConnected, onSaveToDri
       </div>
       {/* Action bar */}
       <div style={{ display: "flex", gap: 0, borderTop: `1px solid ${T.border}` }}>
-        <button onClick={e => { e.stopPropagation(); onOpen(note); }} style={{ flex: 1, background: "none", border: "none", padding: "12px", color: T.muted, cursor: "pointer", fontSize: 13, fontWeight: 600, borderRight: `1px solid ${T.border}` }}>Open</button>
-        <button onClick={e => { e.stopPropagation(); const subject = encodeURIComponent(note.title); const body = encodeURIComponent(note.body + "\n\n---\nSent from Restaurant Launch Planner"); window.location.href = `mailto:?subject=${subject}&body=${body}`; }} style={{ flex: 1, background: "none", border: "none", padding: "12px", color: T.gold, cursor: "pointer", fontSize: 13, fontWeight: 600, borderRight: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><Share2 size={12} />Share</button>
-        <button onClick={e => { e.stopPropagation(); onDelete(note.id); }} style={{ flex: 1, background: "none", border: "none", padding: "12px", color: T.red, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Delete</button>
+        <button onClick={e => { e.stopPropagation(); onOpen(note); }} style={{ flex: 1, background: "none", border: "none", padding: isMobile ? "14px 10px" : "12px", color: T.muted, cursor: "pointer", fontSize: 13, fontWeight: 600, borderRight: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}><Eye size={14} />{!isMobile && "Open"}</button>
+        <button onClick={e => { e.stopPropagation(); const subject = encodeURIComponent(note.title); const body = encodeURIComponent(note.body + "\n\n---\nSent from Restaurant Launch Planner"); window.location.href = `mailto:?subject=${subject}&body=${body}`; }} style={{ flex: 1, background: "none", border: "none", padding: isMobile ? "14px 10px" : "12px", color: T.gold, cursor: "pointer", fontSize: 13, fontWeight: 600, borderRight: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}><Share2 size={14} />{!isMobile && "Share"}</button>
+        <button onClick={e => { e.stopPropagation(); onDelete(note.id); }} style={{ flex: 1, background: "none", border: "none", padding: isMobile ? "14px 10px" : "12px", color: T.red, cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}><Trash2 size={14} />{!isMobile && "Delete"}</button>
       </div>
     </div>
   );
