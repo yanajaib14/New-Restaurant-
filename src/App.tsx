@@ -9,7 +9,7 @@ import {
 } from "./types";
 import { Pill, Btn, SectionHeader, PinGate, ChangePinModal, ChangePasswordModal, inpStyle, dropdownStyle, ProgressRing, Modal, Field } from "./components/UI";
 import { TaskModal, TaskRow } from "./components/TaskBoard";
-import { MenuModal } from "./components/MenuPlanner";
+import { MenuModal, MenuDetailModal } from "./components/MenuPlanner";
 import { FinModal } from "./components/Financials";
 import { CostCalculator } from "./components/CostCalculator";
 import { TeamOnboarding } from "./components/TeamOnboarding";
@@ -27,8 +27,9 @@ import { TalentHiring, TeamMap, TeamMapMemberModal, PositionModal, CandidateModa
 import { LaunchWindow, FullCalendar } from "./components/CalendarView";
 import { getGoogleAuthUrl, getGoogleDriveStatus, saveToGoogleDrive, fileToBase64 } from "./services/googleDriveService";
 import { exportToCSV } from "./lib/exportUtils";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
-import { LayoutDashboard, CheckSquare, Utensils, ShoppingCart, Package, DollarSign, FileText, Box, Users, ShieldCheck, Megaphone, GraduationCap, ClipboardList, Calculator, UserPlus, Calendar, FileEdit, Sparkles, PenLine, Trash2, Printer, Download, Upload, ChevronRight, ChevronDown } from "lucide-react";
+import { LayoutDashboard, CheckSquare, Utensils, ShoppingCart, Package, DollarSign, FileText, Box, Users, ShieldCheck, Megaphone, GraduationCap, ClipboardList, Calculator, UserPlus, Calendar, FileEdit, Sparkles, PenLine, Trash2, Printer, Download, Upload, ChevronRight, ChevronDown, Search, LayoutGrid, List } from "lucide-react";
 
 type ShoppingListItem = {
   id: string;
@@ -203,9 +204,9 @@ const INIT_MENU: MenuItem[] = [
 ];
 
 const INIT_UTILITIES: UtilityAccount[] = [
-  { id: 1, name: "Pacific Gas & Electric", accountNumber: "9823-112-09", loginInfo: "User: restaurant_admin / Pass: P@ssw0rd123", monthlyCost: 1250, startDate: "2025-03-01", fileUrl: "https://example.com/bill.pdf" },
-  { id: 2, name: "City Water & Waste", accountNumber: "W-88291-X", loginInfo: "User: manager_foh / Pass: Water2025!", monthlyCost: 450, startDate: "2025-03-05" },
-  { id: 3, name: "Comcast Business", accountNumber: "8499 10 122 0092", loginInfo: "User: owner_wifi / Pass: FastNet99", monthlyCost: 280, startDate: "2025-03-10" },
+  { id: 1, name: "Pacific Gas & Electric", accountNumber: "9823-112-09", loginInfo: "Login: [Set in settings]", monthlyCost: 1250, startDate: "2025-03-01", fileUrl: "" },
+  { id: 2, name: "City Water & Waste", accountNumber: "W-88291-X", loginInfo: "Login: [Set in settings]", monthlyCost: 450, startDate: "2025-03-05" },
+  { id: 3, name: "Comcast Business", accountNumber: "8499 10 122 0092", loginInfo: "Login: [Set in settings]", monthlyCost: 280, startDate: "2025-03-10" },
 ];
 
 const INIT_STARTUP: StartupCost[] = [
@@ -270,9 +271,9 @@ const INIT_ACTIVITY: ActivityLog[] = [
 ];
 
 const INIT_ASSETS: DigitalAsset[] = [
-  { id: 1, name: "Instagram", category: "Social Media", url: "instagram.com/ourrestaurant", loginInfo: "User: ourrest_admin\nPass: *********", notes: "Main marketing channel" },
-  { id: 2, name: "Shopify", category: "Software", url: "shopify.com", loginInfo: "Email: owner@rest.com", notes: "Merch and gift cards" },
-  { id: 3, name: "Toast POS", category: "POS", url: "toasttab.com", loginInfo: "Admin: manager1", notes: "Primary point of sale" },
+  { id: 1, name: "Instagram", category: "Social Media", url: "instagram.com/ourrestaurant", loginInfo: "Login: [Set in settings]", notes: "Main marketing channel" },
+  { id: 2, name: "Shopify", category: "Software", url: "shopify.com", loginInfo: "Login: [Set in settings]", notes: "Merch and gift cards" },
+  { id: 3, name: "Toast POS", category: "POS", url: "toasttab.com", loginInfo: "Login: [Set in settings]", notes: "Primary point of sale" },
 ];
 
 export default function App() {
@@ -314,6 +315,7 @@ export default function App() {
   const [taskModal, setTaskModal]   = useState<any>(null); // null | "new" | task obj
   const [todoModal, setTodoModal]   = useState<TaskTodoItem | "new" | null>(null);
   const [menuModal, setMenuModal]   = useState<any>(null);
+  const [menuViewItem, setMenuViewItem] = useState<MenuItem | null>(null);
   const [finModal, setFinModal]     = useState<any>(null); // {type, item|null}
   const [tlModal, setTlModal]       = useState<any>(null);
   const [noteModal, setNoteModal]   = useState<any>(null);
@@ -340,7 +342,11 @@ export default function App() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const { user: currentUser, role: userRole, logout, isLoading: isAuthLoading } = useAuth();
-  const [securityPin, setSecurityPin] = useState(() => localStorage.getItem("app_security_pin") || "1379");
+  const [securityPin, setSecurityPin] = useState(() => {
+  const stored = localStorage.getItem("app_security_pin");
+  if (stored) return stored;
+  return import.meta.env.VITE_DEFAULT_PIN || "1379";
+});
   const [activity, setActivity] = useState<ActivityLog[]>(INIT_ACTIVITY);
   const [isDriveConnected, setIsDriveConnected] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
@@ -461,6 +467,7 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
+    let realtimeInitialized = false;
 
     const handleSync = () => {
       if (!active) return;
@@ -469,10 +476,17 @@ export default function App() {
 
     const bootRealtime = async () => {
       try {
+        if (!active) return;
         await insforge.realtime.connect();
+        if (!active) return;
         const sub = await insforge.realtime.subscribe(SYNC_CHANNEL);
         if (!sub.ok) {
           console.warn("Realtime subscribe failed", "error" in sub ? sub.error : sub);
+          return;
+        }
+        realtimeInitialized = true;
+        if (!active) {
+          cleanupRealtime();
           return;
         }
         insforge.realtime.on("db_changed", handleSync);
@@ -481,11 +495,22 @@ export default function App() {
       }
     };
 
+    const cleanupRealtime = () => {
+      try {
+        insforge.realtime.off("db_changed", handleSync);
+        insforge.realtime.unsubscribe(SYNC_CHANNEL);
+        insforge.realtime.disconnect();
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+      realtimeInitialized = false;
+    };
+
     bootRealtime();
 
     const poll = setInterval(() => {
       loadAllData();
-    }, 20000);
+    }, 30000);
 
     const onFocus = () => loadAllData();
     window.addEventListener("focus", onFocus);
@@ -494,9 +519,9 @@ export default function App() {
       active = false;
       clearInterval(poll);
       window.removeEventListener("focus", onFocus);
-      insforge.realtime.off("db_changed", handleSync);
-      insforge.realtime.unsubscribe(SYNC_CHANNEL);
-      insforge.realtime.disconnect();
+      if (realtimeInitialized) {
+        cleanupRealtime();
+      }
     };
   }, [loadAllData]);
 
@@ -665,6 +690,9 @@ export default function App() {
   // Filters
   const [catFilter, setCatF]    = useState("All");
   const [statFilter, setStatF]  = useState("All");
+  const [taskSearch, setTaskSearch] = useState("");
+  const [taskSortBy, setTaskSortBy] = useState<"priority" | "due" | "category">("priority");
+  const [showDoneTodos, setShowDoneTodos] = useState(false);
   const [todoCatFilter, setTodoCatFilter] = useState("All");
   const [todoStatusFilter, setTodoStatusFilter] = useState<TaskTodoItem["status"] | "All">("All");
   const [menuSecF, setMenuSecF] = useState("All");
@@ -692,9 +720,10 @@ export default function App() {
   });
   const [noteSearch, setNoteSearch] = useState("");
   const [noteTagF, setNoteTagF] = useState("All");
+  const [noteView, setNoteView] = useState<"grid" | "list">("grid");
 
   // AI
-  const [aiMsgs, setAiMsgs] = useState([{ role: "assistant", content: "Welcome! I'm your restaurant launch assistant. Ask me anything about task status, budget, menu, or what needs attention.", suggestions: ["What tasks are due this week?", "Which permits are pending?", "What's over budget?"] }]);
+  const [aiMsgs, setAiMsgs] = useState<{ role: string; content: string; suggestions?: string[] }[]>([{ role: "assistant", content: "Welcome! I'm your restaurant launch assistant. Ask me anything about task status, budget, menu, or what needs attention.", suggestions: ["What tasks are due this week?", "Which permits are pending?", "What's over budget?"] }]);
   const [aiLoad, setAiLoad] = useState(false);
 
   // ���� Derived ����
@@ -705,6 +734,19 @@ export default function App() {
   const openTaskTodos = taskTodos.filter(todo => todo.status !== "Done");
   const doneTaskTodos = taskTodos.filter(todo => todo.status === "Done");
   const filteredTasks = tasks.filter(t => (catFilter === "All" || t.category === catFilter) && (statFilter === "All" || t.status === statFilter));
+  const TASK_PRIORITY_ORDER: Record<string, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+  const displayedTasks = [...filteredTasks]
+    .filter(t => !taskSearch.trim() || t.task.toLowerCase().includes(taskSearch.toLowerCase()))
+    .sort((a, b) => {
+      if (taskSortBy === "priority") return (TASK_PRIORITY_ORDER[a.priority] ?? 2) - (TASK_PRIORITY_ORDER[b.priority] ?? 2);
+      if (taskSortBy === "due") {
+        if (!a.due && !b.due) return 0;
+        if (!a.due) return 1;
+        if (!b.due) return -1;
+        return new Date(a.due).getTime() - new Date(b.due).getTime();
+      }
+      return a.category.localeCompare(b.category);
+    });
   const filteredTaskTodos = taskTodos.filter(todo => {
     const categoryMatch = todoCatFilter === "All" || todo.category === todoCatFilter;
     const statusMatch = todoStatusFilter === "All" || todo.status === todoStatusFilter;
@@ -1222,12 +1264,24 @@ export default function App() {
   };
 
   // ���� Notes CRUD ����
-  const saveNote = async (form: any) => {
+  // ─── Notes CRUD ───────────────────────────────────────────────────────────────
+  const saveNote = async (form: any): Promise<boolean> => {
     const d = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Phoenix' });
     const { id, ...rest } = form;
+    // Prefer the form's own id; fall back to noteModal's id for legacy callers.
+    const editId = id || (noteModal && noteModal !== 'new' ? noteModal.id : null);
+
+    // Optimistic update so the UI reflects changes immediately.
+    if (editId) {
+      setNotes(prev => prev.map(n => n.id === editId ? { ...form } : n));
+    } else {
+      const tempId = Date.now();
+      setNotes(prev => [{ ...form, id: tempId, date: d }, ...prev]);
+    }
+
     try {
-      if (noteModal && noteModal !== 'new') {
-        const { error } = await dbUpdate('notes', noteModal.id, rest);
+      if (editId) {
+        const { error } = await dbUpdate('notes', editId, rest);
         if (error) throw error;
       } else {
         const { error } = await dbInsert('notes', { ...rest, date: d });
@@ -1235,7 +1289,11 @@ export default function App() {
       }
       await refetch('notes', setNotes);
       setNoteModal(null);
+      logActivity(editId ? `Updated note: ${form.title}` : `Added note: ${form.title}`);
+      return true;
     } catch (e: any) {
+      // Roll back optimistic update on failure.
+      await refetch('notes', setNotes);
       console.error("Save Note Error:", e);
       const msg = String(e?.message || "");
       const raw = JSON.stringify(e || {});
@@ -1244,14 +1302,22 @@ export default function App() {
       } else {
         alert(`Failed to save note: ${msg || raw}`);
       }
+      return false;
     }
   };
 
-  const filteredNotes = notes.filter(n => {
-    const matchTag  = noteTagF==='All' || n.tag===noteTagF;
-    const matchSearch = !noteSearch || n.title.toLowerCase().includes(noteSearch.toLowerCase()) || n.body?.toLowerCase().includes(noteSearch.toLowerCase());
-    return matchTag && matchSearch;
-  });
+  const filteredNotes = notes
+    .filter(n => {
+      const needle = noteSearch.trim().toLowerCase();
+      const matchTag  = noteTagF==='All' || n.tag===noteTagF;
+      const matchSearch = !needle || n.title.toLowerCase().includes(needle) || n.body?.toLowerCase().includes(needle) || n.tag.toLowerCase().includes(needle);
+      return matchTag && matchSearch;
+    })
+    .sort((a, b) => Number(b.id) - Number(a.id));
+  const tagCounts = notes.reduce<Record<string, number>>((acc, note) => {
+    acc[note.tag] = (acc[note.tag] || 0) + 1;
+    return acc;
+  }, {});
 
   // ─── Calendar Events CRUD ───────────────────────────────────────────────────
   const saveCalendarEvent = async (form: any) => {
@@ -2251,10 +2317,11 @@ export default function App() {
         </Modal>
       )}
       {menuModal  && <MenuModal item={menuModal==="new"?null:menuModal} onSave={saveMenu} onClose={()=>setMenuModal(null)}/>}
-      {finModal   && <FinModal item={finModal.item||null} type={finModal.type} onSave={saveFin} onClose={()=>setFinModal(null)} userRole={currentUser?.role} />}
+      {menuViewItem && <MenuDetailModal item={menuViewItem} onClose={() => setMenuViewItem(null)} onEdit={() => { setMenuModal(menuViewItem); setMenuViewItem(null); }} />}
+      {finModal   && <FinModal item={finModal.item||null} type={finModal.type} onSave={saveFin} onClose={()=>setFinModal(null)} userRole={userRole} />}
       {tlModal    && <TimelineModal item={tlModal==="new"?null:tlModal} onSave={saveTL} onClose={()=>setTlModal(null)}/>}
       {noteModal  && <NoteModal note={noteModal==="new"?null:noteModal} tasks={tasks} onSave={saveNote} onClose={()=>setNoteModal(null)}/>} 
-      {noteDetail && <NoteDetailModal note={noteDetail} onClose={() => setNoteDetail(null)} onEdit={(n) => { setNoteDetail(null); setNoteModal(n); }} onDelete={(id) => {
+      {noteDetail && <NoteDetailModal note={noteDetail} tasks={tasks} onClose={() => setNoteDetail(null)} onSave={async (form) => { const ok = await saveNote(form); if (ok) setNoteDetail(null); return ok; }} onDelete={(id) => {
         const selected = noteDetail;
         setNoteDetail(null);
         setDelConfirm({ label: selected.title, onConfirm: () => deleteRecord('notes', id, selected.title, setNotes) });
@@ -2324,8 +2391,8 @@ export default function App() {
       )}
       {mktModal && <MarketingModal post={mktModal === "new" ? null : mktModal} onSave={saveMkt} onClose={() => setMktModal(null)} />}
       {trainModal && <TrainingModal module={trainModal === "new" ? null : trainModal} onSave={saveTrain} onClose={() => setTrainModal(null)} />}
-      {posModal && <PositionModal position={posModal === "new" ? null : posModal} onSave={savePos} onClose={() => setPosModal(null)} userRole={currentUser?.role} />}
-      {canModal && <CandidateModal candidate={canModal === "new" ? null : canModal} initialDate={calDate || undefined} positions={positions} onSave={saveCan} onClose={() => { setCanModal(null); setCalDate(null); }} userRole={currentUser?.role} />}
+      {posModal && <PositionModal position={posModal === "new" ? null : posModal} onSave={savePos} onClose={() => setPosModal(null)} userRole={userRole} />}
+      {canModal && <CandidateModal candidate={canModal === "new" ? null : canModal} initialDate={calDate || undefined} positions={positions} onSave={saveCan} onClose={() => { setCanModal(null); setCalDate(null); }} userRole={userRole} />}
       {teamMapModal && <TeamMapMemberModal member={teamMapModal === "new" ? null : teamMapModal} positions={positions} onSave={saveTeamMapMember} onClose={() => setTeamMapModal(null)} />}
       {assetModal && <DigitalAssetModal asset={assetModal === "new" ? null : assetModal} onSave={saveAsset} onClose={() => setAssetModal(null)} />}
       {utilityModal && <UtilityModal account={utilityModal === "new" ? null : utilityModal} onSave={saveUtility} onClose={() => setUtilityModal(null)} />}
@@ -2472,14 +2539,280 @@ export default function App() {
         {/* �"��"��"��"��"��"� TASKS �"��"��"��"��"��"� */}
         {tab==="tasks" && (
           <div className="fu">
-            <SectionHeader title="Task Manager" subtitle={`${tasks.filter(t=>{const d=t.due?new Date(t.due+"T12:00:00"):null;return d&&d<new Date()&&t.status!=="Complete"}).length} overdue · ${tasks.filter(t=>t.status==="In Progress").length} in progress · ${tasks.filter(t=>t.status==="Complete").length} complete`}
+            <SectionHeader title="Task Command Center" subtitle={`${tasks.filter(t=>{const d=t.due?new Date(t.due+"T12:00:00"):null;return d&&d<new Date()&&t.status!=="Complete"}).length} overdue · ${tasks.filter(t=>t.status==="In Progress").length} in progress · ${tasks.filter(t=>t.status==="Complete").length} complete`}
               action={
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: isMobile ? "stretch" : "flex-end" }}>
                   <Btn onClick={openNewTodo} variant="outline" small>+ Full Todo Form</Btn>
                   <Btn onClick={()=>setTaskModal("new")} variant="primary">+ New Master Task</Btn>
                 </div>
               }/>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(360px, 0.8fr) minmax(0, 1.2fr)", gap: 16, alignItems: "start" }}>
+            {/* Stats Panel */}
+            {(() => {
+              const totalTasks = tasks.length;
+              const completedTasks = tasks.filter(t => t.status === "Complete").length;
+              const inProgressTasks = tasks.filter(t => t.status === "In Progress").length;
+              const overdueTasks = tasks.filter(t => { const d = t.due ? new Date(t.due + "T12:00:00") : null; return d && d < new Date() && t.status !== "Complete"; }).length;
+              const pct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+              const totalTodos = taskTodos.length;
+              const doneTodos = taskTodos.filter(t => t.status === "Done").length;
+              return (
+                <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? 14 : 20, marginBottom: 16 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                    <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>PROGRESS OVERVIEW</div>
+                    <div style={{ fontSize: 12, color: T.muted }}>{pct}% complete · {totalTasks} master tasks · {totalTodos} action items</div>
+                  </div>
+                  <div style={{ height: 8, borderRadius: 999, background: T.bg, border: `1px solid ${T.border}`, overflow: "hidden", marginBottom: 14 }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: pct >= 80 ? T.green : pct >= 50 ? T.gold : T.blue, borderRadius: 999, transition: "width .4s ease" }} />
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(5, 1fr)", gap: 10 }}>
+                    {[
+                      { label: "Total Tasks", value: totalTasks, color: T.text, bg: T.bg },
+                      { label: "Completed", value: completedTasks, color: T.green, bg: T.greenLight },
+                      { label: "In Progress", value: inProgressTasks, color: T.blue, bg: T.blueLight },
+                      { label: "Overdue", value: overdueTasks, color: overdueTasks > 0 ? T.red : T.muted, bg: overdueTasks > 0 ? T.redLight : T.bg },
+                      { label: "Action Items", value: `${doneTodos}/${totalTodos}`, color: T.gold, bg: T.goldLight },
+                    ].map(stat => (
+                      <div key={stat.label} style={{ background: stat.bg, border: `1px solid ${T.border}`, borderRadius: 12, padding: "10px 12px", textAlign: "center" }}>
+                        <div style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, color: stat.color, lineHeight: 1 }}>{stat.value}</div>
+                        <div style={{ fontSize: 10, color: T.muted, marginTop: 4, fontWeight: 600 }}>{stat.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.5fr) minmax(0, 1fr)", gap: 16, alignItems: "start" }}>
+              {/* LEFT: MASTER TASK CHECKLISTS */}
+              <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? 12 : 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+                  <div>
+                    <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.1, fontWeight: 600 }}>MASTER TASK CHECKLISTS</div>
+                    <div style={{ fontSize: 12, color: T.subtle, marginTop: 2 }}>Check off subtasks as you complete them.</div>
+                  </div>
+                  <Btn onClick={() => setTaskModal("new")} variant="outline" small>+ New Task</Btn>
+                </div>
+                {/* Search + Sort */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginBottom: 10 }}>
+                  <div style={{ position: "relative" }}>
+                    <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: T.muted, pointerEvents: "none" }} />
+                    <input
+                      value={taskSearch}
+                      onChange={e => setTaskSearch(e.target.value)}
+                      placeholder="Search tasks..."
+                      style={{ ...inpStyle, paddingLeft: 32, height: 36, fontSize: 12 }}
+                    />
+                  </div>
+                  <select value={taskSortBy} onChange={e => setTaskSortBy(e.target.value as "priority" | "due" | "category")} style={{ ...dropdownStyle, height: 36, fontSize: 12 }}>
+                    <option value="priority">Sort: Priority</option>
+                    <option value="due">Sort: Due Date</option>
+                    <option value="category">Sort: Category</option>
+                  </select>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10, marginBottom: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 10, color: T.subtle, marginBottom: 6 }}>CATEGORY</div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {["All", ...CATEGORIES].map(category => (
+                        <button
+                          key={`task-cat-${category}`}
+                          onClick={() => setCatF(category)}
+                          style={{ cursor: "pointer", borderRadius: 999, padding: "4px 10px", fontSize: 10, border: `1px solid ${catFilter === category ? T.gold : T.border}`, background: catFilter === category ? T.goldLight : "#FFF", color: catFilter === category ? T.gold : T.muted, fontWeight: catFilter === category ? 700 : 500 }}
+                        >
+                          {category}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: T.subtle, marginBottom: 6 }}>STATUS</div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {["All", "Not Started", "In Progress", "Complete", "Overdue"].map(status => (
+                        <button
+                          key={`task-status-${status}`}
+                          onClick={() => setStatF(status)}
+                          style={{ cursor: "pointer", borderRadius: 999, padding: "4px 10px", fontSize: 10, border: `1px solid ${statFilter === status ? T.gold : T.border}`, background: statFilter === status ? T.goldLight : "#FFF", color: statFilter === status ? T.gold : T.muted, fontWeight: statFilter === status ? 700 : 500 }}
+                        >
+                          {status}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                {isMobile ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {displayedTasks.length === 0 ? (
+                      <div style={{ border: `1px dashed ${T.border}`, borderRadius: 16, padding: "24px 16px", color: T.muted, fontSize: 13, textAlign: "center", background: "#FFF" }}>
+                        No tasks match current filters.
+                      </div>
+                    ) : (
+                      displayedTasks.map(task => {
+                        const cc = CAT_COLORS[task.category] || {};
+                        const sc = STATUS_COLORS[task.status] || {};
+                        const pc = PRIORITY_COLORS[task.priority] || {};
+                        const total = task.checklist.length;
+                        const done = task.checklist.filter(item => item.done).length;
+                        const pct = total ? Math.round((done / total) * 100) : 0;
+                        const expanded = !!expandedTaskCards[task.id];
+                        const newSubtaskValue = subtaskDrafts[task.id] || "";
+                        return (
+                          <div key={`task-mobile-${task.id}`} className="mobile-card" style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
+                            {/* Color accent bar */}
+                            <div style={{ height: 4, background: `linear-gradient(90deg, ${cc.dot || T.gold} 0%, ${cc.dot || T.gold}55 100%)` }} />
+                            
+                            <div style={{ padding: "14px 16px 0" }}>
+                              {/* Top row: title + actions */}
+                              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", marginBottom: 10 }}>
+                                <button onClick={() => setExpandedTaskCards(prev => ({ ...prev, [task.id]: !prev[task.id] }))} style={{ background: "none", border: "none", padding: 0, margin: 0, fontSize: 15, fontWeight: 700, color: T.text, lineHeight: 1.3, textAlign: "left", cursor: "pointer", flex: 1, minWidth: 0 }}>{task.task}</button>
+                                <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                                  <button onClick={() => setTaskModal(task)} title="Edit" style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center" }}><PenLine size={15} /></button>
+                                  <button onClick={() => setDelConfirm({ label: task.task, onConfirm: () => deleteRecord('tasks', task.id, task.task, setTasks) })} title="Delete" style={{ background: T.redLight, border: `1px solid ${T.redBorder}`, borderRadius: 10, padding: "8px 10px", color: T.red, cursor: "pointer", display: "flex", alignItems: "center" }}><Trash2 size={15} /></button>
+                                </div>
+                              </div>
+
+                              {/* Meta badges */}
+                              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+                                <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 99, background: cc.bg || T.bg, color: cc.dot || T.muted, border: `1px solid ${cc.border || T.border}`, fontWeight: 600 }}>{task.category}</span>
+                                <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 99, background: sc.bg || T.bg, color: sc.text || T.muted, border: `1px solid ${sc.border || T.border}`, fontWeight: 600 }}>{task.status}</span>
+                                <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 99, background: pc.bg || T.bg, color: pc.text || T.muted, border: `1px solid ${pc.border || T.border}`, fontWeight: 700 }}>{task.priority}</span>
+                                {task.due && <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 99, background: T.bg, color: T.muted, border: `1px solid ${T.border}` }}>Due {new Date(task.due + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
+                              </div>
+
+                              {/* Progress bar */}
+                              {total > 0 && (
+                                <div style={{ marginBottom: 12 }}>
+                                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                                    <span style={{ fontSize: 11, color: T.muted }}>Subtasks</span>
+                                    <span style={{ fontSize: 11, color: pct === 100 ? T.green : T.muted, fontWeight: 600 }}>{done}/{total}</span>
+                                  </div>
+                                  <div style={{ height: 6, borderRadius: 999, background: T.bg, overflow: "hidden" }}>
+                                    <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? T.green : T.gold, transition: "width .3s ease", borderRadius: 999 }} />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Expand toggle button */}
+                            <button
+                              onClick={() => setExpandedTaskCards(prev => ({ ...prev, [task.id]: !prev[task.id] }))}
+                              style={{ width: "100%", background: "none", border: "none", borderTop: `1px solid ${T.border}`, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: T.muted, cursor: "pointer", fontSize: 12, fontWeight: 600 }}
+                            >
+                              {expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                              {expanded ? "Hide subtasks" : `${total > 0 ? `${total} subtask${total !== 1 ? "s" : ""}` : "Add subtasks"}`}
+                            </button>
+
+                            {/* Subtask panel */}
+                            <div style={{ display: "grid", gridTemplateRows: expanded ? "1fr" : "0fr", transition: "grid-template-rows .22s ease" }}>
+                              <div style={{ overflow: "hidden" }}>
+                                <div style={{ background: T.bg, borderTop: `1px solid ${T.border}`, padding: "14px 16px 16px" }}>
+                                {task.checklist.length === 0 && <div style={{ fontSize: 12, color: T.muted, marginBottom: 10, textAlign: "center" }}>No subtasks yet — add one below.</div>}
+                                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+                                  {task.checklist.map(item => {
+                                    const editKey = `${task.id}:${item.id}`;
+                                    const isEditing = Object.prototype.hasOwnProperty.call(editingTaskSubtaskDrafts, editKey);
+                                    const draftValue = editingTaskSubtaskDrafts[editKey] ?? item.text;
+                                    return (
+                                      <div key={`task-mobile-check-${task.id}-${item.id}`} style={{ display: "flex", alignItems: "center", gap: 10, background: "#FFF", borderRadius: 12, padding: "10px 12px", border: `1px solid ${T.border}` }}>
+                                        <button onClick={() => toggleTaskCheck(task.id, item.id)} style={{ width: 22, height: 22, minWidth: 22, border: `2px solid ${item.done ? T.green : T.border}`, borderRadius: 6, background: item.done ? T.greenLight : "#FFF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer", padding: 0 }}>
+                                          {item.done && <span style={{ color: T.green, fontSize: 12, fontWeight: 700 }}>✓</span>}
+                                        </button>
+                                        {isEditing ? (
+                                          <input
+                                            value={draftValue}
+                                            onChange={e => setEditingTaskSubtaskDrafts(prev => ({ ...prev, [editKey]: e.target.value }))}
+                                            onKeyDown={e => {
+                                              if (e.key === "Enter") {
+                                                updateTaskSubtaskText(task.id, item.id, draftValue);
+                                                setEditingTaskSubtaskDrafts(prev => {
+                                                  const next = { ...prev };
+                                                  delete next[editKey];
+                                                  return next;
+                                                });
+                                              }
+                                              if (e.key === "Escape") {
+                                                setEditingTaskSubtaskDrafts(prev => {
+                                                  const next = { ...prev };
+                                                  delete next[editKey];
+                                                  return next;
+                                                });
+                                              }
+                                            }}
+                                            onBlur={() => {
+                                              updateTaskSubtaskText(task.id, item.id, draftValue);
+                                              setEditingTaskSubtaskDrafts(prev => {
+                                                const next = { ...prev };
+                                                delete next[editKey];
+                                                return next;
+                                              });
+                                            }}
+                                            style={{ ...inpStyle, fontSize: 13, padding: "7px 10px", flex: 1, borderRadius: 10 }}
+                                            autoFocus
+                                          />
+                                        ) : (
+                                          <span style={{ flex: 1, fontSize: 13, color: item.done ? T.muted : T.text, textDecoration: item.done ? "line-through" : "none", lineHeight: 1.4 }}>{item.text}</span>
+                                        )}
+                                        <button onClick={() => setEditingTaskSubtaskDrafts(prev => ({ ...prev, [editKey]: item.text }))} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: 7, color: T.muted, cursor: "pointer", display: "flex", alignItems: "center" }}><PenLine size={13} /></button>
+                                        <button onClick={() => deleteTaskSubtask(task.id, item.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 8, padding: 7, color: T.red, cursor: "pointer", display: "flex", alignItems: "center" }}><Trash2 size={13} /></button>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                <div style={{ display: "flex", gap: 8 }}>
+                                  <input
+                                    value={newSubtaskValue}
+                                    onChange={e => setSubtaskDrafts(prev => ({ ...prev, [task.id]: e.target.value }))}
+                                    onKeyDown={e => {
+                                      if (e.key === "Enter") {
+                                        addTaskSubtask(task.id, newSubtaskValue);
+                                        setSubtaskDrafts(prev => ({ ...prev, [task.id]: "" }));
+                                      }
+                                    }}
+                                    placeholder="Add subtask..."
+                                    style={{ ...inpStyle, fontSize: 13, padding: "10px 14px", flex: 1, borderRadius: 12 }}
+                                  />
+                                  <Btn onClick={() => {
+                                    addTaskSubtask(task.id, newSubtaskValue);
+                                    setSubtaskDrafts(prev => ({ ...prev, [task.id]: "" }));
+                                  }} variant="primary" small>+ Add</Btn>
+                                </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" as any }}>
+                  <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden", minWidth: 780 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "28px minmax(260px, 1.8fr) 120px 140px 100px 90px minmax(120px, auto)", gap: 0, padding: "10px 18px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
+                      {["", "TASK / PROGRESS", "DUE", "STATUS", "OWNER", "PRIORITY", ""].map((h, i) => (
+                        <div key={`task-head-${i}`} style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, color: T.subtle, letterSpacing: .8 }}>{h}</div>
+                      ))}
+                    </div>
+                    {displayedTasks.length === 0 ? (
+                      <div style={{ padding: 26, textAlign: "center", color: T.muted, fontSize: 12 }}>
+                        No tasks match current filters.
+                      </div>
+                    ) : (
+                      displayedTasks.map(task => (
+                        <TaskRow
+                          key={`planning-task-row-${task.id}`}
+                          task={task}
+                          onEdit={setTaskModal}
+                          onDelete={t => setDelConfirm({ label: t.task, onConfirm: () => deleteRecord('tasks', t.id, t.task, setTasks) })}
+                          onStatusChange={(id, s) => updateRecord('tasks', id, { status: s }, 'Task Status', setTasks)}
+                          onSaveChecklist={saveTaskChecklist}
+                        />
+                      ))
+                    )}
+                  </div>
+                  </div>
+                )}
+              </div>
+
+              {/* RIGHT: ACTION LIST */}
               <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
                 <div style={{ position: "sticky", top: 0, zIndex: 4, padding: isMobile ? "12px" : "14px", background: "#FFF", borderBottom: `1px solid ${T.border}` }}>
                   <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.1, fontWeight: 600, marginBottom: 10 }}>ACTION LIST</div>
@@ -2512,10 +2845,10 @@ export default function App() {
                 </div>
 
                 <div style={{ maxHeight: isMobile ? "none" : "calc(100vh - 290px)", overflowY: "auto" }}>
-                  {actionListTodos.length === 0 ? (
+                  {actionListTodos.filter(t => showDoneTodos || t.status !== "Done").length === 0 ? (
                     <div style={{ padding: "18px 14px", color: T.muted, fontSize: 12 }}>No todo items match this filter.</div>
                   ) : (
-                    actionListTodos.map(todo => {
+                    actionListTodos.filter(t => showDoneTodos || t.status !== "Done").map(todo => {
                       const isDone = todo.status === "Done";
                       const subtasks = todo.subtasks || [];
                       const subDone = subtasks.filter(s => s.done).length;
@@ -2637,312 +2970,20 @@ export default function App() {
                     })
                   )}
                 </div>
-              </div>
-
-              <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? 12 : 16 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-                  <div>
-                    <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.1, fontWeight: 600 }}>CATEGORIZED OVERVIEW</div>
-                    <div style={{ fontSize: 12, color: T.subtle, marginTop: 2 }}>Open vs Completed by planning category</div>
-                  </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <Btn onClick={() => setTodoStatusFilter("All")} variant="ghost" small>All Statuses</Btn>
-                    <Btn onClick={() => setTodoStatusFilter("In Progress")} variant="outline" small>Focus In Progress</Btn>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {planningCategoryRows.map(row => {
-                    const cc = CAT_COLORS[row.category] || { bg: T.bg, dot: T.text, border: T.border };
-                    const isExpanded = !!expandedPlanningCats[row.category];
-                    const categoryTodos = taskTodos
-                      .filter(todo => todo.category === row.category)
-                      .filter(todo => todoStatusFilter === "All" || todo.status === todoStatusFilter)
-                      .sort((a, b) => {
-                        if (TODO_STATUS_ORDER[a.status] !== TODO_STATUS_ORDER[b.status]) {
-                          return TODO_STATUS_ORDER[a.status] - TODO_STATUS_ORDER[b.status];
-                        }
-                        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-                      });
-
-                    return (
-                      <div key={`planning-row-${row.category}`} style={{ border: `1px solid ${cc.border}`, borderRadius: 14, overflow: "hidden", background: "#FFF" }}>
-                        <button
-                          onClick={() => setExpandedPlanningCats(prev => ({ ...prev, [row.category]: !prev[row.category] }))}
-                          style={{ width: "100%", display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: 10, alignItems: "center", textAlign: "left", border: "none", background: cc.bg, padding: "10px 12px", cursor: "pointer", borderBottom: `1px solid ${cc.border}` }}
-                        >
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{row.category}</div>
-                            <div style={{ marginTop: 4, fontSize: 10, color: T.muted }}>{row.taskCount} master tasks · {row.todoCount} todo items</div>
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <span style={{ fontSize: 11, color: cc.dot, fontWeight: 700 }}>{row.progress}%</span>
-                            <span style={{ fontSize: 14, color: T.muted }}>{isExpanded ? "▾" : "▸"}</span>
-                          </div>
-                        </button>
-
-                        <div style={{ padding: "12px" }}>
-                          <div style={{ height: 7, borderRadius: 999, background: T.bg, border: `1px solid ${T.border}`, overflow: "hidden", marginBottom: 10 }}>
-                            <div style={{ height: "100%", width: `${row.progress}%`, background: row.progress >= 70 ? T.green : row.progress >= 40 ? T.gold : T.blue, transition: "width .2s ease" }} />
-                          </div>
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                            <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px", background: T.bg }}>
-                              <div style={{ fontSize: 10, color: T.subtle }}>Open</div>
-                              <div style={{ fontSize: 18, fontWeight: 700, color: row.openCount > 0 ? T.gold : T.text }}>{row.openCount}</div>
-                            </div>
-                            <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px", background: T.bg }}>
-                              <div style={{ fontSize: 10, color: T.subtle }}>Completed</div>
-                              <div style={{ fontSize: 18, fontWeight: 700, color: T.green }}>{row.completedCount}</div>
-                            </div>
-                          </div>
-
-                          {isExpanded && (
-                            <div style={{ marginTop: 10, borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
-                              {categoryTodos.length === 0 ? (
-                                <div style={{ fontSize: 11, color: T.muted }}>No todo items in this category for current status filter.</div>
-                              ) : (
-                                <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                                  {categoryTodos.map(todo => {
-                                    const sc = TODO_STATUS_COLORS[todo.status];
-                                    return (
-                                      <div key={`cat-todo-${row.category}-${todo.id}`} style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px", background: "#FFF" }}>
-                                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
-                                          <div style={{ fontSize: 12, color: T.text, overflowWrap: "anywhere" }}>{todo.title}</div>
-                                          <span style={{ fontSize: 10, color: sc.text, background: sc.bg, border: `1px solid ${sc.border}`, borderRadius: 999, padding: "2px 8px", whiteSpace: "nowrap" }}>{todo.status}</span>
-                                        </div>
-                                        {(todo.note || todo.linkUrl) && (
-                                          <div style={{ marginTop: 6, fontSize: 11, color: T.muted, display: "flex", flexDirection: "column", gap: 3 }}>
-                                            {todo.note && <span>{todo.note}</span>}
-                                            {todo.linkUrl && <a href={todo.linkUrl} target="_blank" rel="noreferrer" style={{ color: T.blue, textDecoration: "underline", overflowWrap: "anywhere" }}>{todo.linkUrl}</a>}
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                {/* Show/hide done toggle footer */}
+                <div style={{ borderTop: `1px solid ${T.border}`, padding: "10px 14px", background: T.bg, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 11, color: T.muted }}>{actionListTodos.filter(t => t.status === "Done").length} completed items</span>
+                  <button
+                    onClick={() => setShowDoneTodos(prev => !prev)}
+                    style={{ border: `1px solid ${T.border}`, background: "#FFF", borderRadius: 8, padding: "5px 12px", fontSize: 11, color: T.text, cursor: "pointer", fontWeight: 600 }}
+                  >
+                    {showDoneTodos ? "Hide Done" : "Show Done"}
+                  </button>
                 </div>
               </div>
             </div>
 
-            <div style={{ marginTop: 16, background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? 12 : 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-                <div>
-                  <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.1, fontWeight: 600 }}>MASTER TASK CHECKLISTS</div>
-                  <div style={{ fontSize: 12, color: T.subtle, marginTop: 2 }}>Add subtasks in task editor, then check each item off here when completed.</div>
-                </div>
-                <Btn onClick={() => setTaskModal("new")} variant="outline" small>+ New Task</Btn>
-              </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10, marginBottom: 12 }}>
-                <div>
-                  <div style={{ fontSize: 10, color: T.subtle, marginBottom: 6 }}>CATEGORY</div>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {["All", ...CATEGORIES].map(category => (
-                      <button
-                        key={`task-cat-${category}`}
-                        onClick={() => setCatF(category)}
-                        style={{ cursor: "pointer", borderRadius: 999, padding: "4px 10px", fontSize: 10, border: `1px solid ${catFilter === category ? T.gold : T.border}`, background: catFilter === category ? T.goldLight : "#FFF", color: catFilter === category ? T.gold : T.muted, fontWeight: catFilter === category ? 700 : 500 }}
-                      >
-                        {category}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 10, color: T.subtle, marginBottom: 6 }}>STATUS</div>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {["All", "Not Started", "In Progress", "Complete", "Overdue"].map(status => (
-                      <button
-                        key={`task-status-${status}`}
-                        onClick={() => setStatF(status)}
-                        style={{ cursor: "pointer", borderRadius: 999, padding: "4px 10px", fontSize: 10, border: `1px solid ${statFilter === status ? T.gold : T.border}`, background: statFilter === status ? T.goldLight : "#FFF", color: statFilter === status ? T.gold : T.muted, fontWeight: statFilter === status ? 700 : 500 }}
-                      >
-                        {status}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {isMobile ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {filteredTasks.length === 0 ? (
-                    <div style={{ border: `1px dashed ${T.border}`, borderRadius: 16, padding: "24px 16px", color: T.muted, fontSize: 13, textAlign: "center", background: "#FFF" }}>
-                      No tasks match current filters.
-                    </div>
-                  ) : (
-                    filteredTasks.map(task => {
-                      const cc = CAT_COLORS[task.category] || {};
-                      const sc = STATUS_COLORS[task.status] || {};
-                      const pc = PRIORITY_COLORS[task.priority] || {};
-                      const total = task.checklist.length;
-                      const done = task.checklist.filter(item => item.done).length;
-                      const pct = total ? Math.round((done / total) * 100) : 0;
-                      const expanded = !!expandedTaskCards[task.id];
-                      const newSubtaskValue = subtaskDrafts[task.id] || "";
-                      return (
-                        <div key={`task-mobile-${task.id}`} className="mobile-card" style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
-                          {/* Color accent bar */}
-                          <div style={{ height: 4, background: `linear-gradient(90deg, ${cc.dot || T.gold} 0%, ${cc.dot || T.gold}55 100%)` }} />
-                          
-                          <div style={{ padding: "14px 16px 0" }}>
-                            {/* Top row: title + actions */}
-                            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", marginBottom: 10 }}>
-                              <button onClick={() => setExpandedTaskCards(prev => ({ ...prev, [task.id]: !prev[task.id] }))} style={{ background: "none", border: "none", padding: 0, margin: 0, fontSize: 15, fontWeight: 700, color: T.text, lineHeight: 1.3, textAlign: "left", cursor: "pointer", flex: 1, minWidth: 0 }}>{task.task}</button>
-                              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                                <button onClick={() => setTaskModal(task)} title="Edit" style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center" }}><PenLine size={15} /></button>
-                                <button onClick={() => setDelConfirm({ label: task.task, onConfirm: () => deleteRecord('tasks', task.id, task.task, setTasks) })} title="Delete" style={{ background: T.redLight, border: `1px solid ${T.redBorder}`, borderRadius: 10, padding: "8px 10px", color: T.red, cursor: "pointer", display: "flex", alignItems: "center" }}><Trash2 size={15} /></button>
-                              </div>
-                            </div>
-
-                            {/* Meta badges */}
-                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
-                              <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 99, background: cc.bg || T.bg, color: cc.dot || T.muted, border: `1px solid ${cc.border || T.border}`, fontWeight: 600 }}>{task.category}</span>
-                              <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 99, background: sc.bg || T.bg, color: sc.text || T.muted, border: `1px solid ${sc.border || T.border}`, fontWeight: 600 }}>{task.status}</span>
-                              <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 99, background: pc.bg || T.bg, color: pc.text || T.muted, border: `1px solid ${pc.border || T.border}`, fontWeight: 700 }}>{task.priority}</span>
-                              {task.due && <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 99, background: T.bg, color: T.muted, border: `1px solid ${T.border}` }}>Due {new Date(task.due + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
-                            </div>
-
-                            {/* Progress bar */}
-                            {total > 0 && (
-                              <div style={{ marginBottom: 12 }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                                  <span style={{ fontSize: 11, color: T.muted }}>Subtasks</span>
-                                  <span style={{ fontSize: 11, color: pct === 100 ? T.green : T.muted, fontWeight: 600 }}>{done}/{total}</span>
-                                </div>
-                                <div style={{ height: 6, borderRadius: 999, background: T.bg, overflow: "hidden" }}>
-                                  <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? T.green : T.gold, transition: "width .3s ease", borderRadius: 999 }} />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Expand toggle button */}
-                          <button
-                            onClick={() => setExpandedTaskCards(prev => ({ ...prev, [task.id]: !prev[task.id] }))}
-                            style={{ width: "100%", background: "none", border: "none", borderTop: `1px solid ${T.border}`, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, color: T.muted, cursor: "pointer", fontSize: 12, fontWeight: 600 }}
-                          >
-                            {expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
-                            {expanded ? "Hide subtasks" : `${total > 0 ? `${total} subtask${total !== 1 ? "s" : ""}` : "Add subtasks"}`}
-                          </button>
-
-                          {/* Subtask panel */}
-                          <div style={{ display: "grid", gridTemplateRows: expanded ? "1fr" : "0fr", transition: "grid-template-rows .22s ease" }}>
-                            <div style={{ overflow: "hidden" }}>
-                              <div style={{ background: T.bg, borderTop: `1px solid ${T.border}`, padding: "14px 16px 16px" }}>
-                              {task.checklist.length === 0 && <div style={{ fontSize: 12, color: T.muted, marginBottom: 10, textAlign: "center" }}>No subtasks yet — add one below.</div>}
-                              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
-                                {task.checklist.map(item => {
-                                  const editKey = `${task.id}:${item.id}`;
-                                  const isEditing = Object.prototype.hasOwnProperty.call(editingTaskSubtaskDrafts, editKey);
-                                  const draftValue = editingTaskSubtaskDrafts[editKey] ?? item.text;
-                                  return (
-                                    <div key={`task-mobile-check-${task.id}-${item.id}`} style={{ display: "flex", alignItems: "center", gap: 10, background: "#FFF", borderRadius: 12, padding: "10px 12px", border: `1px solid ${T.border}` }}>
-                                      <button onClick={() => toggleTaskCheck(task.id, item.id)} style={{ width: 22, height: 22, minWidth: 22, border: `2px solid ${item.done ? T.green : T.border}`, borderRadius: 6, background: item.done ? T.greenLight : "#FFF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer", padding: 0 }}>
-                                        {item.done && <span style={{ color: T.green, fontSize: 12, fontWeight: 700 }}>✓</span>}
-                                      </button>
-                                      {isEditing ? (
-                                        <input
-                                          value={draftValue}
-                                          onChange={e => setEditingTaskSubtaskDrafts(prev => ({ ...prev, [editKey]: e.target.value }))}
-                                          onKeyDown={e => {
-                                            if (e.key === "Enter") {
-                                              updateTaskSubtaskText(task.id, item.id, draftValue);
-                                              setEditingTaskSubtaskDrafts(prev => {
-                                                const next = { ...prev };
-                                                delete next[editKey];
-                                                return next;
-                                              });
-                                            }
-                                            if (e.key === "Escape") {
-                                              setEditingTaskSubtaskDrafts(prev => {
-                                                const next = { ...prev };
-                                                delete next[editKey];
-                                                return next;
-                                              });
-                                            }
-                                          }}
-                                          onBlur={() => {
-                                            updateTaskSubtaskText(task.id, item.id, draftValue);
-                                            setEditingTaskSubtaskDrafts(prev => {
-                                              const next = { ...prev };
-                                              delete next[editKey];
-                                              return next;
-                                            });
-                                          }}
-                                          style={{ ...inpStyle, fontSize: 13, padding: "7px 10px", flex: 1, borderRadius: 10 }}
-                                          autoFocus
-                                        />
-                                      ) : (
-                                        <span style={{ flex: 1, fontSize: 13, color: item.done ? T.muted : T.text, textDecoration: item.done ? "line-through" : "none", lineHeight: 1.4 }}>{item.text}</span>
-                                      )}
-                                      <button onClick={() => setEditingTaskSubtaskDrafts(prev => ({ ...prev, [editKey]: item.text }))} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: 7, color: T.muted, cursor: "pointer", display: "flex", alignItems: "center" }}><PenLine size={13} /></button>
-                                      <button onClick={() => deleteTaskSubtask(task.id, item.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 8, padding: 7, color: T.red, cursor: "pointer", display: "flex", alignItems: "center" }}><Trash2 size={13} /></button>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                              <div style={{ display: "flex", gap: 8 }}>
-                                <input
-                                  value={newSubtaskValue}
-                                  onChange={e => setSubtaskDrafts(prev => ({ ...prev, [task.id]: e.target.value }))}
-                                  onKeyDown={e => {
-                                    if (e.key === "Enter") {
-                                      addTaskSubtask(task.id, newSubtaskValue);
-                                      setSubtaskDrafts(prev => ({ ...prev, [task.id]: "" }));
-                                    }
-                                  }}
-                                  placeholder="Add subtask..."
-                                  style={{ ...inpStyle, fontSize: 13, padding: "10px 14px", flex: 1, borderRadius: 12 }}
-                                />
-                                <Btn onClick={() => {
-                                  addTaskSubtask(task.id, newSubtaskValue);
-                                  setSubtaskDrafts(prev => ({ ...prev, [task.id]: "" }));
-                                }} variant="primary" small>+ Add</Btn>
-                              </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              ) : (
-                <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" as any }}>
-                <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden", minWidth: 780 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "28px minmax(260px, 1.8fr) 120px 140px 100px 90px minmax(120px, auto)", gap: 0, padding: "10px 18px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
-                    {["", "TASK / PROGRESS", "DUE", "STATUS", "OWNER", "PRIORITY", ""].map((h, i) => (
-                      <div key={`task-head-${i}`} style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, color: T.subtle, letterSpacing: .8 }}>{h}</div>
-                    ))}
-                  </div>
-                  {filteredTasks.length === 0 ? (
-                    <div style={{ padding: 26, textAlign: "center", color: T.muted, fontSize: 12 }}>
-                      No tasks match current filters.
-                    </div>
-                  ) : (
-                    filteredTasks.map(task => (
-                      <TaskRow
-                        key={`planning-task-row-${task.id}`}
-                        task={task}
-                        onEdit={setTaskModal}
-                        onDelete={t => setDelConfirm({ label: t.task, onConfirm: () => deleteRecord('tasks', t.id, t.task, setTasks) })}
-                        onStatusChange={(id, s) => updateRecord('tasks', id, { status: s }, 'Task Status', setTasks)}
-                        onSaveChecklist={saveTaskChecklist}
-                      />
-                    ))
-                  )}
-                </div>
-                </div>
-              )}
-            </div>
           </div>
         )}
 
@@ -2963,7 +3004,7 @@ export default function App() {
             {isMobile ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {menuItems.filter(m => menuSecF === "All" || m.section === menuSecF).map(item => (
-                  <div key={item.id} style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 12 }}>
+                  <div key={item.id} onClick={() => setMenuViewItem(item)} style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 12, cursor: "pointer" }}>
                     <div style={{ display: "flex", gap: 10 }}>
                       <div style={{ width: 52, height: 52, borderRadius: 8, background: T.bg, border: `1px solid ${T.border}`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         {item.imageUrl ? <img src={item.imageUrl} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 12, fontWeight: 700 }}>IMG</span>}
@@ -2982,8 +3023,8 @@ export default function App() {
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 6, marginTop: 10, justifyContent: "flex-end" }}>
-                      <button onClick={() => setMenuModal(item)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 12 }}>Edit</button>
-                      <button onClick={() => setDelConfirm({ label: item.name, onConfirm: () => deleteRecord('menu_items', item.id, item.name, setMenuItems) })} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 12 }}>Delete</button>
+                      <button onClick={e => { e.stopPropagation(); setMenuModal(item); }} title="Edit" style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 7px", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center" }}><PenLine size={13} /></button>
+                      <button onClick={e => { e.stopPropagation(); setDelConfirm({ label: item.name, onConfirm: () => deleteRecord('menu_items', item.id, item.name, setMenuItems) }); }} title="Delete" style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "5px 7px", color: T.red, cursor: "pointer", display: "flex", alignItems: "center" }}><Trash2 size={13} /></button>
                     </div>
                   </div>
                 ))}
@@ -2996,7 +3037,7 @@ export default function App() {
                   ))}
                 </div>
                 {menuItems.filter(m=>menuSecF==="All"||m.section===menuSecF).map((item,i)=>(
-                  <div key={item.id} style={{ display:"grid", gridTemplateColumns:"110px 44px 1fr 1.8fr 70px 80px 52px 1fr 70px", padding:"13px 18px", borderBottom:`1px solid ${T.border}`, background:i%2===0?"#FFF":T.bg, alignItems:"center" }}>
+                  <div key={item.id} onClick={() => setMenuViewItem(item)} style={{ display:"grid", gridTemplateColumns:"110px 44px 1fr 1.8fr 70px 80px 52px 1fr 70px", padding:"13px 18px", borderBottom:`1px solid ${T.border}`, background:i%2===0?"#FFF":T.bg, alignItems:"center", cursor: "pointer" }}>
                     <div style={{ fontSize:10, color:T.muted, fontFamily:"'IBM Plex Mono',monospace" }}>{item.section}</div>
                     <div style={{ width:32, height:32, borderRadius:6, background:T.bg, border:`1px solid ${T.border}`, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
                       {item.imageUrl ? <img src={item.imageUrl} alt={item.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ fontSize:12, fontWeight:700 }}>IMG</span>}
@@ -3015,8 +3056,8 @@ export default function App() {
                     <div style={{ textAlign:"center", fontSize:14 }}>{item.hero ? "⭐" : "-"}</div>
                     <div style={{ fontSize:11, color:T.muted }}>{item.notes || "-"}</div>
                     <div style={{ display:"flex", gap:5 }}>
-                      <button onClick={()=>setMenuModal(item)} style={{ background:"none",border:`1px solid ${T.border}`,borderRadius:6,padding:"3px 7px",color:T.muted,cursor:"pointer",fontSize:11 }}>Edit</button>
-                      <button onClick={()=>setDelConfirm({label:item.name,onConfirm:()=>deleteRecord('menu_items', item.id, item.name, setMenuItems)})} style={{ background:"none",border:`1px solid ${T.redBorder}`,borderRadius:6,padding:"3px 7px",color:T.red,cursor:"pointer",fontSize:11 }}>Delete</button>
+                      <button onClick={e=>{e.stopPropagation();setMenuModal(item);}} title="Edit" style={{ background:"none",border:`1px solid ${T.border}`,borderRadius:6,padding:"5px 6px",color:T.muted,cursor:"pointer",display:"flex",alignItems:"center" }}><PenLine size={12}/></button>
+                      <button onClick={e=>{e.stopPropagation();setDelConfirm({label:item.name,onConfirm:()=>deleteRecord('menu_items', item.id, item.name, setMenuItems)});}} title="Delete" style={{ background:"none",border:`1px solid ${T.redBorder}`,borderRadius:6,padding:"5px 6px",color:T.red,cursor:"pointer",display:"flex",alignItems:"center" }}><Trash2 size={12}/></button>
                     </div>
                   </div>
                 ))}
@@ -3189,8 +3230,8 @@ export default function App() {
                         ))}
                       </div>
                       <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                        <button onClick={() => openEditShopItem(ing)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
-                        <button onClick={() => removeShopItem(ing)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "5px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>Remove</button>
+                        <button onClick={() => openEditShopItem(ing)} title="Edit" style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 7px", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center" }}><PenLine size={13} /></button>
+                        <button onClick={() => removeShopItem(ing)} title="Remove" style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "5px 7px", color: T.red, cursor: "pointer", display: "flex", alignItems: "center" }}><Trash2 size={13} /></button>
                       </div>
                     </div>
                   ))
@@ -3226,8 +3267,8 @@ export default function App() {
                         ))}
                       </div>
                       <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => openEditShopItem(ing)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
-                        <button onClick={() => removeShopItem(ing)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>Delete</button>
+                        <button onClick={() => openEditShopItem(ing)} title="Edit" style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 7px", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center" }}><PenLine size={13} /></button>
+                        <button onClick={() => removeShopItem(ing)} title="Remove" style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "5px 7px", color: T.red, cursor: "pointer", display: "flex", alignItems: "center" }}><Trash2 size={13} /></button>
                       </div>
                     </div>
                   ))
@@ -3377,47 +3418,51 @@ export default function App() {
         {/* �"��"��"��"��"��"� NOTES �"��"��"��"��"��"� */}
         {tab==="notes" && (
           <div className="fu">
-            <SectionHeader title="Notes & Ideas" subtitle="Capture ideas, vendor contacts, recipes, and attach files"
+            <SectionHeader title="Notes & Ideas" subtitle="A softer home base for ideas, vendor context, recipes, and launch memory"
               action={
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", width: isMobile ? "100%" : undefined, justifyContent: isMobile ? "stretch" : "flex-end" }}>
                   {!isDriveConnected && (
                     <Btn onClick={handleGoogleConnect} variant="outline" small>Connect Drive</Btn>
                   )}
-                  <Btn onClick={()=>setNoteModal("new")} variant="primary">+ New Note</Btn>
+                  <Btn onClick={()=>setNoteModal("new")} variant="primary"><PenLine size={16} /> New Note</Btn>
                 </div>
               }/>
-            
             {/* Search and Filters */}
-            <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap", alignItems: "center", position: isMobile ? "sticky" : "static", top: isMobile ? 8 : undefined, zIndex: isMobile ? 5 : undefined, background: isMobile ? "rgba(247,247,243,0.95)" : "transparent", backdropFilter: isMobile ? "blur(6px)" : "none", padding: isMobile ? "8px" : 0, borderRadius: isMobile ? 12 : 0, border: isMobile ? `1px solid ${T.border}` : "none" }}>
-              <div style={{ position: "relative", flex: 1, minWidth: isMobile ? "100%" : 240 }}>
+            <div style={{ display: "flex", gap: 12, marginBottom: 18, flexWrap: "wrap", alignItems: "center", position: isMobile ? "sticky" : "static", top: isMobile ? 8 : undefined, zIndex: isMobile ? 5 : undefined, background: isMobile ? "rgba(247,247,243,0.94)" : "transparent", backdropFilter: isMobile ? "blur(10px)" : "none", padding: isMobile ? "8px" : 0, borderRadius: isMobile ? 18 : 0, border: isMobile ? `1px solid ${T.border}` : "none" }}>
+              <div style={{ position: "relative", flex: 1, minWidth: isMobile ? "100%" : 260 }}>
                 <input 
                   value={noteSearch} 
                   onChange={e => setNoteSearch(e.target.value)} 
-                  placeholder="Search notes..." 
-                  style={{ ...inpStyle, paddingLeft: 36, height: isMobile ? 44 : undefined, fontSize: isMobile ? 14 : undefined }} 
+                  placeholder="Search title, body, or tag..."
+                  style={{ ...inpStyle, paddingLeft: 42, height: isMobile ? 46 : undefined, borderRadius: 16, background: "#FFF" }} 
                 />
-                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", opacity: 0.4 }}>⌕</span>
+                <Search size={17} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", opacity: 0.45 }} />
+              </div>
+              <div style={{ display: "flex", gap: 6, background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 14, padding: 4 }}>
+                <button onClick={() => setNoteView("grid")} title="Grid view" style={{ width: 36, height: 34, borderRadius: 10, border: "none", background: noteView === "grid" ? T.blueLight : "transparent", color: noteView === "grid" ? T.blue : T.subtle, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><LayoutGrid size={16} /></button>
+                <button onClick={() => setNoteView("list")} title="List view" style={{ width: 36, height: 34, borderRadius: 10, border: "none", background: noteView === "list" ? T.blueLight : "transparent", color: noteView === "list" ? T.blue : T.subtle, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><List size={16} /></button>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: isMobile ? "nowrap" : "wrap", overflowX: isMobile ? "auto" : "visible", width: isMobile ? "100%" : "auto", paddingBottom: isMobile ? 2 : 0 }}>
                 {["All", ...Object.keys(NOTE_TAG_COLORS)].map(tag => (
                   <button key={tag} onClick={() => setNoteTagF(tag)}
-                    style={{ cursor: "pointer", borderRadius: 20, padding: isMobile ? "8px 14px" : "6px 14px", fontSize: 12, whiteSpace: "nowrap", fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", border: `1px solid ${noteTagF === tag ? T.gold : T.border}`, background: noteTagF === tag ? T.goldLight : "#FFF", color: noteTagF === tag ? T.gold : T.muted, fontWeight: noteTagF === tag ? 600 : 400 }}>
-                    {tag}
+                    style={{ cursor: "pointer", borderRadius: 14, padding: isMobile ? "9px 12px" : "7px 12px", fontSize: 12, whiteSpace: "nowrap", fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", border: `1px solid ${noteTagF === tag ? T.blue : T.border}`, background: noteTagF === tag ? T.blueLight : "#FFF", color: noteTagF === tag ? T.blue : T.muted, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    {tag}<span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, opacity: 0.7 }}>{tag === "All" ? notes.length : (tagCounts[tag] || 0)}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(280px,1fr))", gap:14 }}>
+            <div style={{ display:"grid", gridTemplateColumns: isMobile || noteView === "list" ? "1fr" : "repeat(auto-fill,minmax(290px,1fr))", gap:14 }}>
               {filteredNotes.length === 0 ? (
-                <div style={{ gridColumn: "1/-1", padding: isMobile ? 30 : 60, textAlign: "center", background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, color: T.muted }}>
-                  No notes found matching your search or filters.
+                <div style={{ gridColumn: "1/-1", padding: isMobile ? 30 : 60, textAlign: "center", background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 24, color: T.muted }}>
+                  No notes found. Try a different search or capture a fresh one above.
                 </div>
               ) : (
                 filteredNotes.map(n=>(
                   <NoteCard 
                     key={n.id} 
                     note={n} 
+                    listMode={noteView === "list"}
                     onOpen={setNoteDetail} 
                     onDelete={id => setDelConfirm({ label: n.title, onConfirm: () => deleteRecord('notes', id, n.title, setNotes) })}
                     isDriveConnected={isDriveConnected}
@@ -3644,7 +3689,7 @@ export default function App() {
                 onAddCan={() => setCanModal("new")}
                 onEditCan={setCanModal}
                 onDeleteCan={(c: any) => setDelConfirm({ label: c.name, onConfirm: () => deleteRecord('candidates', c.id, c.name, setCandidates) })}
-                userRole={currentUser?.role}
+                userRole={userRole}
               />
             </div>
           )
@@ -3730,5 +3775,3 @@ export default function App() {
 </div>
   );
 }
-
-

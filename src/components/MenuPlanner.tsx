@@ -146,4 +146,87 @@ export function MenuModal({ item, onSave, onClose }: { item: MenuItem | null, on
   );
 }
 
+export function MenuDetailModal({ item, onClose, onEdit }: { item: MenuItem, onClose: () => void, onEdit: () => void }) {
+  const isMobile = window.innerWidth < 1024;
+  const totalIngCost = (item.ingredients || []).reduce((sum: number, ing: any) => sum + (Number(ing.cost) || 0), 0);
+  const isWine = item.section === "Wine";
 
+  return (
+    <Modal title="" onClose={onClose} width={isMobile ? undefined : 700}>
+      {/* Header: image + core info */}
+      <div style={{ display: "flex", gap: 20, marginBottom: 20, flexDirection: isMobile ? "column" : "row" }}>
+        <div style={{ width: isMobile ? "100%" : 160, height: isMobile ? 180 : 160, borderRadius: 12, background: "#F5F5F5", border: "1px solid #E5E7EB", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {item.imageUrl ? <img src={item.imageUrl} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 40 }}>🍽️</span>}
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: T.muted, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 4, padding: "2px 8px" }}>{item.section}</span>
+            {item.hero && <span style={{ fontSize: 10, background: T.goldLight, border: `1px solid ${T.goldBorder}`, borderRadius: 4, padding: "2px 8px", color: T.gold, fontWeight: 700 }}>⭐ Hero Item</span>}
+          </div>
+          <h2 style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: isMobile ? 20 : 24, fontWeight: 800, color: T.text, margin: "0 0 8px" }}>{item.name}</h2>
+          {item.desc && <p style={{ fontSize: 13, color: T.muted, margin: "0 0 14px", lineHeight: 1.7 }}>{item.desc}</p>}
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            {isWine ? (
+              <>
+                <div>
+                  <div style={{ fontSize: 9, fontFamily: "'IBM Plex Mono', monospace", color: T.muted, letterSpacing: .8 }}>BOTTLE PRICE</div>
+                  <div style={{ fontSize: 22, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: T.green }}>${item.sellPriceBottle || 0}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 9, fontFamily: "'IBM Plex Mono', monospace", color: T.muted, letterSpacing: .8 }}>GLASS PRICE</div>
+                  <div style={{ fontSize: 22, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: T.green }}>${item.sellPriceGlass || 0}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 9, fontFamily: "'IBM Plex Mono', monospace", color: T.muted, letterSpacing: .8 }}>COST / BOTTLE</div>
+                  <div style={{ fontSize: 22, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: T.text }}>${item.costPerBottle || 0}</div>
+                </div>
+              </>
+            ) : (
+              <div>
+                <div style={{ fontSize: 9, fontFamily: "'IBM Plex Mono', monospace", color: T.muted, letterSpacing: .8 }}>SELL PRICE</div>
+                <div style={{ fontSize: 26, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: T.green }}>${item.price}</div>
+              </div>
+            )}
+            <div>
+              <div style={{ fontSize: 9, fontFamily: "'IBM Plex Mono', monospace", color: T.muted, letterSpacing: .8 }}>FOOD COST %</div>
+              <div style={{ fontSize: 26, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, color: item.foodCost > 30 ? T.red : T.green }}>{item.foodCost}%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Ingredients */}
+      {!isWine && (item.ingredients || []).length > 0 && (
+        <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: 14, marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div style={{ fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: T.muted, letterSpacing: .8, fontWeight: 600 }}>INGREDIENTS</div>
+            <div style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: T.text, fontWeight: 600 }}>Total Cost: ${totalIngCost.toFixed(2)}</div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {(item.ingredients || []).map((ing: any) => (
+              <div key={ing.id} style={{ display: "grid", gridTemplateColumns: "1fr 80px 60px 70px", gap: 8, alignItems: "center", background: "#FFF", padding: "7px 12px", borderRadius: 7, border: `1px solid ${T.border}` }}>
+                <span style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{ing.name}</span>
+                <span style={{ fontSize: 11, color: T.muted, textAlign: "right" }}>{ing.quantity} {ing.unit}</span>
+                <span style={{ fontSize: 12, fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, color: T.text, textAlign: "right" }}>${Number(ing.cost).toFixed(2)}</span>
+                <div />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Notes */}
+      {item.notes && (
+        <div style={{ background: T.goldLight, border: `1px solid ${T.goldBorder}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
+          <div style={{ fontSize: 9, fontFamily: "'IBM Plex Mono', monospace", color: T.gold, letterSpacing: .8, marginBottom: 4, fontWeight: 700 }}>INTERNAL NOTES</div>
+          <div style={{ fontSize: 13, color: T.text, lineHeight: 1.7 }}>{item.notes}</div>
+        </div>
+      )}
+
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, paddingTop: 12, borderTop: `1px solid ${T.border}` }}>
+        <Btn onClick={onClose} variant="ghost">Close</Btn>
+        <Btn onClick={onEdit} variant="primary">✏️ Edit Item</Btn>
+      </div>
+    </Modal>
+  );
+}
