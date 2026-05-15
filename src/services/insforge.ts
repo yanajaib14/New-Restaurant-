@@ -2,16 +2,13 @@
 
 import { InsForgeClient } from "@insforge/sdk";
 
-// Fall back to the project prototype endpoint so local/dev saves still work
-// when .env values have not been configured yet.
-const DEFAULT_INSFORGE_URL = "https://arqsta8h.us-west.insforge.app";
-const DEFAULT_INSFORGE_ANON_KEY = "ik_d3902514ce290fc64bb4900a677890ce";
+const API_URL = import.meta.env.VITE_INSFORGE_URL?.replace(/\/$/, "") || "https://arqsta8h.us-west.insforge.app";
+const API_KEY = import.meta.env.VITE_INSFORGE_KEY || "ik_d3902514ce290fc64bb4900a677890ce";
 
-const API_URL = (import.meta.env.VITE_INSFORGE_URL || DEFAULT_INSFORGE_URL).replace(/\/$/, "");
-const API_KEY = import.meta.env.VITE_INSFORGE_KEY || DEFAULT_INSFORGE_ANON_KEY;
+const isConfigured = !!import.meta.env.VITE_INSFORGE_URL && !!import.meta.env.VITE_INSFORGE_KEY;
 
-if (!API_URL || !API_KEY) {
-  console.warn("Missing InsForge URL or Key in environment variables.");
+if (!isConfigured) {
+  console.warn("WARNING: Using default InsForge configuration. Set VITE_INSFORGE_URL and VITE_INSFORGE_KEY in .env for production.");
 }
 
 export const insforge = new InsForgeClient({
@@ -65,12 +62,27 @@ const fallbackWrite = async (table: string, action: DbWriteAction, payload?: Rec
     body: JSON.stringify({ table, action, payload, id })
   });
 
-  if (!res.ok) {
-    return { data: null, error: await normalizeError(res) };
+  const data = await res.json();
+  if (!res.ok || data?.ok === false) {
+    return { data: null, error: data?.error || await normalizeError(res) };
   }
 
-  const data = await res.json();
   return { data, error: null };
+};
+
+const fallbackRead = async (table: string) => {
+  const res = await fetch("/api/db/read", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ table })
+  });
+
+  const data = await res.json();
+  if (!res.ok || data?.ok === false) {
+    return { data: null, error: data?.error || await normalizeError(res) };
+  }
+
+  return { data: data?.rows ?? [], error: null };
 };
 
 const publishDbChange = async (table: string, action: DbWriteAction, id?: number | string) => {
@@ -87,13 +99,24 @@ const publishDbChange = async (table: string, action: DbWriteAction, id?: number
 };
 
 export async function dbSelect(table: string) {
-  const res = await insforge.database.from(table).select("*");
-  // Treat null data with no error as a silent failure so callers don't
-  // accidentally clear their in-memory state with an empty array.
-  if (res.data === null && !res.error) {
-    return { data: null, error: { message: "No data returned from SDK" } };
+  try {
+    const res = await insforge.database.from(table).select("*");
+    // Treat null data with no error as a silent failure so callers don't
+    // accidentally clear their in-memory state with an empty array.
+    if (res.data === null && !res.error) {
+      throw new Error("No data returned from SDK");
+    }
+    if (res.error) {
+      throw res.error;
+    }
+    return { data: res.data || [], error: null };
+  } catch (error) {
+    const fallback = await fallbackRead(table);
+    if (!fallback.error) {
+      return fallback;
+    }
+    return { data: null, error: error || fallback.error };
   }
-  return { data: res.data || [], error: res.error };
 }
 
 export async function dbInsert(table: string, payload: Record<string, unknown>) {

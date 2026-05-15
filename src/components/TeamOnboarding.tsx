@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { T, WHEN_COLORS } from '../types';
 import { Btn } from './UI';
+import { PenLine, Trash2, Plus } from 'lucide-react';
 
 type RuleItem = { id: number; title: string; detail: string };
 type RuleCategory = { id: number; category: string; icon: string; rules: RuleItem[] };
@@ -312,6 +313,9 @@ export function TeamOnboarding() {
   const [newTaskText, setNewTaskText] = useState({ task: '', when: 'Opening', detail: '' });
   const [addingRuleTo, setAddingRuleTo] = useState<number | null>(null);
   const [addingTaskTo, setAddingTaskTo] = useState<string | null>(null);
+  const [editingCat, setEditingCat] = useState<RuleCategory | null>(null);
+  const [addingCat, setAddingCat] = useState(false);
+  const [newCatText, setNewCatText] = useState({ category: '', icon: '' });
 
   const role = roles.find((entry) => entry.id === activeRole);
   const filteredSidework = role
@@ -359,6 +363,23 @@ export function TeamOnboarding() {
         cat.id === catId ? { ...cat, rules: cat.rules.filter((rule) => rule.id !== ruleId) } : cat,
       ),
     );
+  };
+
+  const saveCategory = (updated: RuleCategory) => {
+    setHouseRules((prev) => prev.map((cat) => cat.id === updated.id ? { ...cat, category: updated.category, icon: updated.icon } : cat));
+    setEditingCat(null);
+  };
+
+  const addCategory = () => {
+    if (!newCatText.category.trim()) return;
+    setHouseRules((prev) => [...prev, { id: Date.now(), category: newCatText.category, icon: newCatText.icon || '📋', rules: [] }]);
+    setNewCatText({ category: '', icon: '' });
+    setAddingCat(false);
+  };
+
+  const deleteCategory = (catId: number) => {
+    setHouseRules((prev) => prev.filter((cat) => cat.id !== catId));
+    if (activeCat === catId) setActiveCat(null);
   };
 
   const addTask = (roleId: string) => {
@@ -659,7 +680,7 @@ export function TeamOnboarding() {
 
       {section === 'rules' && (
         <div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 18 }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 18, alignItems: 'center' }}>
             <button
               onClick={() => setActiveCat(null)}
               style={{ cursor: 'pointer', borderRadius: 20, padding: '5px 12px', fontSize: 11, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", border: `1px solid ${activeCat === null ? T.gold : T.border}`, background: activeCat === null ? T.goldLight : '#FFF', color: activeCat === null ? T.gold : T.muted, fontWeight: activeCat === null ? 600 : 400 }}
@@ -675,20 +696,60 @@ export function TeamOnboarding() {
                 {cat.icon} {cat.category}
               </button>
             ))}
+            <button
+              onClick={() => setAddingCat(true)}
+              style={{ cursor: 'pointer', borderRadius: 20, padding: '5px 12px', fontSize: 11, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", border: `1px dashed ${T.borderStrong}`, background: '#FFF', color: T.muted, display: 'flex', alignItems: 'center', gap: 4 }}
+            >
+              <Plus size={11} /> New Category
+            </button>
           </div>
+
+          {/* Add Category inline form */}
+          {addingCat && (
+            <div style={{ background: '#FFF', border: `1px solid ${T.border}`, borderRadius: 10, padding: 14, marginBottom: 16, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <div style={{ flex: 1, minWidth: 120 }}>
+                <div style={{ fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: T.muted, marginBottom: 4 }}>ICON (emoji)</div>
+                <input value={newCatText.icon} onChange={(e) => setNewCatText((p) => ({ ...p, icon: e.target.value }))} placeholder="📋" style={{ ...inputStyle, width: 60 }} maxLength={2} />
+              </div>
+              <div style={{ flex: 3, minWidth: 160 }}>
+                <div style={{ fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: T.muted, marginBottom: 4 }}>CATEGORY NAME</div>
+                <input value={newCatText.category} onChange={(e) => setNewCatText((p) => ({ ...p, category: e.target.value }))} placeholder="e.g. Health & Safety" style={inputStyle} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Btn variant="primary" small onClick={addCategory}>Add</Btn>
+                <Btn variant="ghost" small onClick={() => { setAddingCat(false); setNewCatText({ category: '', icon: '' }); }}>Cancel</Btn>
+              </div>
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill,minmax(${isMobile ? 260 : 420}px,1fr))`, gap: 14 }}>
             {houseRules
               .filter((cat) => activeCat === null || cat.id === activeCat)
               .map((cat) => (
                 <div key={cat.id} style={{ background: '#FFF', border: `1px solid ${T.border}`, borderRadius: 12, overflow: 'hidden' }}>
-                  <div style={{ padding: '14px 18px', background: T.goldLight, borderBottom: `1px solid ${T.goldBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 18 }}>{cat.icon}</span>
-                      <span style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: 14, fontWeight: 700, color: T.text }}>{cat.category}</span>
-                      <span style={{ fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: T.muted }}>{cat.rules.length} rules</span>
+                  {/* Category header */}
+                  {editingCat?.id === cat.id ? (
+                    <div style={{ padding: '12px 18px', background: T.goldLight, borderBottom: `1px solid ${T.goldBorder}`, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <input value={editingCat.icon} onChange={(e) => setEditingCat((p) => p ? { ...p, icon: e.target.value } : p)} style={{ ...inputStyle, width: 52 }} maxLength={2} placeholder="📋" />
+                      <input value={editingCat.category} onChange={(e) => setEditingCat((p) => p ? { ...p, category: e.target.value } : p)} style={{ ...inputStyle, flex: 1, minWidth: 120 }} placeholder="Category name" />
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <Btn variant="primary" small onClick={() => saveCategory(editingCat)}>Save</Btn>
+                        <Btn variant="ghost" small onClick={() => setEditingCat(null)}>Cancel</Btn>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div style={{ padding: '14px 18px', background: T.goldLight, borderBottom: `1px solid ${T.goldBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 18 }}>{cat.icon}</span>
+                        <span style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: 14, fontWeight: 700, color: T.text }}>{cat.category}</span>
+                        <span style={{ fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: T.muted }}>{cat.rules.length} rules</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 5 }}>
+                        <button onClick={() => setEditingCat({ ...cat })} title="Edit category" style={{ background: 'none', border: `1px solid ${T.goldBorder}`, borderRadius: 6, padding: '4px 6px', color: T.gold, cursor: 'pointer', display: 'flex', alignItems: 'center' }}><PenLine size={12} /></button>
+                        <button onClick={() => deleteCategory(cat.id)} title="Delete category" style={{ background: 'none', border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: '4px 6px', color: T.red, cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Trash2 size={12} /></button>
+                      </div>
+                    </div>
+                  )}
                   {cat.rules.map((rule, index) => {
                     const isExpanded = expandedRule === `${cat.id}:${rule.id}`;
                     const isEditing = editingRule?.id === rule.id;
@@ -708,15 +769,17 @@ export function TeamOnboarding() {
                             </button>
                             <button
                               onClick={() => setEditingRule(isEditing ? null : { ...rule, catId: cat.id })}
-                              style={{ background: 'none', border: `1px solid ${T.border}`, borderRadius: 6, padding: '3px 7px', color: T.muted, cursor: 'pointer', fontSize: 11 }}
+                              title="Edit rule"
+                              style={{ background: 'none', border: `1px solid ${T.border}`, borderRadius: 6, padding: '4px 6px', color: T.muted, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                             >
-                              Edit
+                              <PenLine size={12} />
                             </button>
                             <button
                               onClick={() => deleteRule(cat.id, rule.id)}
-                              style={{ background: 'none', border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: '3px 7px', color: T.red, cursor: 'pointer', fontSize: 11 }}
+                              title="Delete rule"
+                              style={{ background: 'none', border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: '4px 6px', color: T.red, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                             >
-                              Delete
+                              <Trash2 size={12} />
                             </button>
                           </div>
                         </div>

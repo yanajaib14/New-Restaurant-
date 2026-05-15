@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { T, Vendor, InventoryItem, Permit, UtilityAccount } from '../types';
 import { SectionHeader, Btn, Modal, Field, inpStyle, Pill } from './UI';
+import { PenLine, Trash2 } from 'lucide-react';
 
 // ������ VENDORS ������
 export function VendorManager({ vendors, onAdd, onEdit, onDelete }: { vendors: Vendor[], onAdd: () => void, onEdit: (v: Vendor) => void, onDelete: (id: number) => void }) {
@@ -17,8 +18,8 @@ export function VendorManager({ vendors, onAdd, onEdit, onDelete }: { vendors: V
                 <div style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: 16, fontWeight: 700, color: T.text }}>{v.name}</div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={() => onEdit(v)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
-                <button onClick={() => onDelete(v.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>Delete</button>
+                <button onClick={() => onEdit(v)} title="Edit" style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 7px", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center" }}><PenLine size={13} /></button>
+                <button onClick={() => onDelete(v.id)} title="Delete" style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "5px 7px", color: T.red, cursor: "pointer", display: "flex", alignItems: "center" }}><Trash2 size={13} /></button>
               </div>
             </div>
             <div style={{ fontSize: 13, color: T.text, marginBottom: 8 }}>
@@ -155,8 +156,8 @@ export function InventoryTracker({ items, onUpdateStock, onAdd, onEdit, onDelete
               <div style={{ fontSize: 12, fontFamily: "'IBM Plex Mono',monospace", color: T.text }}>{item.parLevel} {item.unit}</div>
               <div style={{ fontSize: 11, color: T.muted }}>{item.lastOrdered}</div>
               <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                <button onClick={() => onEdit(item)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "4px 8px", color: T.muted, cursor: "pointer", fontSize: 11 }}>Edit</button>
-                <button onClick={() => onDelete(item.id)} style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "4px 8px", color: T.red, cursor: "pointer", fontSize: 11 }}>Delete</button>
+                <button onClick={() => onEdit(item)} title="Edit" style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 6, padding: "5px 7px", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center" }}><PenLine size={13} /></button>
+                <button onClick={() => onDelete(item.id)} title="Delete" style={{ background: "none", border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: "5px 7px", color: T.red, cursor: "pointer", display: "flex", alignItems: "center" }}><Trash2 size={13} /></button>
               </div>
             </div>
           );
