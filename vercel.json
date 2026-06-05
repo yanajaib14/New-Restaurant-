@@ -1,0 +1,22 @@
+{
+  "env": {
+    "VITE_INSFORGE_URL": "https://arqsta8h.us-west.insforge.app",
+    "VITE_INSFORGE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3OC0xMjM0LTU2NzgtOTBhYi1jZGVmMTIzNDU2NzgiLCJlbWFpbCI6ImFub25AaW5zZm9yZ2UuY29tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODI1MTh9.ikn8Ho2VKqZXq9vzCdmyX6zwL_sxCSwPKUKYiR4VGeM",
+    "INSFORGE_URL": "https://arqsta8h.us-west.insforge.app",
+    "INSFORGE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3OC0xMjM0LTU2NzgtOTBhYi1jZGVmMTIzNDU2NzgiLCJlbWFpbCI6ImFub25AaW5zZm9yZ2UuY29tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODI1MTh9.ikn8Ho2VKqZXq9vzCdmyX6zwL_sxCSwPKUKYiR4VGeM",
+    "APP_URL": "https://new-restaurant-pi.vercel.app"
+  },
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}
