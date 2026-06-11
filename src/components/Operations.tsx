@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { T, Vendor, Contact, InventoryItem, Permit, UtilityAccount } from '../types';
 import { SectionHeader, Btn, Modal, Field, inpStyle, Pill } from './UI';
+import { ContactActions } from './Enhancements';
 import { PenLine, Trash2 } from 'lucide-react';
 
 // ������ VENDORS ������
@@ -30,6 +31,7 @@ export function VendorManager({ vendors, onAdd, onEdit, onDelete }: { vendors: V
 
             {expandedVendorIds[v.id] && (
               <div style={{ borderTop: `1px solid ${T.border}`, marginTop: 10, paddingTop: 10 }}>
+                <ContactActions phone={v.phone} email={v.email} />
                 <div style={{ fontSize: 12, color: T.text, marginBottom: 7 }}><strong>Contact:</strong> {v.contact || "-"}</div>
                 <div style={{ fontSize: 12, color: T.text, marginBottom: 7 }}>
                   <strong>Email:</strong>{" "}
@@ -135,6 +137,7 @@ export function ContactManager({ contacts, onAdd, onEdit, onDelete }: { contacts
 
             {expandedContactIds[c.id] && (
               <div style={{ borderTop: `1px solid ${T.border}`, marginTop: 10, paddingTop: 10 }}>
+                <ContactActions phone={c.phone} email={c.email} />
                 {(c.role || c.company) && <div style={{ fontSize: 12, color: T.text, marginBottom: 7 }}><strong>Role:</strong> {[c.role, c.company].filter(Boolean).join(" · ")}</div>}
                 <div style={{ fontSize: 12, color: T.text, marginBottom: 7 }}>
                   <strong>Email:</strong>{" "}

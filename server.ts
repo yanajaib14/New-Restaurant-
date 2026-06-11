@@ -754,6 +754,17 @@ async function startServer() {
     return res.status(500).json({ error: getAiErrorMessage(lastError) });
   });
 
+  app.get("/api/dropbox/photos", async (_req, res) => {
+    try {
+      const { fetchDropboxPhotos } = await import("./api/dropbox/photos");
+      const photos = await fetchDropboxPhotos();
+      res.json({ photos, configured: Boolean(process.env.DROPBOX_ACCESS_TOKEN) });
+    } catch (error: any) {
+      console.error("Dropbox photos error:", error?.message || error);
+      res.json({ photos: [], configured: false });
+    }
+  });
+
   app.post("/api/ai/invoice", async (req, res) => {
     if (!geminiApiKey && !groqApiKey) {
       return res.status(500).json({ error: "AI service is not configured. Add GEMINI_API_KEY or GROQ_API_KEY." });

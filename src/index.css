@@ -301,6 +301,29 @@
   animation: slideInUp 0.35s ease-out forwards;
 }
 
+/* Soft pulsing border for quick-access buttons with deadlines < 7 days */
+@keyframes pulseBorder {
+  0%   { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0.35); border-color: #C0392B; }
+  70%  { box-shadow: 0 0 0 7px rgba(192, 57, 43, 0); border-color: #C0392B; }
+  100% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0); border-color: #C0392B; }
+}
+.pulse-deadline {
+  animation: pulseBorder 2s ease-out infinite;
+  border-color: #C0392B !important;
+}
+
+/* Phase completion celebration */
+@keyframes phaseCelebrate {
+  0%   { transform: scale(1); background: #FFFFFF; }
+  30%  { transform: scale(1.06); background: #F6F6F6; box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
+  55%  { transform: scale(0.98); }
+  75%  { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+.phase-celebrate {
+  animation: phaseCelebrate 1.4s ease-in-out;
+}
+
 /* Phase dot indicator */
 .phase-dot {
   width: 10px;

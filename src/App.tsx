@@ -26,6 +26,14 @@ import { TalentHiring, TeamMap, TeamMapMemberModal, PositionModal, CandidateModa
 import { LaunchWindow, FullCalendar } from "./components/CalendarView";
 import { getGoogleAuthUrl, getGoogleDriveStatus, saveToGoogleDrive, fileToBase64 } from "./services/googleDriveService";
 import { exportToCSV } from "./lib/exportUtils";
+import {
+  PartnerBadge, PartnerFilterPills, PartnerFilter, matchesPartner,
+  PhaseTracker, DebriefModal, AiCopilotPanel, VoiceMicButton,
+  ShakeToUndoListener, UndoableAction, PresenceIndicator, PresenceInfo,
+  InspirationPreview, InspirationQuickAddSheet, PhotoPreviewStrip,
+  TaskDetailSheet, SuccessToast, QuickAddSheet, PASTEL, PASTEL_CYCLE, HouseLogo, ReminderBanner, computePhases,
+} from "./components/Enhancements";
+import { parseQuickTask } from "./lib/nlpParser";
 
 import { LayoutDashboard, CheckSquare, Utensils, ShoppingCart, Package, DollarSign, FileText, Box, Users, ShieldCheck, Megaphone, GraduationCap, ClipboardList, Calculator, UserPlus, Calendar, FileEdit, Sparkles, PenLine, Trash2, Printer, Download, Upload, ChevronRight, ChevronDown, Heart, Image, ExternalLink, Lightbulb, MapPin, BookOpen, MessageSquare } from "lucide-react";
 
@@ -400,11 +408,23 @@ export default function App() {
   const [activity, setActivity] = useState<ActivityLog[]>(USE_SEED_DATA ? INIT_ACTIVITY : []);
   const [isDriveConnected, setIsDriveConnected] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  // ── Launch-hub enhancements ──
+  const [partnerFilter, setPartnerFilter] = useState<PartnerFilter>("All");
+  const [debriefOpen, setDebriefOpen] = useState(false);
+  const [copilotOpen, setCopilotOpen] = useState(false);
+  const [blockerSheetTask, setBlockerSheetTask] = useState<Task | null>(null);
+  const [inspoSheetOpen, setInspoSheetOpen] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [lastUndo, setLastUndo] = useState<UndoableAction | null>(null);
+  const [partnerPresence, setPartnerPresence] = useState<PresenceInfo | null>(null);
+  const [decisionQuickText, setDecisionQuickText] = useState("");
+  const presenceSessionId = useRef(`s-${Math.random().toString(36).slice(2)}`);
+  const aiPersistOk = useRef(true);
   const [isChangePinOpen, setIsChangePinOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isPasswordUpdating, setIsPasswordUpdating] = useState(false);
-  const [appTitle, setAppTitle] = useState("Glaigungwon");
-  const [editTitle, setEditTitle] = useState("Glaigungwon");
+  const [appTitle, setAppTitle] = useState("Glai Gung Won");
+  const [editTitle, setEditTitle] = useState("Glai Gung Won");
   const [accessUsers, setAccessUsers] = useState<AccessUser[]>([]);
   const [accessLoading, setAccessLoading] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState("");
@@ -549,12 +569,14 @@ export default function App() {
       try {
         const res = await fetch("/api/settings/title");
         const body = await res.json();
-        const title = body?.title || "Glaigungwon";
+        const raw = body?.title || "Glai Gung Won";
+        // Map the old stored defaults to the English brand name.
+        const title = (raw === "ไกลกังวล" || raw === "Glaigungwon") ? "Glai Gung Won" : raw;
         setAppTitle(title);
         setEditTitle(title);
       } catch {
-        setAppTitle("Glaigungwon");
-        setEditTitle("Glaigungwon");
+        setAppTitle("Glai Gung Won");
+        setEditTitle("Glai Gung Won");
       }
     };
     loadTitle();
@@ -587,6 +609,13 @@ export default function App() {
       loadAllData();
     };
 
+    const handlePresence = (payload: any) => {
+      if (!active) return;
+      const data = payload?.payload || payload || {};
+      if (!data?.user || data.sessionId === presenceSessionId.current) return;
+      setPartnerPresence({ user: String(data.user), view: String(data.view || "Dashboard"), at: Number(data.at) || Date.now() });
+    };
+
     const bootRealtime = async () => {
       try {
         await insforge.realtime.connect();
@@ -596,6 +625,7 @@ export default function App() {
           return;
         }
         insforge.realtime.on("db_changed", handleSync);
+        insforge.realtime.on("presence", handlePresence);
       } catch (e) {
         console.warn("Realtime connect failed", e);
       }
@@ -616,10 +646,32 @@ export default function App() {
       clearInterval(poll);
       window.removeEventListener("focus", onFocus);
       insforge.realtime.off("db_changed", handleSync);
+      insforge.realtime.off("presence", handlePresence);
       insforge.realtime.unsubscribe(SYNC_CHANNEL);
       insforge.realtime.disconnect();
     };
   }, [loadAllData]);
+
+  // ── Ambient presence: broadcast which view this partner is in (throttled) ──
+  const lastPresencePublish = useRef(0);
+  useEffect(() => {
+    const now = Date.now();
+    if (now - lastPresencePublish.current < 15000) return;
+    lastPresencePublish.current = now;
+
+    const actor = isPartnerAccount
+      ? "Team"
+      : ((currentUser?.metadata as any)?.name || currentUser?.email || userRole || "Teammate");
+    const viewLabel = TABS.find(t => t.id === tab)?.label || "Dashboard";
+
+    insforge.realtime.publish(SYNC_CHANNEL, "presence", {
+      user: String(actor),
+      view: viewLabel,
+      at: now,
+      sessionId: presenceSessionId.current,
+    }).catch(() => { /* presence is best-effort */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
   const logActivity = (action: string) => {
     const actor = isPartnerAccount
@@ -826,7 +878,15 @@ export default function App() {
   const prog      = tasks.length ? Math.round((completed/tasks.length)*100) : 0;
   const openTaskTodos = taskTodos.filter(todo => todo.status !== "Done");
   const doneTaskTodos = taskTodos.filter(todo => todo.status === "Done");
-  const filteredTasks = tasks.filter(t => (catFilter === "All" || t.category === catFilter) && (statFilter === "All" || t.status === statFilter));
+  // Distinct people tasks/todos are assigned to (B & C surface first, then names A–Z).
+  const assigneeOptions = useMemo(() => {
+    const set = new Set<string>();
+    tasks.forEach(t => { const a = String(t.assignedTo || "").trim(); if (a) set.add(a); });
+    taskTodos.forEach(t => { const a = String(t.assignedTo || "").trim(); if (a) set.add(a); });
+    const rank = (x: string) => (x === "B" ? 0 : x === "C" ? 1 : 2);
+    return Array.from(set).sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+  }, [tasks, taskTodos]);
+  const filteredTasks = tasks.filter(t => (catFilter === "All" || t.category === catFilter) && (statFilter === "All" || t.status === statFilter) && matchesPartner(partnerFilter, t.assignedTo));
   const taskDueRank = (due?: string) => {
     if (!due) return Number.MAX_SAFE_INTEGER;
     const ts = new Date(`${due}T12:00:00`).getTime();
@@ -846,7 +906,7 @@ export default function App() {
   const orderedFilteredTasks = [...filteredTasks].sort(sortTasksForSequence);
   const categorySequenceTasks = catFilter === "All"
     ? []
-    : [...tasks.filter(task => task.category === catFilter)].sort(sortTasksForSequence);
+    : [...tasks.filter(task => task.category === catFilter && matchesPartner(partnerFilter, task.assignedTo))].sort(sortTasksForSequence);
   const categoryTimelineCards = CATEGORIES.map(category => {
     const categoryTasks = [...tasks.filter(task => task.category === category)].sort(sortTasksForSequence);
     const total = categoryTasks.length;
@@ -878,7 +938,8 @@ export default function App() {
   const filteredTaskTodos = taskTodos.filter(todo => {
     const categoryMatch = todoCatFilter === "All" || todo.category === todoCatFilter;
     const statusMatch = todoStatusFilter === "All" || todo.status === todoStatusFilter;
-    return categoryMatch && statusMatch;
+    const partnerMatch = matchesPartner(partnerFilter, todo.assignedTo);
+    return categoryMatch && statusMatch && partnerMatch;
   });
   const groupedTaskTodos = CATEGORIES
     .map(category => ({ category, items: filteredTaskTodos.filter(todo => todo.category === category) }))
@@ -1038,6 +1099,31 @@ export default function App() {
     return [...dueSoon, ...todoFocus].slice(0, 6);
   }, [tasks, actionListTodos, parsePlannerDate, startOfToday]);
 
+  // ── Categories with a deadline inside 7 days (drives quick-access pulsing) ──
+  const categoriesDueSoon = useMemo(() => {
+    const set = new Set<string>();
+    const weekFromNow = startOfToday.getTime() + 7 * 86400000;
+    tasks.forEach(t => {
+      if (t.status === "Complete") return;
+      const d = parsePlannerDate(t.due);
+      if ((d && d.getTime() <= weekFromNow) || t.status === "Overdue") set.add(t.category);
+    });
+    return set;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks, startOfToday]);
+
+  const QUICK_ACCESS_CATEGORY_MAP: Record<string, string[]> = {
+    tasks: CATEGORIES,
+    menu: ["Menu & Bar"],
+    financials: ["Financials"],
+    talent: ["Staffing"],
+    permits: ["Permits"],
+    vendors: ["Operations"],
+    timeline: ["Lease & TI"],
+  };
+  const quickAccessPulses = (tabId: string) =>
+    (QUICK_ACCESS_CATEGORY_MAP[tabId] || []).some(c => categoriesDueSoon.has(c));
+
   const weeklyPartnerBriefText = useMemo(() => {
     const lines: string[] = [];
     lines.push(`Weekly Team Brief (${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Phoenix" })})`);
@@ -1131,6 +1217,109 @@ export default function App() {
     } catch (e: any) {
       console.error(`Delete Error (${table}):`, e);
       alert(`Failed to delete ${label}: ${e.message || JSON.stringify(e)}`);
+    }
+  };
+
+  // Status change with shake-to-undo support (used by blocker/task detail sheet)
+  const setTaskStatusWithUndo = async (task: Task, status: string) => {
+    const prevStatus = task.status;
+    try {
+      const { error } = await dbUpdate("tasks", task.id, { status });
+      if (error) throw error;
+      await refetch("tasks", setTasks);
+      logActivity(`Set task "${task.task}" to ${status}`);
+      setLastUndo({
+        label: `set "${task.task}" to ${status}`,
+        at: Date.now(),
+        undo: async () => {
+          await dbUpdate("tasks", task.id, { status: prevStatus });
+          await refetch("tasks", setTasks);
+          logActivity(`Undid status change for task: ${task.task}`);
+        },
+      });
+      setToastMsg(`✓ "${task.task}" → ${status}`);
+    } catch (e: any) {
+      console.error("Task status update failed", e);
+      alert(`Failed to update task: ${e?.message || JSON.stringify(e)}`);
+    }
+  };
+
+  // One-field decision capture: type a sentence, saved in under 5 seconds.
+  const saveQuickDecision = async () => {
+    const text = decisionQuickText.trim();
+    if (!text) return;
+    const actor = isPartnerAccount
+      ? "Team"
+      : ((currentUser?.metadata as any)?.name || currentUser?.email || userRole || "Team");
+    const today = new Date();
+    const isoDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    try {
+      const { error } = await dbInsert("decision_logs", {
+        title: text.length > 70 ? `${text.slice(0, 67)}...` : text,
+        decision: text,
+        owner: String(actor),
+        date: isoDate,
+        impact: "Medium",
+        status: "Decided",
+      });
+      if (error) throw new Error((error as any).message || JSON.stringify(error));
+      await refetch("decision_logs", setDecisionLogs as any);
+      setDecisionQuickText("");
+      logActivity(`Logged quick decision: ${text.slice(0, 60)}`);
+      setToastMsg("✓ Decision logged");
+    } catch (e: any) {
+      console.error("Quick decision save failed", e);
+      alert(`Couldn't save decision: ${e?.message || "Unknown error"}`);
+    }
+  };
+
+  // Create a task from a parsed @B/@C proposal (shared by Quick Update + AI copilot)
+  const createTaskFromParsed = async (parsed: { assignedTo: "B" | "C"; title: string; due: string | null; category: string }) => {
+    try {
+      const { error } = await dbInsert("tasks", {
+        category: parsed.category,
+        task: parsed.title,
+        due: parsed.due || "",
+        status: "Not Started",
+        priority: "Medium",
+        checklist: [],
+        assignedTo: parsed.assignedTo,
+        isCritical: false,
+      });
+      if (error) throw new Error((error as any).message || JSON.stringify(error));
+      await refetch("tasks", setTasks);
+      logActivity(`Created task: ${parsed.title} (@${parsed.assignedTo})`);
+      const dueLabel = parsed.due
+        ? new Date(`${parsed.due}T12:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+        : "no deadline";
+      setToastMsg(`✓ Task created for ${parsed.assignedTo}: "${parsed.title}" — ${dueLabel}`);
+      return true;
+    } catch (e: any) {
+      console.error("Task create failed", e);
+      alert(`Couldn't create task: ${e?.message || "Unknown error"}`);
+      return false;
+    }
+  };
+
+  // Quick-save an inspiration item from the dashboard sheet
+  const saveQuickInspiration = async (payload: { name: string; url: string; sourceUrl?: string; tags: string; assetType: "Photo" | "Link" }) => {
+    try {
+      const { error } = await dbInsert("digital_assets", {
+        name: payload.name,
+        category: "Inspiration",
+        url: payload.url,
+        folder: "Photo Sources",
+        assetType: payload.assetType,
+        tags: payload.tags,
+        notes: payload.sourceUrl && payload.sourceUrl !== payload.url ? `Source: ${payload.sourceUrl}` : "",
+      });
+      if (error) throw new Error((error as any).message || JSON.stringify(error));
+      await refetch("digital_assets", setAssets);
+      logActivity(`Added inspiration: ${payload.name}`);
+      setToastMsg("✓ Saved to Inspiration Library");
+    } catch (e: any) {
+      console.error("Quick inspiration save failed", e);
+      alert(`Couldn't save inspiration: ${e?.message || "Unknown error"}`);
     }
   };
 
@@ -1261,6 +1450,7 @@ export default function App() {
 
   const toggleTodoDone = async (todo: TaskTodoItem) => {
     const nextStatus: TaskTodoItem["status"] = todo.status === "Done" ? "Not Started" : "Done";
+    const prevStatus = todo.status;
 
     try {
       if (taskTodoStore === "db") {
@@ -1270,6 +1460,20 @@ export default function App() {
       } else {
         setTaskTodos(prev => prev.map(item => item.id === todo.id ? { ...item, status: nextStatus } : item));
       }
+
+      setLastUndo({
+        label: `${nextStatus === "Done" ? "completed" : "reopened"} "${todo.title}"`,
+        at: Date.now(),
+        undo: async () => {
+          if (taskTodoStore === "db") {
+            await dbUpdate("task_todos", todo.id, { status: prevStatus });
+            await refetch("task_todos", setTaskTodos as any);
+          } else {
+            setTaskTodos(prev => prev.map(item => item.id === todo.id ? { ...item, status: prevStatus } : item));
+          }
+          logActivity(`Undid status change for todo: ${todo.title}`);
+        },
+      });
 
       logActivity(`${nextStatus === "Done" ? "Completed" : "Reopened"} todo: ${todo.title}`);
     } catch (e: any) {
@@ -1936,26 +2140,59 @@ export default function App() {
     };
   };
 
+  const persistAiMessage = (role: "user" | "assistant", content: string) => {
+    if (!aiPersistOk.current) return;
+    const userId = isPartnerAccount ? "C" : "B";
+    dbInsert("ai_messages", { user_id: userId, role, content, context: tab })
+      .then(res => { if (res.error) aiPersistOk.current = false; })
+      .catch(() => { aiPersistOk.current = false; });
+  };
+
   const sendAi = async (msg: string) => {
     setAiMsgs(p => [...p, { role: "user", content: msg }]);
+    persistAiMessage("user", msg);
     setAiLoad(true);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000);
 
     try {
+      const openWithDue = tasks
+        .filter(t => t.status !== "Complete")
+        .slice(0, 40)
+        .map(t => `- [${t.assignedTo || "?"}] ${t.task} (${t.category}, ${t.status}${t.due ? `, due ${t.due}` : ""})`)
+        .join("\n");
+      const recentDecisions = decisionLogs
+        .slice()
+        .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
+        .slice(0, 6)
+        .map(d => `- ${d.title}: ${d.decision} (${d.status}, ${d.date || "no date"})`)
+        .join("\n");
+
       const promptContext = `
-        You are the AI Restaurant Launch Assistant.
+        You are the AI Restaurant Launch Assistant (copilot for the whole team).
+        Today's date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "America/Phoenix" })}
         Current Restaurant: ${appTitle}
         Launch Progress: ${prog}%
         Overdue Tasks: ${overdue}
         Startup Budget: $${totBudget.toLocaleString()} (Actual: $${totActual.toLocaleString()})
         Operating Monthly Cost: $${totOp.toLocaleString()}
-        
+
+        Open tasks (assignee in brackets):
+        ${openWithDue || "- none"}
+
+        Current blockers:
+        ${weeklyBlockers.map(b => `- ${b}`).join("\n") || "- none"}
+
+        Recent decisions (reference these when relevant, e.g. "you already decided X"):
+        ${recentDecisions || "- none"}
+
         Recent Activity:
         ${activity.map(a => `- ${a.user}: ${a.action} (${a.timestamp})`).join('\n')}
-        
+
         Answer the user's question precisely using this data. Keep responses concise and professional.
-        
+        You may suggest next actions and draft emails, checklists, or supplier lists when asked.
+        If the user should track something new, propose it as a task in the exact format @B <task> by <deadline> or @C <task> by <deadline> on its own line, and tell them they can paste it into Quick Update to create it.
+
         At the end of your response, always include 2-3 brief, relevant follow-up questions the user might want to ask next. Format them strictly as [[Question?]].
         Example: "Your current food cost is 34%. [[How can I lower food costs?]] [[Which menu items are most profitable?]]"
       `;
@@ -1985,6 +2222,7 @@ export default function App() {
       }).trim();
       
       setAiMsgs(p => [...p, { role: "assistant", content: cleanResponse, suggestions }]);
+      persistAiMessage("assistant", cleanResponse);
     } catch (error) {
       console.error("AI Error:", error);
       const fallback = buildLocalAiFallback(msg);
@@ -2060,6 +2298,14 @@ export default function App() {
   const savePartnerUpdate = async () => {
     const message = partnerUpdateDraft.trim();
     if (!message) return;
+
+    // NLP quick-task: "@B finalize interim agreement by Friday" creates a real task.
+    const parsed = parseQuickTask(message);
+    if (parsed) {
+      const ok = await createTaskFromParsed(parsed);
+      if (ok) setPartnerUpdateDraft("");
+      return;
+    }
 
     const actor = isPartnerAccount
       ? "Team"
@@ -2467,8 +2713,9 @@ export default function App() {
             {/* Row 1: Logo, Search, Stats */}
         <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", justifyContent: "space-between", gap: isMobile ? 14 : 0, padding: isMobile ? "18px 16px 14px" : "24px 32px 16px", borderBottom: `1px solid ${T.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+            <HouseLogo size={isMobile ? 110 : 138} />
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-              <span style={{ fontFamily: "var(--font-sans)", fontSize: isMobile ? 24 : 32, lineHeight: 1.25, fontWeight: 800, color: T.text, letterSpacing: -0.4, paddingTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block" }}>{appTitle}</span>
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: isMobile ? 22 : 30, lineHeight: 1.2, fontWeight: 800, color: T.text, letterSpacing: -0.4, paddingTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block" }}>{appTitle}</span>
               {!isMobile && <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: T.subtle, letterSpacing: 1, fontWeight: 700 }}>LAUNCH DASHBOARD</span>}
             </div>
           </div>
@@ -2590,10 +2837,10 @@ export default function App() {
         {isMobile && (
           <nav className="bottom-nav no-print">
             {[
-              { id: "overview", label: "Home", icon: LayoutDashboard },
-              { id: "tasks",    label: "Tasks",  icon: CheckSquare },
-              { id: "notes",    label: "Notes",  icon: FileEdit },
+              { id: "overview", label: "Hub",   icon: LayoutDashboard },
+              { id: "tasks",    label: "Tasks", icon: CheckSquare },
               { id: "inspiration", label: "Ideas", icon: Lightbulb },
+              { id: "ai",       label: "AI",    icon: Sparkles },
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -2819,41 +3066,68 @@ export default function App() {
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* �"��"��"��"��"��"� OVERVIEW �"��"��"��"��"��"� */}
         {tab==="overview" && (
-          <div className="fu">
-            {/* ── Hero greeting ── */}
-            <div style={{ background: "#111111", borderRadius: 18, padding: isMobile ? "20px 18px" : "28px 32px", marginBottom: 22, color: "#FFF", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+          <div className="fu" style={isMobile ? { display: "flex", flexDirection: "column" } : undefined}>
+            {/* ── Hero (desktop only): white card with logo + stats ── */}
+            {!isMobile && (
+            <div style={{ order: 0, background: "#FFFFFF", border: `1px solid ${T.border}`, borderRadius: 18, padding: "22px 28px", marginBottom: 22, color: T.text, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 18, boxShadow: "0 1px 2px rgba(17,17,17,0.04)" }}>
               <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                  <Heart size={14} color="rgba(255,255,255,0.5)" />
-                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 600, letterSpacing: 1 }}>PARTNER HUB</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+                  <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, letterSpacing: 1, color: T.subtle, fontWeight: 700, textTransform: "uppercase" }}>{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</span>
+                  <PresenceIndicator presence={partnerPresence} />
                 </div>
-                <div style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, lineHeight: 1.2, marginBottom: 6 }}>{appTitle}</div>
-                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</div>
+                <button
+                  onClick={() => setDebriefOpen(true)}
+                  style={{ background: T.text, color: "#FFF", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 800, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 7, boxShadow: "0 4px 14px rgba(0,0,0,0.12)" }}
+                >
+                  📋 Daily Debrief
+                </button>
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <div style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "10px 16px", textAlign: "center", minWidth: 70 }}>
-                  <div style={{ fontSize: 22, fontWeight: 800 }}>{prog}%</div>
-                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>Progress</div>
-                </div>
-                <div style={{ background: overdue > 0 ? "rgba(192,57,43,0.4)" : "rgba(255,255,255,0.08)", border: `1px solid ${overdue > 0 ? "rgba(192,57,43,0.6)" : "rgba(255,255,255,0.1)"}`, borderRadius: 12, padding: "10px 16px", textAlign: "center", minWidth: 70 }}>
-                  <div style={{ fontSize: 22, fontWeight: 800 }}>{overdue}</div>
-                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>Overdue</div>
-                </div>
-                <div style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "10px 16px", textAlign: "center", minWidth: 70 }}>
-                  <div style={{ fontSize: 22, fontWeight: 800 }}>{openTaskTodos.length}</div>
-                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>Open Todos</div>
-                </div>
+                {computePhases(tasks).map((p, i) => {
+                  const tone = [PASTEL.sky, PASTEL.peach, PASTEL.mint, PASTEL.lavender][i] || PASTEL.sky;
+                  const complete = p.total > 0 && p.pct === 100;
+                  return (
+                    <div key={p.name} title={`${p.name}: ${p.done}/${p.total} tasks`} style={{ background: tone.bg, border: `1px solid ${tone.border}`, borderRadius: 12, padding: "10px 12px", width: 92, textAlign: "center" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginBottom: 2 }}>
+                        <span style={{ width: 15, height: 15, borderRadius: 99, fontSize: 8, fontWeight: 800, background: complete ? tone.text : "#FFF", color: complete ? "#FFF" : tone.text, border: `1.5px solid ${complete ? tone.text : tone.border}`, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{complete ? "✓" : i + 1}</span>
+                        <span style={{ fontSize: 20, fontWeight: 800, color: tone.text }}>{p.pct}%</span>
+                      </div>
+                      <div style={{ fontSize: 9, color: tone.text, fontWeight: 700, marginBottom: 5, whiteSpace: "nowrap" }}>{p.short}</div>
+                      <div style={{ height: 4, borderRadius: 99, background: "#FFFFFF", border: `1px solid ${tone.border}`, overflow: "hidden" }}>
+                        <div style={{ width: `${p.pct}%`, height: "100%", background: tone.text, borderRadius: 99, transition: "width .5s ease" }} />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
+            )}
+
+            {/* ── Deadline reminders (top of dashboard) ── */}
+            <div style={{ order: isMobile ? 0 : undefined }}>
+              <ReminderBanner
+                tasks={tasks}
+                parseDate={parsePlannerDate}
+                isMobile={isMobile}
+                onViewTask={t => setBlockerSheetTask(t)}
+              />
+            </div>
+
+            {/* ── Multi-phase launch progress (mobile only — desktop shows phases in the hero) ── */}
+            {isMobile && (
+              <div style={{ order: 7 }}>
+                <PhaseTracker tasks={tasks} isMobile={isMobile} />
+              </div>
+            )}
 
             {/* ── Quick-access hub shortcuts ── */}
-            <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? 14 : 18, marginBottom: 18 }}>
-              <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, fontWeight: 600, marginBottom: 14 }}>QUICK ACCESS</div>
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(3,1fr)" : "repeat(6,1fr)", gap: 10 }}>
+            <div style={{ order: isMobile ? 5 : 2, background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? 12 : 18, marginBottom: isMobile ? 14 : 18 }}>
+              <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, fontWeight: 600, marginBottom: isMobile ? 10 : 14 }}>QUICK ACCESS</div>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(4,1fr)" : "repeat(6,1fr)", gap: isMobile ? 8 : 10 }}>
                 {[
                   { label: "Tasks",      icon: CheckSquare,  tab: "tasks" },
                   { label: "Notes",      icon: BookOpen,     tab: "notes" },
-                  { label: "Inspiration",icon: Lightbulb,    tab: "inspiration" },
+                  { label: "Ideas",      icon: Lightbulb,    tab: "inspiration" },
                   { label: "Calendar",   icon: Calendar,     tab: "calendar" },
                   { label: "Finances",   icon: DollarSign,   tab: "financials" },
                   { label: "Hiring",     icon: UserPlus,     tab: "talent" },
@@ -2863,23 +3137,31 @@ export default function App() {
                   { label: "Vendors",    icon: Package,      tab: "vendors" },
                   { label: "Permits",    icon: ShieldCheck,  tab: "permits" },
                   { label: "AI",         icon: Sparkles,     tab: "ai" },
-                ].map(({ label, icon: Icon, tab: t }) => (
+                ].map(({ label, icon: Icon, tab: t }, idx) => {
+                  const pulses = quickAccessPulses(t);
+                  const tone = PASTEL_CYCLE[idx % PASTEL_CYCLE.length];
+                  return (
                   <button
                     key={t}
                     onClick={() => setTab(t)}
-                    style={{ background: tab === t ? T.champagne : "#FFF", border: `1px solid ${T.border}`, borderRadius: 14, padding: "14px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 7, cursor: "pointer", transition: "all 0.15s" }}
-                    onMouseEnter={e => (e.currentTarget.style.background = T.champagne)}
-                    onMouseLeave={e => (e.currentTarget.style.background = tab === t ? T.champagne : "#FFF")}
+                    className={pulses ? "pulse-deadline" : undefined}
+                    title={pulses ? `${label}: a deadline is inside the next 7 days` : undefined}
+                    style={{ background: tab === t ? tone.bg : "#FFF", border: `1px solid ${tab === t ? tone.border : T.border}`, borderRadius: 14, padding: isMobile ? "10px 2px" : "14px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: isMobile ? 5 : 7, cursor: "pointer", transition: "all 0.15s", minWidth: 0 }}
+                    onMouseEnter={e => (e.currentTarget.style.background = tone.bg)}
+                    onMouseLeave={e => (e.currentTarget.style.background = tab === t ? tone.bg : "#FFF")}
                   >
-                    <Icon size={20} color={T.text} strokeWidth={1.6} />
-                    <span style={{ fontSize: 10, fontWeight: 700, color: T.text, letterSpacing: 0.2 }}>{label}</span>
+                    <span style={{ width: isMobile ? 30 : 34, height: isMobile ? 30 : 34, borderRadius: 10, background: tone.bg, border: `1px solid ${tone.border}`, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Icon size={isMobile ? 15 : 17} color={tone.text} strokeWidth={1.8} />
+                    </span>
+                    <span style={{ fontSize: isMobile ? 9.5 : 10, fontWeight: 700, color: T.text, letterSpacing: 0.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{label}</span>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
             {/* ── Dropbox Photos shortcut ── */}
-            <div style={{ background: T.champagne, border: `1px solid ${T.border}`, borderRadius: 14, padding: "14px 18px", marginBottom: 18, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <div style={{ order: isMobile ? 2 : 3, background: PASTEL.sky.bg, border: `1px solid ${PASTEL.sky.border}`, borderRadius: 14, padding: isMobile ? "12px 14px" : "14px 18px", marginBottom: isMobile ? 14 : 18, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: "#111", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <Image size={18} color="#FFF" />
@@ -2900,7 +3182,22 @@ export default function App() {
               </a>
             </div>
 
-            <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 16 : 18, marginBottom: 18 }}>
+            {/* ── Dropbox photo preview strip (shows when API token configured) ── */}
+            <div style={{ order: isMobile ? 3 : 4 }}>
+              <PhotoPreviewStrip isMobile={isMobile} />
+            </div>
+
+            {/* ── Inspiration preview grid (last 10) ── */}
+            <div style={{ order: isMobile ? 4 : 5 }}>
+              <InspirationPreview
+                assets={assets}
+                isMobile={isMobile}
+                onOpenGallery={() => setTab("inspiration")}
+                onQuickAdd={() => setInspoSheetOpen(true)}
+              />
+            </div>
+
+            <div style={{ order: isMobile ? 1 : 6, display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 14 : 18, marginBottom: isMobile ? 14 : 18 }}>
               {/* ── Post quick update ── */}
               <div style={{ flex: 1, background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? "14px" : 18 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 10, flexWrap: "wrap" }}>
@@ -2908,13 +3205,19 @@ export default function App() {
                   <Btn onClick={() => setTab("notes")} variant="outline" small>All Notes</Btn>
                 </div>
                 <div style={{ display: "flex", gap: 8, flexDirection: "column", marginBottom: 12 }}>
-                  <input
-                    value={partnerUpdateDraft}
-                    onChange={e => setPartnerUpdateDraft(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); savePartnerUpdate(); } }}
-                    placeholder="e.g. Spoke to contractor about timeline..."
-                    style={{ ...inpStyle, height: 40, width: "100%" }}
-                  />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      value={partnerUpdateDraft}
+                      onChange={e => setPartnerUpdateDraft(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); savePartnerUpdate(); } }}
+                      placeholder="e.g. Spoke to contractor about timeline..."
+                      style={{ ...inpStyle, height: 42, width: "100%", flex: 1 }}
+                    />
+                    <VoiceMicButton onTranscript={text => setPartnerUpdateDraft(prev => (prev ? prev + " " : "") + text)} title="Speak an update or task" />
+                  </div>
+                  <div style={{ fontSize: 10, color: T.subtle, lineHeight: 1.4 }}>
+                    Tip: type <strong style={{ color: T.muted }}>@B order glassware by Friday</strong> or <strong style={{ color: T.muted }}>@C ...</strong> to instantly create an assigned task.
+                  </div>
                   <Btn onClick={savePartnerUpdate} variant="primary" small>Post Update</Btn>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -2935,35 +3238,10 @@ export default function App() {
                 </div>
               </div>
 
-              {/* ── Blockers & Next actions ── */}
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
-                <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 14, padding: isMobile ? 14 : 16, flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 99, background: T.red }} />
-                    <div style={{ fontSize: 10, color: T.subtle, fontWeight: 700, letterSpacing: 0.5 }}>BLOCKERS TO CLEAR</div>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                    {(weeklyBlockers.length ? weeklyBlockers : ["No active blockers right now."]).slice(0, 3).map((item, idx) => (
-                      <div key={`blocker-${idx}`} style={{ border: `1px solid ${T.border}`, borderRadius: 9, background: T.bg, padding: "8px 10px", fontSize: 12, color: T.text, lineHeight: 1.4 }}>{item}</div>
-                    ))}
-                  </div>
-                </div>
-                <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 14, padding: isMobile ? 14 : 16, flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 99, background: T.green }} />
-                    <div style={{ fontSize: 10, color: T.subtle, fontWeight: 700, letterSpacing: 0.5 }}>NEXT 7 DAYS</div>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                    {(weeklyNextUp.length ? weeklyNextUp : ["No due-soon actions identified."]).slice(0, 3).map((item, idx) => (
-                      <div key={`next-${idx}`} style={{ border: `1px solid ${T.border}`, borderRadius: 9, background: T.bg, padding: "8px 10px", fontSize: 12, color: T.text, lineHeight: 1.4 }}>{item}</div>
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* ── 7-day calendar ── */}
-            <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? "14px" : 18, marginBottom: 18 }}>
+            <div style={{ order: isMobile ? 6 : 7, background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? "12px" : 18, marginBottom: isMobile ? 14 : 18 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
                 <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>7-DAY CALENDAR</div>
                 <Btn onClick={() => setTab("calendar")} variant="outline" small>Full Calendar</Btn>
@@ -2978,7 +3256,7 @@ export default function App() {
             </div>
 
             {/* ── Status stats ── */}
-            <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? 14 : 18, marginBottom: 18 }}>
+            <div style={{ order: isMobile ? 8 : 9, background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? 12 : 18, marginBottom: isMobile ? 14 : 18 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 10, flexWrap: "wrap" }}>
                 <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>STATUS SNAPSHOT</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -2986,26 +3264,26 @@ export default function App() {
                   <Btn onClick={saveWeeklyPartnerBriefToNotes} variant="primary" small>Save to Notes</Btn>
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, 1fr)", gap: 10 }}>
-                <div style={{ background: T.champagne, border: `1px solid ${T.border}`, borderRadius: 10, padding: "12px 14px" }}>
-                  <div style={{ fontSize: 10, color: T.subtle, fontWeight: 600 }}>Launch Progress</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: T.text }}>{prog}%</div>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, 1fr)", gap: isMobile ? 8 : 10 }}>
+                <div style={{ background: PASTEL.sky.bg, border: `1px solid ${PASTEL.sky.border}`, borderRadius: 10, padding: isMobile ? "10px 12px" : "12px 14px" }}>
+                  <div style={{ fontSize: 10, color: PASTEL.sky.text, fontWeight: 600 }}>Launch Progress</div>
+                  <div style={{ fontSize: isMobile ? 19 : 22, fontWeight: 800, color: T.text }}>{prog}%</div>
                 </div>
-                <div style={{ background: T.champagne, border: `1px solid ${T.border}`, borderRadius: 10, padding: "12px 14px" }}>
-                  <div style={{ fontSize: 10, color: T.subtle, fontWeight: 600 }}>Open Todos</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: T.text }}>{openTaskTodos.length}</div>
+                <div style={{ background: PASTEL.lavender.bg, border: `1px solid ${PASTEL.lavender.border}`, borderRadius: 10, padding: isMobile ? "10px 12px" : "12px 14px" }}>
+                  <div style={{ fontSize: 10, color: PASTEL.lavender.text, fontWeight: 600 }}>Open Todos</div>
+                  <div style={{ fontSize: isMobile ? 19 : 22, fontWeight: 800, color: T.text }}>{openTaskTodos.length}</div>
                 </div>
-                <div style={{ background: overdue > 0 ? T.redLight : T.champagne, border: `1px solid ${overdue > 0 ? T.redBorder : T.border}`, borderRadius: 10, padding: "12px 14px" }}>
-                  <div style={{ fontSize: 10, color: overdue > 0 ? T.red : T.subtle, fontWeight: 600 }}>Overdue Tasks</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: overdue > 0 ? T.red : T.text }}>{overdue}</div>
+                <div style={{ background: overdue > 0 ? T.redLight : PASTEL.mint.bg, border: `1px solid ${overdue > 0 ? T.redBorder : PASTEL.mint.border}`, borderRadius: 10, padding: isMobile ? "10px 12px" : "12px 14px" }}>
+                  <div style={{ fontSize: 10, color: overdue > 0 ? T.red : PASTEL.mint.text, fontWeight: 600 }}>Overdue Tasks</div>
+                  <div style={{ fontSize: isMobile ? 19 : 22, fontWeight: 800, color: overdue > 0 ? T.red : T.text }}>{overdue}</div>
                 </div>
-                <div style={{ background: permitAlerts.filter(x => (x.daysLeft as number) <= 14).length > 0 ? T.redLight : T.champagne, border: `1px solid ${permitAlerts.filter(x => (x.daysLeft as number) <= 14).length > 0 ? T.redBorder : T.border}`, borderRadius: 10, padding: "12px 14px" }}>
-                  <div style={{ fontSize: 10, color: T.subtle, fontWeight: 600 }}>Permit Risks</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: T.text }}>{permitAlerts.filter(x => (x.daysLeft as number) <= 14).length}</div>
+                <div style={{ background: permitAlerts.filter(x => (x.daysLeft as number) <= 14).length > 0 ? T.redLight : PASTEL.lemon.bg, border: `1px solid ${permitAlerts.filter(x => (x.daysLeft as number) <= 14).length > 0 ? T.redBorder : PASTEL.lemon.border}`, borderRadius: 10, padding: isMobile ? "10px 12px" : "12px 14px" }}>
+                  <div style={{ fontSize: 10, color: PASTEL.lemon.text, fontWeight: 600 }}>Permit Risks</div>
+                  <div style={{ fontSize: isMobile ? 19 : 22, fontWeight: 800, color: T.text }}>{permitAlerts.filter(x => (x.daysLeft as number) <= 14).length}</div>
                 </div>
-                <div style={{ background: T.champagne, border: `1px solid ${T.border}`, borderRadius: 10, padding: "12px 14px" }}>
-                  <div style={{ fontSize: 10, color: T.subtle, fontWeight: 600 }}>Staff Hired</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: T.text }}>{totHired}/{totOpenings}</div>
+                <div style={{ background: PASTEL.peach.bg, border: `1px solid ${PASTEL.peach.border}`, borderRadius: 10, padding: isMobile ? "10px 12px" : "12px 14px", gridColumn: isMobile ? "1 / -1" : "auto" }}>
+                  <div style={{ fontSize: 10, color: PASTEL.peach.text, fontWeight: 600 }}>Staff Hired</div>
+                  <div style={{ fontSize: isMobile ? 19 : 22, fontWeight: 800, color: T.text }}>{totHired}/{totOpenings}</div>
                 </div>
               </div>
             </div>
@@ -3041,7 +3319,10 @@ export default function App() {
                     </select>
                     <Btn onClick={quickAddTodo} variant="primary" small>+ Add</Btn>
                   </div>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+                  <div style={{ marginTop: 10 }}>
+                    <PartnerFilterPills value={partnerFilter} onChange={setPartnerFilter} options={assigneeOptions} />
+                  </div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
                     {["All", ...TODO_STATUSES].map(status => (
                       <button
                         key={status}
@@ -3082,6 +3363,7 @@ export default function App() {
                                   title={isExpanded ? "Collapse subtasks" : "Expand subtasks"}
                                 >
                                   {isExpanded ? <ChevronDown size={14} style={{ flexShrink: 0 }} /> : <ChevronRight size={14} style={{ flexShrink: 0 }} />}
+                                  <PartnerBadge assignedTo={todo.assignedTo} size={16} />
                                   <span style={{ flex: 1 }}>{todo.title}</span>
                                 </button>
                                 <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
@@ -3189,6 +3471,7 @@ export default function App() {
                   <div style={{ fontSize: 12, color: T.subtle, marginTop: 2 }}>Click a category to see full task order + subtasks and delay the sequence when needed.</div>
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <PartnerFilterPills value={partnerFilter} onChange={setPartnerFilter} options={assigneeOptions} compact />
                   <button
                     onClick={() => setDependencyLockEnabled(prev => !prev)}
                     style={{ cursor: "pointer", borderRadius: 999, border: `1px solid ${dependencyLockEnabled ? T.text : T.border}`, background: dependencyLockEnabled ? T.bg : "#FFF", color: dependencyLockEnabled ? T.text : T.muted, padding: "6px 12px", fontSize: 11, fontWeight: 700 }}
@@ -3257,7 +3540,10 @@ export default function App() {
 
                           <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: "10px 11px" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, flexWrap: "wrap" }}>
-                              <div style={{ fontSize: 12, color: T.text, fontWeight: 700, lineHeight: 1.35, overflowWrap: "anywhere" }}>{task.task}</div>
+                              <div style={{ display: "flex", alignItems: "flex-start", gap: 6, flex: 1, minWidth: 0 }}>
+                                <PartnerBadge assignedTo={task.assignedTo} size={16} />
+                                <div style={{ fontSize: 12, color: T.text, fontWeight: 700, lineHeight: 1.35, overflowWrap: "anywhere" }}>{task.task}</div>
+                              </div>
                               <div style={{ display: "flex", gap: 6 }}>
                                 <button onClick={() => setTaskModal(task)} title="Edit" style={{ cursor: "pointer", borderRadius: 8, border: `1px solid ${T.border}`, background: "#FFF", color: T.muted, fontSize: 10, padding: "4px 8px", display: "flex", alignItems: "center" }}><PenLine size={12} /></button>
                                 <button
@@ -3372,7 +3658,7 @@ export default function App() {
                           <div style={{ padding: "14px 16px 0" }}>
                             {/* Top row: title + actions */}
                             <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", marginBottom: 10 }}>
-                              <button onClick={() => setExpandedTaskCards(prev => ({ ...prev, [task.id]: !prev[task.id] }))} style={{ background: "none", border: "none", padding: 0, margin: 0, fontSize: 15, fontWeight: 700, color: T.text, lineHeight: 1.3, textAlign: "left", cursor: "pointer", flex: 1, minWidth: 0 }}>{task.task}</button>
+                              <button onClick={() => setExpandedTaskCards(prev => ({ ...prev, [task.id]: !prev[task.id] }))} style={{ background: "none", border: "none", padding: 0, margin: 0, fontSize: 15, fontWeight: 700, color: T.text, lineHeight: 1.3, textAlign: "left", cursor: "pointer", flex: 1, minWidth: 0, display: "flex", alignItems: "flex-start", gap: 7 }}><PartnerBadge assignedTo={task.assignedTo} size={17} /><span style={{ flex: 1, minWidth: 0 }}>{task.task}</span></button>
                               <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                                 <button onClick={() => promptDelayFromTask(task)} title="Delay this and following tasks" style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", fontSize: 11 }}>Delay</button>
                                 <button onClick={() => setTaskModal(task)} title="Edit" style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "8px 10px", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center" }}><PenLine size={15} /></button>
@@ -4038,6 +4324,18 @@ export default function App() {
               subtitle="Capture key team decisions so everyone stays aligned on what changed and why"
               action={<Btn onClick={openNewDecision} variant="primary">+ New Decision</Btn>}
             />
+            {/* One-field quick add: capture a decision before it's forgotten */}
+            <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 14, padding: isMobile ? 12 : 14, marginBottom: 16, display: "flex", gap: 8 }}>
+              <input
+                value={decisionQuickText}
+                onChange={e => setDecisionQuickText(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); saveQuickDecision(); } }}
+                placeholder='Quick log: "Chose artisan glassware vendor — 6 week lead time"'
+                style={{ ...inpStyle, flex: 1, height: 44 }}
+              />
+              <VoiceMicButton onTranscript={text => setDecisionQuickText(prev => (prev ? prev + " " : "") + text)} title="Speak a decision" />
+              <Btn onClick={saveQuickDecision} variant="primary" small>Save</Btn>
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(320px,1fr))", gap: 14 }}>
               {decisionLogs.length === 0 ? (
                 <div style={{ gridColumn: "1/-1", padding: 40, background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 14, color: T.muted, textAlign: "center" }}>
@@ -4158,7 +4456,7 @@ export default function App() {
         }} />}
 
         {/* �"��"��"��"��"��"� AI �"��"��"��"��"��"� */}
-        {tab==="ai" && <AIAssistant messages={aiMsgs} onSend={sendAi} loading={aiLoad} onSaveToNotes={saveAiToNotes} />}
+        {tab==="ai" && <AIAssistant messages={aiMsgs} onSend={sendAi} loading={aiLoad} onSaveToNotes={saveAiToNotes} onCreateTask={createTaskFromParsed} />}
 
         {/* �"��"��"��"��"��"� SETTINGS �"��"��"��"��"��"� */}
         {tab === "settings" && (
@@ -4308,30 +4606,103 @@ export default function App() {
       </div>
     </div>
 
+      {/* AI Copilot toggle (desktop — mobile reaches AI via the tab bar) */}
+      {!isMobile && !copilotOpen && (
+        <button
+          onClick={() => setCopilotOpen(true)}
+          title="Open AI Copilot"
+          aria-label="Open AI Copilot"
+          style={{
+            position: "fixed", bottom: "calc(96px + env(safe-area-inset-bottom, 0px))", right: 24, zIndex: 100,
+            width: 56, height: 56, borderRadius: "50%", background: "#FFF", color: T.text,
+            border: `1.5px solid ${T.borderStrong}`, cursor: "pointer", boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <Sparkles size={22} />
+        </button>
+      )}
+
       {/* Quick Add FAB */}
-      <div style={{ position: "fixed", bottom: isMobile ? "calc(16px + env(safe-area-inset-bottom, 0px))" : "calc(24px + env(safe-area-inset-bottom, 0px))", right: isMobile ? 16 : 24, zIndex: 100 }}>
-        {quickAddOpen && (
+      <div style={{ position: "fixed", bottom: isMobile ? "calc(76px + env(safe-area-inset-bottom, 0px))" : "calc(24px + env(safe-area-inset-bottom, 0px))", right: isMobile ? 16 : 24, zIndex: 100 }}>
+        {quickAddOpen && !isMobile && (
           <div style={{ position: "absolute", bottom: 70, right: 0, display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end" }}>
             <Btn onClick={() => { setTaskModal("new"); setQuickAddOpen(false); }} variant="primary" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>+ New Task</Btn>
             <Btn onClick={() => { setNoteModal("new"); setQuickAddOpen(false); }} variant="outline" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)", background: "#FFF" }}>+ New Note</Btn>
+            <Btn onClick={() => { setInspoSheetOpen(true); setQuickAddOpen(false); }} variant="outline" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)", background: "#FFF" }}>+ Inspiration</Btn>
+            <Btn onClick={() => { setDebriefOpen(true); setQuickAddOpen(false); }} variant="outline" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)", background: "#FFF" }}>📋 Daily Debrief</Btn>
             <Btn onClick={() => { setInvoiceModal("new"); setQuickAddOpen(false); }} variant="outline" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)", background: "#FFF" }}>+ Import Invoice</Btn>
           </div>
         )}
-        <button 
+        <button
           onClick={() => setQuickAddOpen(!quickAddOpen)}
-          style={{ 
-            width: 56, height: 56, borderRadius: "50%", background: T.gold, color: "#FFF", 
-            border: "none", fontSize: 24, cursor: "pointer", boxShadow: "0 8px 24px rgba(200,151,58,0.3)", 
-            display: "flex", alignItems: "center", justifyContent: "center", transition: "transform .2s", 
-            transform: quickAddOpen ? "rotate(45deg)" : "none" 
+          aria-label="Quick add"
+          style={{
+            width: 56, height: 56, borderRadius: "50%", background: T.gold, color: "#FFF",
+            border: "none", fontSize: 24, cursor: "pointer", boxShadow: "0 8px 24px rgba(0,0,0,0.22)",
+            display: "flex", alignItems: "center", justifyContent: "center", transition: "transform .2s",
+            transform: quickAddOpen && !isMobile ? "rotate(45deg)" : "none"
           }}
         >
           +
         </button>
       </div>
 
+      {/* Quick Add sheet (mobile): readable grid, never cut off */}
+      <QuickAddSheet
+        open={quickAddOpen && isMobile}
+        onClose={() => setQuickAddOpen(false)}
+        isMobile={isMobile}
+        options={[
+          { label: "New Task", description: "Master task with deadline", icon: <CheckSquare size={17} />, tone: PASTEL.sky, onSelect: () => setTaskModal("new") },
+          { label: "New Note", description: "Quick note or update", icon: <FileEdit size={17} />, tone: PASTEL.lavender, onSelect: () => setNoteModal("new") },
+          { label: "Inspiration", description: "Photo or link with tags", icon: <Lightbulb size={17} />, tone: PASTEL.lemon, onSelect: () => setInspoSheetOpen(true) },
+          { label: "Daily Debrief", description: "Today's focus summary", icon: <FileText size={17} />, tone: PASTEL.mint, onSelect: () => setDebriefOpen(true) },
+          { label: "Import Invoice", description: "Scan or upload invoice", icon: <Upload size={17} />, tone: PASTEL.peach, onSelect: () => setInvoiceModal("new") },
+          { label: "Ask AI", description: "Open the copilot chat", icon: <Sparkles size={17} />, tone: PASTEL.rose, onSelect: () => setTab("ai") },
+        ]}
+      />
+
+      {/* ── Launch-hub enhancement overlays ── */}
+      <DebriefModal
+        open={debriefOpen}
+        onClose={() => setDebriefOpen(false)}
+        isMobile={isMobile}
+        data={{ tasks, taskTodos, decisionLogs, permits, prog, appTitle, parseDate: parsePlannerDate }}
+        onViewTask={t => { setDebriefOpen(false); setBlockerSheetTask(t); }}
+      />
+      <TaskDetailSheet
+        task={blockerSheetTask}
+        onClose={() => setBlockerSheetTask(null)}
+        isMobile={isMobile}
+        onMarkInProgress={t => setTaskStatusWithUndo(t, "In Progress")}
+        onMarkComplete={t => setTaskStatusWithUndo(t, "Complete")}
+        onOpenFull={t => { setTab("tasks"); setTaskModal(t); }}
+      />
+      <InspirationQuickAddSheet
+        open={inspoSheetOpen}
+        onClose={() => setInspoSheetOpen(false)}
+        isMobile={isMobile}
+        onSave={saveQuickInspiration}
+      />
+      <AiCopilotPanel
+        open={copilotOpen}
+        onClose={() => setCopilotOpen(false)}
+        messages={aiMsgs}
+        onSend={sendAi}
+        loading={aiLoad}
+        isMobile={isMobile}
+        onCreateTask={createTaskFromParsed}
+      />
+      <ShakeToUndoListener
+        enabled={isMobile}
+        lastAction={lastUndo}
+        onConsume={() => setLastUndo(null)}
+      />
+      <SuccessToast message={toastMsg} onDone={() => setToastMsg(null)} />
+
       {isChangePinOpen && (
-        <ChangePinModal 
+        <ChangePinModal
           currentPin={securityPin} 
           userRole={userRole || undefined}
           userEmail={currentUserEmail}

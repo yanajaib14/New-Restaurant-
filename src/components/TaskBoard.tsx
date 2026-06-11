@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { T, CATEGORIES, Task, Note } from '../types';
 import { Modal, Field, inpStyle, selStyle, Btn } from './UI';
+import { PartnerBadge } from './Enhancements';
 import { PenLine, Trash2 } from 'lucide-react';
 
 export function TaskModal({ task, initialDate, notes, onSave, onClose }: { task: Task | null, initialDate?: string, notes: Note[], onSave: (form: any) => void, onClose: () => void }) {
@@ -25,7 +26,13 @@ export function TaskModal({ task, initialDate, notes, onSave, onClose }: { task:
         <Field label="DUE DATE"><input type="date" value={form.due} onChange={e => set("due", e.target.value)} style={inpStyle} /></Field>
         <Field label="STATUS"><select value={form.status} onChange={e => set("status", e.target.value)} style={selStyle}>{["Not Started", "In Progress", "Complete", "Overdue"].map(s => <option key={s}>{s}</option>)}</select></Field>
       </div>
-      <Field label="ASSIGNED TO"><input value={form.assignedTo} onChange={e => set("assignedTo", e.target.value)} placeholder="e.g. Team Lead, Manager" style={inpStyle} /></Field>
+      <Field label="ASSIGNED TO">
+        <input list="assignee-suggestions" value={form.assignedTo} onChange={e => set("assignedTo", e.target.value)} placeholder="Anyone — e.g. B, C, Alex, Manager" style={inpStyle} />
+        <datalist id="assignee-suggestions">
+          <option value="B" />
+          <option value="C" />
+        </datalist>
+      </Field>
       <Field label="LINKED NOTE (OPTIONAL)">
         <select value={form.linkedNoteId || ""} onChange={e => set("linkedNoteId", e.target.value ? Number(e.target.value) : null)} style={selStyle}>
           <option value="">None</option>
@@ -133,6 +140,7 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange, onSaveChecklis
             </button>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: task.status === "Complete" ? T.muted : T.text, lineHeight: 1.35, overflowWrap: "anywhere", textDecoration: task.status === "Complete" ? "line-through" : "none" }}>
+                <span style={{ marginRight: 6, verticalAlign: "middle", display: "inline-flex" }}><PartnerBadge assignedTo={task.assignedTo} size={16} /></span>
                 {task.isCritical && <span style={{ fontSize: 9, background: T.text, color: "#FFF", borderRadius: 4, padding: "1px 5px", marginRight: 6, fontWeight: 700, verticalAlign: "middle" }}>CRITICAL</span>}
                 {task.task}
               </div>

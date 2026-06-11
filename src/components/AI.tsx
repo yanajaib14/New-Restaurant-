@@ -1,8 +1,10 @@
 import React, { useRef, useEffect } from 'react';
 import { T } from '../types';
 import { SectionHeader, Btn, inpStyle } from './UI';
+import { ProposedTasks } from './Enhancements';
+import type { ParsedQuickTask } from '../lib/nlpParser';
 
-export function AIAssistant({ messages, onSend, loading, onSaveToNotes }: { messages: any[], onSend: (msg: string) => void, loading: boolean, onSaveToNotes: () => void }) {
+export function AIAssistant({ messages, onSend, loading, onSaveToNotes, onCreateTask }: { messages: any[], onSend: (msg: string) => void, loading: boolean, onSaveToNotes: () => void, onCreateTask?: (t: ParsedQuickTask) => void | Promise<unknown> }) {
   const [input, setInput] = React.useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -26,11 +28,12 @@ export function AIAssistant({ messages, onSend, loading, onSaveToNotes }: { mess
       <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column", height: 520 }}>
         <div style={{ flex: 1, overflowY: "auto", padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
           {messages.map((msg, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
+            <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: msg.role === "user" ? "flex-end" : "flex-start" }}>
               <div style={{ maxWidth: "76%", padding: "12px 16px", borderRadius: 10, background: msg.role === "user" ? T.goldLight : "#F7F7F7", border: `1px solid ${msg.role === "user" ? T.goldBorder : T.border}`, fontSize: 14, lineHeight: 1.72, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", color: T.text, whiteSpace: "pre-wrap" }}>
                 {msg.role === "assistant" && <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.gold, marginBottom: 6, letterSpacing: 1 }}>AI ASSISTANT</div>}
                 {msg.content}
               </div>
+              {msg.role === "assistant" && <div style={{ maxWidth: "76%" }}><ProposedTasks content={msg.content} onCreateTask={onCreateTask} /></div>}
             </div>
           ))}
           {loading && (
