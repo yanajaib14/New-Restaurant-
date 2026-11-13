@@ -1,8 +1,8 @@
-import { createPool } from "../../db/pool.js";
+import { getDatabasePool } from "../../server/database.js";
 import { isTrustedRequest } from "../../db/requestGuard.js";
 import { listAccessUsers } from "../../db/appRoutes.js";
 
-const pool = createPool();
+const pool = getDatabasePool();
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });

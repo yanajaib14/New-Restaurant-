@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { T, Vendor, Contact, InventoryItem, Permit, UtilityAccount } from '../types';
 import { SectionHeader, Btn, Modal, Field, inpStyle, Pill } from './UI';
 import { ContactActions } from './Enhancements';
+import { DraftSaveError, useDraftSave } from '../hooks/useDraftSave';
 import { PenLine, Trash2 } from 'lucide-react';
 
 // ������ VENDORS ������
@@ -60,9 +61,10 @@ export function VendorManager({ vendors, onAdd, onEdit, onDelete }: { vendors: V
   );
 }
 
-export function VendorModal({ vendor, onSave, onClose }: { vendor: Vendor | null, onSave: (form: any) => void, onClose: () => void }) {
+export function VendorModal({ vendor, onSave, onClose }: { vendor: Vendor | null, onSave: (form: any) => Promise<boolean>, onClose: () => void }) {
   const blank = { name: "", contact: "", email: "", phone: "", category: "Food", deliveryDays: [], notes: "" };
   const [form, setForm] = useState<any>(vendor ? { ...vendor } : blank);
+  const draft = useDraftSave(onClose);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
   const toggleDay = (day: string) => {
     const days = form.deliveryDays.includes(day) ? form.deliveryDays.filter((d: string) => d !== day) : [...form.deliveryDays, day];
@@ -70,7 +72,7 @@ export function VendorModal({ vendor, onSave, onClose }: { vendor: Vendor | null
   };
 
   return (
-    <Modal title={vendor ? "Edit Vendor" : "New Vendor"} onClose={onClose} width={480}>
+    <Modal title={vendor ? "Edit Vendor" : "New Vendor"} onClose={draft.close} width={480}>
       <Field label="VENDOR NAME"><input value={form.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Green Valley Farms" style={inpStyle} /></Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="CONTACT PERSON"><input value={form.contact} onChange={e => set("contact", e.target.value)} placeholder="Name" style={inpStyle} /></Field>
@@ -102,9 +104,10 @@ export function VendorModal({ vendor, onSave, onClose }: { vendor: Vendor | null
           })}
         </div>
       </Field>
+      <DraftSaveError error={draft.error} />
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
-        <Btn onClick={onClose} variant="ghost">Cancel</Btn>
-        <Btn onClick={() => { if (form.name.trim()) onSave(form); }} variant="primary">{vendor ? "Save Changes" : "Add Vendor"}</Btn>
+        <Btn onClick={draft.close} variant="ghost" disabled={draft.pending}>Cancel</Btn>
+        <Btn onClick={() => { if (form.name.trim()) void draft.save(() => onSave(form)); }} disabled={draft.pending} variant="primary">{draft.pending ? "Saving..." : vendor ? "Save Changes" : "Add Vendor"}</Btn>
       </div>
     </Modal>
   );
@@ -163,13 +166,14 @@ export function ContactManager({ contacts, onAdd, onEdit, onDelete }: { contacts
   );
 }
 
-export function ContactModal({ contact, onSave, onClose }: { contact: Contact | null, onSave: (form: any) => void, onClose: () => void }) {
+export function ContactModal({ contact, onSave, onClose }: { contact: Contact | null, onSave: (form: any) => Promise<boolean>, onClose: () => void }) {
   const blank = { name: "", role: "", company: "", category: "General", email: "", phone: "", notes: "" };
   const [form, setForm] = useState<any>(contact ? { ...contact } : blank);
+  const draft = useDraftSave(onClose);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
   return (
-    <Modal title={contact ? "Edit Contact" : "New Contact"} onClose={onClose} width={500}>
+    <Modal title={contact ? "Edit Contact" : "New Contact"} onClose={draft.close} width={500}>
       <Field label="CONTACT NAME"><input value={form.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Alex Rivera" style={inpStyle} /></Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="ROLE"><input value={form.role} onChange={e => set("role", e.target.value)} placeholder="e.g. Landlord" style={inpStyle} /></Field>
@@ -189,9 +193,10 @@ export function ContactModal({ contact, onSave, onClose }: { contact: Contact | 
       <Field label="NOTES">
         <textarea value={form.notes || ""} onChange={e => set("notes", e.target.value)} placeholder="Best way to reach, hours, responsibilities..." rows={3} style={{ ...inpStyle, resize: "vertical", lineHeight: 1.5 }} />
       </Field>
+      <DraftSaveError error={draft.error} />
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
-        <Btn onClick={onClose} variant="ghost">Cancel</Btn>
-        <Btn onClick={() => { if (form.name.trim()) onSave(form); }} variant="primary">{contact ? "Save Changes" : "Add Contact"}</Btn>
+        <Btn onClick={draft.close} variant="ghost" disabled={draft.pending}>Cancel</Btn>
+        <Btn onClick={() => { if (form.name.trim()) void draft.save(() => onSave(form)); }} disabled={draft.pending} variant="primary">{draft.pending ? "Saving..." : contact ? "Save Changes" : "Add Contact"}</Btn>
       </div>
     </Modal>
   );
@@ -242,7 +247,7 @@ export function InventoryTracker({ items, onUpdateStock, onAdd, onEdit, onDelete
   );
 }
 
-export function InventoryModal({ item, vendors, onSave, onClose }: { item: InventoryItem | null, vendors: Vendor[], onSave: (form: any) => void, onClose: () => void }) {
+export function InventoryModal({ item, vendors, onSave, onClose }: { item: InventoryItem | null, vendors: Vendor[], onSave: (form: any) => Promise<boolean>, onClose: () => void }) {
   const blank = { 
     name: "", 
     category: "Operating Supplies", 
@@ -257,7 +262,8 @@ export function InventoryModal({ item, vendors, onSave, onClose }: { item: Inven
     lastOrdered: "" 
   };
   const [form, setForm] = useState<any>(item ? { ...item } : blank);
-  const [isFood, setIsFood] = useState(false);
+  const draft = useDraftSave(onClose);
+  const [isFood, setIsFood] = useState(item?.category === "Operating Supplies");
 
   const set = (k: string, v: any) => {
     setForm((f: any) => {
@@ -279,7 +285,7 @@ export function InventoryModal({ item, vendors, onSave, onClose }: { item: Inven
   };
 
   return (
-    <Modal title={item ? "Edit Item" : "New Inventory Item"} onClose={onClose} width={500}>
+    <Modal title={item ? "Edit Item" : "New Inventory Item"} onClose={draft.close} width={500}>
       <Field label="ITEM NAME">
         <input value={form.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Whole Milk" style={inpStyle} />
       </Field>
@@ -331,13 +337,15 @@ export function InventoryModal({ item, vendors, onSave, onClose }: { item: Inven
         <Field label="UNIT"><input value={form.unit} onChange={e => set("unit", e.target.value)} placeholder="cases" style={inpStyle} /></Field>
       </div>
 
+      <Field label="LAST ORDERED"><input value={form.lastOrdered || ""} onChange={e => set("lastOrdered", e.target.value)} placeholder="e.g. Apr 12" style={inpStyle} /></Field>
       <Field label="NOTES">
         <textarea value={form.notes || ""} onChange={e => set("notes", e.target.value)} placeholder="Additional details..." rows={3} style={{ ...inpStyle, resize: "vertical" }} />
       </Field>
 
+      <DraftSaveError error={draft.error} />
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
-        <Btn onClick={onClose} variant="ghost">Cancel</Btn>
-        <Btn onClick={() => { if (form.name.trim()) onSave(form); }} variant="primary">{item ? "Save Changes" : "Add Item"}</Btn>
+        <Btn onClick={draft.close} variant="ghost" disabled={draft.pending}>Cancel</Btn>
+        <Btn onClick={() => { if (form.name.trim()) void draft.save(() => onSave(form)); }} disabled={draft.pending} variant="primary">{draft.pending ? "Saving..." : item ? "Save Changes" : "Add Item"}</Btn>
       </div>
     </Modal>
   );
@@ -375,7 +383,7 @@ export function PermitTracker({ permits, onAdd, onEdit, onDelete }: { permits: P
                 <div style={{ fontSize: 11, color: T.muted, fontFamily: "'IBM Plex Mono',monospace" }}>EXPIRY DATE</div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: p.status === "Expired" ? T.red : T.text }}>{p.expiryDate}</div>
               </div>
-              {p.fileUrl && (
+              {p.fileUrl?.startsWith("data:") && (
                 <button onClick={() => window.open(p.fileUrl, "_blank")} style={{ width: "100%", background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: "8px", color: T.blue, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
                   View Document
                 </button>
@@ -388,9 +396,10 @@ export function PermitTracker({ permits, onAdd, onEdit, onDelete }: { permits: P
   );
 }
 
-export function PermitModal({ permit, onSave, onClose }: { permit: Permit | null, onSave: (form: any) => void, onClose: () => void }) {
+export function PermitModal({ permit, onSave, onClose }: { permit: Permit | null, onSave: (form: any) => Promise<boolean>, onClose: () => void }) {
   const blank = { name: "", issuer: "", expiryDate: "", status: "Pending", fileUrl: "" };
-  const [form, setForm] = useState<any>(permit ? { ...permit } : blank);
+  const [form, setForm] = useState<any>(permit ? { ...permit, fileUrl: permit.fileUrl?.startsWith("data:") ? permit.fileUrl : "" } : blank);
+  const draft = useDraftSave(onClose);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
 
@@ -427,7 +436,7 @@ export function PermitModal({ permit, onSave, onClose }: { permit: Permit | null
   };
 
   return (
-    <Modal title={permit ? "Edit Permit" : "New Permit"} onClose={onClose} width={420}>
+    <Modal title={permit ? "Edit Permit" : "New Permit"} onClose={draft.close} width={420}>
       <Field label="PERMIT NAME"><input value={form.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Health Operating Permit" style={inpStyle} /></Field>
       <Field label="ISSUING BODY"><input value={form.issuer} onChange={e => set("issuer", e.target.value)} placeholder="e.g. County Health Dept" style={inpStyle} /></Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -467,9 +476,10 @@ export function PermitModal({ permit, onSave, onClose }: { permit: Permit | null
           </div>
         )}
       </Field>
+      <DraftSaveError error={draft.error} />
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
-        <Btn onClick={onClose} variant="ghost">Cancel</Btn>
-        <Btn onClick={() => { if (form.name.trim() && !isUploading) onSave(form); }} variant="primary">{isUploading ? "Uploading..." : permit ? "Save Changes" : "Add Permit"}</Btn>
+        <Btn onClick={draft.close} variant="ghost" disabled={draft.pending}>Cancel</Btn>
+        <Btn onClick={() => { if (form.name.trim() && !isUploading) void draft.save(() => onSave(form)); }} disabled={draft.pending || isUploading} variant="primary">{isUploading ? "Uploading..." : draft.pending ? "Saving..." : permit ? "Save Changes" : "Add Permit"}</Btn>
       </div>
     </Modal>
   );
@@ -477,8 +487,6 @@ export function PermitModal({ permit, onSave, onClose }: { permit: Permit | null
 
 // ������ UTILITIES ������
 export function UtilityTracker({ utilities, onAdd, onEdit, onDelete }: { utilities: UtilityAccount[], onAdd: () => void, onEdit: (u: UtilityAccount) => void, onDelete: (id: number) => void }) {
-  const [showLogin, setShowLogin] = useState<Record<number, boolean>>({});
-
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     // Optional: add a toast or feedback
@@ -510,10 +518,10 @@ export function UtilityTracker({ utilities, onAdd, onEdit, onDelete }: { utiliti
                 </div>
                 <button onClick={() => copyToClipboard(u.accountNumber)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 10, color: T.blue, cursor: "pointer" }}>Copy</button>
               </div>
-              <div style={{ cursor: "pointer" }} onClick={() => setShowLogin(p => ({ ...p, [u.id]: !p[u.id] }))}>
-                <div style={{ fontSize: 9, color: T.muted, fontFamily: "'IBM Plex Mono',monospace", marginBottom: 2 }}>LOGIN INFO</div>
+              <div>
+                <div style={{ fontSize: 9, color: T.muted, fontFamily: "'IBM Plex Mono',monospace", marginBottom: 2 }}>CREDENTIAL REFERENCE</div>
                 <div style={{ fontSize: 12, color: T.text, fontFamily: "'IBM Plex Mono',monospace" }}>
-                  {showLogin[u.id] ? u.loginInfo : "⬢⬢⬢⬢⬢⬢⬢⬢⬢⬢⬢⬢"}
+                  Use your password manager for access
                 </div>
               </div>
             </div>
@@ -524,7 +532,7 @@ export function UtilityTracker({ utilities, onAdd, onEdit, onDelete }: { utiliti
                 <div style={{ fontSize: 15, fontWeight: 700, color: T.green }}>${u.monthlyCost.toFixed(2)}</div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                {u.fileUrl ? (
+                {u.fileUrl?.startsWith("data:") ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 4, color: T.green, fontSize: 11, fontWeight: 600 }}>
                     <span>Attached</span>
                     <button onClick={() => window.open(u.fileUrl, "_blank")} style={{ background: "none", border: "none", color: T.blue, cursor: "pointer", fontSize: 11, textDecoration: "underline", padding: 0 }}>View Bill</button>
@@ -541,35 +549,47 @@ export function UtilityTracker({ utilities, onAdd, onEdit, onDelete }: { utiliti
   );
 }
 
-export function UtilityModal({ account, onSave, onClose }: { account: UtilityAccount | null, onSave: (form: any) => void, onClose: () => void }) {
+export function UtilityModal({ account, onSave, onClose }: { account: UtilityAccount | null, onSave: (form: any) => Promise<boolean>, onClose: () => void }) {
   const blank = { name: "", accountNumber: "", loginInfo: "", monthlyCost: 0, startDate: "", fileUrl: "" };
-  const [form, setForm] = useState<any>(account ? { ...account } : blank);
+  const [form, setForm] = useState<any>(account ? { ...account, loginInfo: "", fileUrl: account.fileUrl?.startsWith("data:") ? account.fileUrl : "" } : blank);
+  const [isUploading, setIsUploading] = useState(false);
+  const draft = useDraftSave(() => { if (!isUploading) onClose(); });
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
-  const handleMockUpload = () => {
-    set("fileUrl", "https://example.com/mock-bill.pdf");
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size exceeds 5MB limit. Please choose a smaller file.");
+      event.target.value = "";
+      return;
+    }
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onload = () => { set("fileUrl", typeof reader.result === "string" ? reader.result : ""); setIsUploading(false); };
+    reader.onerror = () => { alert("Error reading file. Please try again."); setIsUploading(false); };
+    reader.readAsDataURL(file);
   };
 
   return (
-    <Modal title={account ? "Edit Utility Account" : "New Utility Account"} onClose={onClose} width={420}>
+    <Modal title={account ? "Edit Utility Account" : "New Utility Account"} onClose={draft.close} width={420}>
       <Field label="SERVICE NAME"><input value={form.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Pacific Gas & Electric" style={inpStyle} /></Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="ACCOUNT NUMBER"><input value={form.accountNumber} onChange={e => set("accountNumber", e.target.value)} placeholder="000-000-000" style={inpStyle} /></Field>
         <Field label="MONTHLY COST ($)"><input type="number" value={form.monthlyCost} onChange={e => set("monthlyCost", +e.target.value)} style={inpStyle} /></Field>
       </div>
-      <Field label="LOGIN INFO"><input value={form.loginInfo} onChange={e => set("loginInfo", e.target.value)} placeholder="User: admin / Pass: ⬢⬢⬢⬢" style={inpStyle} /></Field>
+      <Field label="PASSWORD MANAGER REFERENCE"><input value={form.loginInfo} onChange={e => set("loginInfo", e.target.value)} placeholder="e.g. 1Password: PG&E Business" style={inpStyle} /><div style={{ fontSize: 11, color: T.muted, marginTop: 5 }}>Enter a password manager reference only. Existing saved values are not shown.</div></Field>
       <Field label="SERVICE START DATE"><input type="date" value={form.startDate} onChange={e => set("startDate", e.target.value)} style={inpStyle} /></Field>
       
       <div style={{ marginTop: 12 }}>
-        <button onClick={handleMockUpload} style={{ width: "100%", background: T.bg, border: `1px dashed ${T.borderStrong}`, borderRadius: 8, padding: "12px", color: T.muted, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-          <span>Attach</span> {form.fileUrl ? "Document Uploaded" : "Upload Document"}
-        </button>
-        {form.fileUrl && <div style={{ fontSize: 11, color: T.green, textAlign: "center", marginTop: 6 }}>Mock document stored successfully</div>}
+        <input type="file" accept=".pdf,.jpg,.jpeg,.png" disabled={isUploading || draft.pending} onChange={handleFileUpload} style={{ width: "100%", ...inpStyle }} />
+        {isUploading ? <div style={{ fontSize: 11, color: T.blue, textAlign: "center", marginTop: 6 }}>Processing attachment...</div> : form.fileUrl && <div style={{ fontSize: 11, color: T.green, textAlign: "center", marginTop: 6 }}>Document attached</div>}
       </div>
 
+      <DraftSaveError error={draft.error} />
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
-        <Btn onClick={onClose} variant="ghost">Cancel</Btn>
-        <Btn onClick={() => { if (form.name.trim()) onSave(form); }} variant="primary">{account ? "Save Changes" : "Add Account"}</Btn>
+        <Btn onClick={draft.close} variant="ghost" disabled={draft.pending || isUploading}>Cancel</Btn>
+        <Btn onClick={() => { if (form.name.trim() && !isUploading) void draft.save(() => onSave(form)); }} disabled={draft.pending || isUploading} variant="primary">{isUploading ? "Processing..." : draft.pending ? "Saving..." : account ? "Save Changes" : "Add Account"}</Btn>
       </div>
     </Modal>
   );

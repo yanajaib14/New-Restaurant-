@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { T, MenuItem } from '../types';
 import { SectionHeader } from './UI';
 
@@ -13,6 +13,22 @@ type ManualItemState = {
   ingredients: Record<number, ManualIngredient>;
 };
 
+type SaveState = { pending: boolean; error: string };
+
+const initialManualState = (item: MenuItem): ManualItemState => ({
+  price: Number(item.price) || 0,
+  targetFoodCost: Number(item.foodCost) || 0,
+  ingredients: Object.fromEntries(item.ingredients.map(ing => [ing.id, {
+    quantity: Number(ing.quantity) || 0,
+    cost: Number(ing.cost) || 0,
+  }])),
+});
+
+const isValidManualState = (value: ManualItemState) =>
+  Number.isFinite(value.price) && value.price >= 0 &&
+  Number.isFinite(value.targetFoodCost) && value.targetFoodCost >= 0 && value.targetFoodCost <= 100 &&
+  Object.values(value.ingredients).every(ing => Number.isFinite(ing.quantity) && ing.quantity >= 0 && Number.isFinite(ing.cost) && ing.cost >= 0);
+
 export function CostCalculator({ 
   menuItems,
   dbCostCalcOverrides,
@@ -20,10 +36,20 @@ export function CostCalculator({
 }: { 
   menuItems: MenuItem[],
   dbCostCalcOverrides?: any[],
-  onSaveOverride?: (itemId: number, data: any) => Promise<void>,
+  onSaveOverride?: (itemId: number, data: any) => Promise<boolean>,
 }) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [manualByItem, setManualByItem] = useState<Record<number, ManualItemState>>({});
+  const manualRef = useRef<Record<number, ManualItemState>>({});
+  const dirtyRef = useRef<Record<number, boolean>>({});
+  const versionsRef = useRef<Record<number, number>>({});
+  const savingRef = useRef<Record<number, boolean>>({});
+  const [saveStates, setSaveStates] = useState<Record<number, SaveState>>({});
+
+  const commitManual = (next: Record<number, ManualItemState>) => {
+    manualRef.current = next;
+    setManualByItem(next);
+  };
 
   // Load overrides from database on mount or when dbCostCalcOverrides changes
   useEffect(() => {
@@ -50,7 +76,12 @@ export function CostCalculator({
       };
     });
     
-    setManualByItem(overrideMap);
+    const merged = { ...manualRef.current };
+    Object.entries(overrideMap).forEach(([id, override]) => {
+      const itemId = Number(id);
+      if (isValidManualState(override) && !dirtyRef.current[itemId] && !savingRef.current[itemId]) merged[itemId] = override;
+    });
+    commitManual(merged);
   }, [dbCostCalcOverrides]);
 
   const selected = useMemo(
@@ -59,53 +90,58 @@ export function CostCalculator({
   );
 
   const ensureManualItem = (item: MenuItem): ManualItemState => {
-    const existing = manualByItem[item.id];
+    const existing = manualRef.current[item.id] || manualByItem[item.id];
     if (existing) return existing;
-
-    const ingredients: Record<number, ManualIngredient> = {};
-    item.ingredients.forEach((ing) => {
-      ingredients[ing.id] = { quantity: ing.quantity, cost: ing.cost };
-    });
-
-    return {
-      price: item.price,
-      targetFoodCost: item.foodCost,
-      ingredients,
-    };
+    return initialManualState(item);
   };
 
-  const updateManualItem = async (item: MenuItem, updater: (prev: ManualItemState) => ManualItemState) => {
-    setManualByItem((prev) => {
-      const current = prev[item.id] || ensureManualItem(item);
-      return { ...prev, [item.id]: updater(current) };
-    });
-    
-    // Auto-save to database
-    if (onSaveOverride) {
-      const current = manualByItem[item.id] || ensureManualItem(item);
-      const updated = updater(current);
-      try {
-        await onSaveOverride(item.id, {
-          price: updated.price,
-          targetFoodCost: updated.targetFoodCost,
-          ingredients: updated.ingredients,
+  const flushItem = async (itemId: number): Promise<void> => {
+    if (!onSaveOverride || savingRef.current[itemId] || !dirtyRef.current[itemId]) return;
+    savingRef.current[itemId] = true;
+    setSaveStates(prev => ({ ...prev, [itemId]: { pending: true, error: '' } }));
+    try {
+      while (dirtyRef.current[itemId]) {
+        const version = versionsRef.current[itemId] || 0;
+        const current = manualRef.current[itemId];
+        if (!current) break;
+        const ok = await onSaveOverride(itemId, {
+          price: current.price,
+          targetFoodCost: current.targetFoodCost,
+          ingredients: current.ingredients,
         });
-      } catch (e) {
-        console.error("Failed to save cost calculator override:", e);
+        if (ok !== true) throw new Error('Changes were not saved. Retry to save your latest values.');
+        if ((versionsRef.current[itemId] || 0) === version) dirtyRef.current[itemId] = false;
       }
+      setSaveStates(prev => ({ ...prev, [itemId]: { pending: false, error: '' } }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not save changes. Retry to try again.';
+      setSaveStates(prev => ({ ...prev, [itemId]: { pending: false, error: message } }));
+    } finally {
+      savingRef.current[itemId] = false;
     }
   };
 
+  const updateManualItem = (item: MenuItem, updater: (prev: ManualItemState) => ManualItemState) => {
+    const current = manualRef.current[item.id] || ensureManualItem(item);
+    const updated = updater(current);
+    if (!isValidManualState(updated)) return;
+    versionsRef.current[item.id] = (versionsRef.current[item.id] || 0) + 1;
+    dirtyRef.current[item.id] = true;
+    commitManual({ ...manualRef.current, [item.id]: updated });
+    setSaveStates(prev => ({ ...prev, [item.id]: { pending: Boolean(savingRef.current[item.id]), error: '' } }));
+    void flushItem(item.id);
+  };
+
   const getManualPrice = (item: MenuItem) => {
-    return manualByItem[item.id]?.price ?? item.price;
+    return manualRef.current[item.id]?.price ?? manualByItem[item.id]?.price ?? item.price;
   };
 
   const getManualTargetCost = (item: MenuItem) => {
-    return manualByItem[item.id]?.targetFoodCost ?? item.foodCost;
+    return manualRef.current[item.id]?.targetFoodCost ?? manualByItem[item.id]?.targetFoodCost ?? item.foodCost;
   };
 
   const getManualIngredient = (item: MenuItem, ingId: number) => {
-    return manualByItem[item.id]?.ingredients?.[ingId] || null;
+    return manualRef.current[item.id]?.ingredients?.[ingId] || manualByItem[item.id]?.ingredients?.[ingId] || null;
   };
 
   const calculateTotalCost = (item: MenuItem) => {
@@ -203,6 +239,7 @@ export function CostCalculator({
                   <input
                     type="number"
                     min={0}
+                    max={100}
                     step="1"
                     value={getManualTargetCost(selected)}
                     onChange={(e) => updateManualItem(selected, (prev) => ({ ...prev, targetFoodCost: Number(e.target.value) }))}
@@ -210,6 +247,17 @@ export function CostCalculator({
                   />
                 </div>
               </div>
+
+              {onSaveOverride && (() => {
+                const state = saveStates[selected.id];
+                if (!state?.pending && !state?.error && !dirtyRef.current[selected.id]) return null;
+                return (
+                  <div role={state?.error ? 'alert' : 'status'} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '-8px 0 20px', fontSize: 13, color: state?.error ? T.red : T.muted }}>
+                    <span>{state?.pending ? 'Saving latest changes…' : state?.error || 'Unsaved changes'}</span>
+                    {state?.error && <button type="button" onClick={() => void flushItem(selected.id)} style={{ border: `1px solid ${T.border}`, borderRadius: 7, background: '#FFF', color: T.text, padding: '5px 10px', cursor: 'pointer', fontWeight: 600 }}>Retry</button>}
+                  </div>
+                );
+              })()}
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20, marginBottom: 30 }}>
                 <div style={{ background: T.bg, padding: 18, borderRadius: 14 }}>

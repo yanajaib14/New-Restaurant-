@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { T, Position, Candidate } from '../types';
 import { Modal, Field, inpStyle, selStyle, Btn, SectionHeader, Pill } from './UI';
 import { Users, FileText, MessageSquare, Plus, Trash2, Edit2, Upload } from 'lucide-react';
+import { useDraftSave, DraftSaveError } from '../hooks/useDraftSave';
 
-export function PositionModal({ position, onSave, onClose, userRole }: { position: Position | null, onSave: (form: Position) => void, onClose: () => void, userRole?: string }) {
+export function PositionModal({ position, onSave, onClose, userRole }: { position: Position | null, onSave: (form: Position) => Promise<boolean>, onClose: () => void, userRole?: string }) {
   const blank: Position = { id: Date.now(), role: "", openings: 1, hired: 0, status: "Urgent", salary: "", compPlan: "", offerLetterUrl: "" };
   const [form, setForm] = useState<Position>(position ? { ...position } : blank);
   const [isUploading, setIsUploading] = useState(false);
+  const draft = useDraftSave(onClose);
   const isManager = userRole === "Manager";
 
   const set = (k: keyof Position, v: any) => setForm(f => ({ ...f, [k]: v }));
@@ -15,14 +17,14 @@ export function PositionModal({ position, onSave, onClose, userRole }: { positio
     const file = e.target.files?.[0];
     if (!file) return;
     setIsUploading(true);
-    setTimeout(() => {
-      set("offerLetterUrl", URL.createObjectURL(file));
-      setIsUploading(false);
-    }, 1000);
+    const reader = new FileReader();
+    reader.onload = () => { set("offerLetterUrl", String(reader.result)); setIsUploading(false); };
+    reader.onerror = () => { draft.setError('Could not read attachment. Please try again.'); setIsUploading(false); };
+    reader.readAsDataURL(file);
   };
 
   return (
-    <Modal title={position ? "Edit Position" : "Add New Position"} onClose={onClose} width={460}>
+    <Modal title={position ? "Edit Position" : "Add New Position"} onClose={draft.close} width={460}>
       <Field label="ROLE NAME">
         <input value={form.role} onChange={e => set("role", e.target.value)} style={inpStyle} placeholder="e.g. Executive Chef" />
       </Field>
@@ -67,14 +69,15 @@ export function PositionModal({ position, onSave, onClose, userRole }: { positio
         </div>
       </Field>
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
-        <Btn onClick={onClose} variant="ghost">Cancel</Btn>
-        <Btn onClick={() => onSave(form)} variant="primary">Save Position</Btn>
+        <DraftSaveError error={draft.error} />
+        <Btn onClick={draft.close} variant="ghost">Cancel</Btn>
+        <Btn disabled={draft.pending || isUploading} onClick={async () => { if (await draft.save(() => onSave(form))) onClose(); }} variant="primary">{draft.pending ? 'Saving…' : 'Save Position'}</Btn>
       </div>
     </Modal>
   );
 }
 
-export function CandidateModal({ candidate, initialDate, positions, onSave, onClose, userRole }: { candidate: Candidate | null, initialDate?: string, positions: Position[], onSave: (form: Candidate) => void, onClose: () => void, userRole?: string }) {
+export function CandidateModal({ candidate, initialDate, positions, onSave, onClose, userRole }: { candidate: Candidate | null, initialDate?: string, positions: Position[], onSave: (form: Candidate & { _delete?: boolean }) => Promise<boolean>, onClose: () => void, userRole?: string }) {
   const blank: Candidate = { 
     id: Date.now(), 
     name: "", 
@@ -90,6 +93,7 @@ export function CandidateModal({ candidate, initialDate, positions, onSave, onCl
     trialScores: candidate.trialScores || { technique: 0, speed: 0, vibe: 0 } 
   } : blank);
   const [isUploading, setIsUploading] = useState(false);
+  const draft = useDraftSave(onClose);
   const isManager = userRole === "Manager";
 
   const set = (k: keyof Candidate, v: any) => setForm(f => ({ ...f, [k]: v }));
@@ -118,15 +122,14 @@ export function CandidateModal({ candidate, initialDate, positions, onSave, onCl
     const file = e.target.files?.[0];
     if (!file) return;
     setIsUploading(true);
-    // Simulate upload
-    setTimeout(() => {
-      set("resumeUrl", URL.createObjectURL(file));
-      setIsUploading(false);
-    }, 1000);
+    const reader = new FileReader();
+    reader.onload = () => { set("resumeUrl", String(reader.result)); setIsUploading(false); };
+    reader.onerror = () => { draft.setError('Could not read attachment. Please try again.'); setIsUploading(false); };
+    reader.readAsDataURL(file);
   };
 
   return (
-    <Modal title={candidate ? "Edit Candidate" : "New Applicant"} onClose={onClose} width={500}>
+    <Modal title={candidate ? "Edit Candidate" : "New Applicant"} onClose={draft.close} width={500}>
       <Field label="CANDIDATE NAME">
         <input value={form.name} onChange={e => set("name", e.target.value)} style={inpStyle} placeholder="Full Name" />
       </Field>
@@ -188,17 +191,22 @@ export function CandidateModal({ candidate, initialDate, positions, onSave, onCl
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
         {candidate && (
           <div style={{ marginRight: "auto" }}>
-            <Btn onClick={() => onSave({ ...form, _delete: true } as any)} variant="outline" style={{ color: T.red, borderColor: T.redBorder }} title="Delete candidate"><Trash2 size={13} /></Btn>
+            <Btn disabled={draft.pending} onClick={async () => { if (await draft.save(() => onSave({ ...form, _delete: true }))) onClose(); }} variant="outline" style={{ color: T.red, borderColor: T.redBorder }} title="Delete candidate"><Trash2 size={13} /></Btn>
           </div>
         )}
-        <Btn onClick={onClose} variant="ghost">Cancel</Btn>
-        <Btn onClick={() => onSave(form)} variant="primary">Save Candidate</Btn>
+        <DraftSaveError error={draft.error} />
+        <Btn onClick={draft.close} variant="ghost">Cancel</Btn>
+        <Btn disabled={draft.pending || isUploading} onClick={async () => { if (await draft.save(() => onSave(form))) onClose(); }} variant="primary">{draft.pending ? 'Saving…' : 'Save Candidate'}</Btn>
       </div>
     </Modal>
   );
 }
 
-export function TalentHiring({ positions, candidates, onAddPos, onEditPos, onDeletePos, onAddCan, onEditCan, onDeleteCan, userRole }: any) {
+export function TalentHiring({ positions, candidates, onAddPos, onEditPos, onDeletePos, onAddCan, onEditCan, onDeleteCan, userRole }: {
+  positions: Position[]; candidates: Candidate[]; onAddPos: () => void; onEditPos: (p: Position) => void;
+  onDeletePos: (p: Position) => void; onAddCan: () => void; onEditCan: (c: Candidate) => void;
+  onDeleteCan: (c: Candidate) => void; userRole?: string;
+}) {
   const stages = ["Applied", "Interviewed", "Trial Shift", "Hired", "Rejected"];
   const isManager = userRole === "Manager";
 
@@ -281,7 +289,7 @@ export function TalentHiring({ positions, candidates, onAddPos, onEditPos, onDel
                 </div>
                 <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                   <button onClick={() => onEditPos(p)} style={{ background: "none", border: "none", color: T.muted, cursor: "pointer" }}><Edit2 size={14} /></button>
-                  <button onClick={() => onDeletePos(p.id)} style={{ background: "none", border: "none", color: T.red, cursor: "pointer" }}><Trash2 size={14} /></button>
+                  <button onClick={() => onDeletePos(p)} style={{ background: "none", border: "none", color: T.red, cursor: "pointer" }}><Trash2 size={14} /></button>
                 </div>
               </div>
             ))
@@ -376,7 +384,7 @@ export function TalentHiring({ positions, candidates, onAddPos, onEditPos, onDel
 
                     <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, borderTop: `1px solid ${T.border}`, paddingTop: 8 }}>
                       <button onClick={() => onEditCan(can)} title="Edit" style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 11, display: "flex", alignItems: "center" }}><Edit2 size={12} /></button>
-                      <button onClick={() => onDeleteCan(can.id)} title="Delete" style={{ background: "none", border: "none", color: T.red, cursor: "pointer", fontSize: 11, display: "flex", alignItems: "center" }}><Trash2 size={12} /></button>
+                      <button onClick={() => onDeleteCan(can)} title="Delete" style={{ background: "none", border: "none", color: T.red, cursor: "pointer", fontSize: 11, display: "flex", alignItems: "center" }}><Trash2 size={12} /></button>
                     </div>
                   </div>
                 ))}

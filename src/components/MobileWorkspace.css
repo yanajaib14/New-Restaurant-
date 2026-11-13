@@ -1,0 +1,67 @@
+.mobile-workspace {
+  --mw-bg: #f5f5f5;
+  --mw-surface: #fff;
+  --mw-text: #171717;
+  --mw-muted: #6d6d6d;
+  --mw-border: #e5e5e5;
+  --mw-accent: #242424;
+  min-height: 100dvh;
+  background: var(--mw-bg);
+  color: var(--mw-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.mw-content { max-width: 700px; margin: 0 auto; padding: max(22px, env(safe-area-inset-top)) 18px calc(94px + env(safe-area-inset-bottom)); }
+.mw-page-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 26px; }
+.mw-page-heading h1 { margin: 2px 0 0; font-size: 29px; line-height: 1.15; letter-spacing: -.5px; font-weight: 700; }
+.mw-eyebrow { margin: 0; color: var(--mw-muted); font-size: 10px; letter-spacing: 1.2px; font-weight: 700; }
+.mw-brand { margin: 0 0 8px; color: var(--mw-muted); font-size: 12px; font-weight: 650; }
+.mw-primary { border: 0; border-radius: 11px; background: var(--mw-accent); color: #fff; padding: 11px 14px; font-size: 13px; font-weight: 650; cursor: pointer; }
+.mw-section { margin: 0 0 27px; }
+.mw-section h2, .mw-section-title h2 { margin: 0; font-size: 17px; font-weight: 700; }
+.mw-section > h2 { display: flex; align-items: center; gap: 9px; margin-bottom: 11px; }
+.mw-section-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 11px; }
+.mw-section-title button { border: 0; background: transparent; color: var(--mw-muted); font-size: 13px; font-weight: 600; padding: 5px; cursor: pointer; }
+.mw-count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; background: #e9e9e9; color: var(--mw-muted); font-size: 11px; }
+.mw-list { display: grid; gap: 9px; }
+.mw-card { display: flex; flex-direction: column; align-items: stretch; gap: 7px; width: 100%; padding: 14px; border: 1px solid var(--mw-border); border-radius: 14px; background: var(--mw-surface); color: inherit; text-align: left; }
+button.mw-card { cursor: pointer; }
+.mw-card-main { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; padding: 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; }
+.mw-card-title { display: block; font-size: 14px; font-weight: 650; line-height: 1.35; }
+.mw-card-meta, .mw-event-notes { color: var(--mw-muted); font-size: 12px; line-height: 1.4; }
+.mw-event-notes { margin-top: 1px; }
+.mw-task-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.mw-priority { display: inline-flex; padding: 3px 8px; border-radius: 99px; font-size: 10px; font-weight: 700; }
+.mw-priority-high { background: #fde9e7; color: #b42318; }
+.mw-priority-medium { background: #fff1dd; color: #975a00; }
+.mw-priority-low { border: 1px solid var(--mw-border); background: #fff; color: #555; }
+.mw-status-label { color: var(--mw-muted); font-size: 11px; }
+.mw-pending-label { display: inline-flex; width: fit-content; padding: 4px 8px; border-radius: 7px; background: #fff1dd; color: #805000; font-size: 11px; font-weight: 600; }
+.mw-status-actions { display: flex; gap: 6px; margin-top: 2px; }
+.mw-status-actions button, .mw-save-error button { flex: 1; min-height: 33px; border: 1px solid var(--mw-border); border-radius: 8px; background: #fff; color: var(--mw-muted); font-size: 11px; font-weight: 600; cursor: pointer; }
+.mw-status-actions button:disabled { background: #f4f4f4; color: #858585; cursor: default; }
+.mw-save-error { display: flex; align-items: center; gap: 8px; color: #b42318; font-size: 12px; }
+.mw-save-error button { flex: none; padding: 0 10px; color: #8d2018; }
+.mw-empty { padding: 17px 14px; border: 1px dashed #d8d8d8; border-radius: 13px; color: var(--mw-muted); background: rgba(255,255,255,.6); font-size: 13px; text-align: center; }
+.mw-empty-panel { margin-top: 6px; }
+.mw-calendar { padding: 12px; background: var(--mw-surface); border: 1px solid var(--mw-border); border-radius: 17px; margin-bottom: 23px; }
+.mw-month-nav { display: flex; align-items: center; justify-content: space-between; padding: 0 1px 11px; }
+.mw-month-nav h2 { margin: 0; font-size: 15px; }
+.mw-month-nav button { width: 35px; height: 35px; border: 1px solid var(--mw-border); border-radius: 10px; background: #fff; color: var(--mw-text); font-size: 23px; line-height: 1; cursor: pointer; }
+.mw-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 4px; }
+.mw-weekday { display: grid; place-items: center; height: 26px; color: var(--mw-muted); font-size: 10px; font-weight: 650; }
+.mw-day { display: flex; position: relative; align-items: center; justify-content: center; height: 42px; border: 0; border-radius: 11px; background: transparent; color: var(--mw-text); font: inherit; font-size: 13px; cursor: pointer; }
+.mw-day.is-selected { background: #202020; color: #fff; }
+.mw-day.is-today:not(.is-selected) { box-shadow: inset 0 0 0 1px #777; }
+.mw-day i { position: absolute; bottom: 4px; left: calc(50% - 2px); width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+.mw-day.is-selected i { background: #fff; }
+.mw-note-top { display: flex; justify-content: space-between; align-items: center; color: var(--mw-muted); font-size: 11px; }
+.mw-note-tag { padding: 3px 8px; border-radius: 99px; background: #f0f0f0; color: #555; font-weight: 650; }
+.mw-note-top time { color: var(--mw-muted); }
+.mw-note-body { margin: 1px 0 0; white-space: pre-wrap; color: #4f4f4f; font-size: 13px; line-height: 1.5; }
+.mw-capability-note { margin: -13px 0 16px; color: var(--mw-muted); font-size: 12px; }
+.mw-note-edit { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; }
+.mw-bottom-nav { position: fixed; z-index: 20; inset: auto 0 0; display: grid; grid-template-columns: repeat(4,1fr); max-width: 700px; margin: 0 auto; padding: 7px 8px calc(7px + env(safe-area-inset-bottom)); border-top: 1px solid var(--mw-border); background: rgba(255,255,255,.96); backdrop-filter: blur(14px); }
+.mw-bottom-nav button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 51px; border: 0; border-radius: 10px; background: transparent; color: #777; font-size: 10px; font-weight: 600; cursor: pointer; }
+.mw-bottom-nav button.is-active { color: #111; }
+.mw-nav-icon { font-size: 19px; line-height: 1; }
+@media (min-width: 700px) { .mw-content { padding-top: 34px; } }

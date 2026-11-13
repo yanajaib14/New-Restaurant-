@@ -4,6 +4,10 @@
   },
   "routes": [
     {
+      "src": "/api/records/([^/?]+)",
+      "dest": "/api/records?table=$1"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/api/$1"
     },

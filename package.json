@@ -9,9 +9,12 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "db:setup": "tsx scripts/db-setup.ts",
-    "db:copy": "tsx scripts/copy-from-insforge.ts",
-    "test": "tsc --noEmit",
+    "test": "tsc --noEmit && node --import tsx --test tests/*.test.ts",
+    "test:sync": "node --import tsx --test tests/todo-sync.test.ts",
+    "test:browser": "node tests/workspace.browser.mjs && node tests/forms.browser.mjs && node tests/core-workspace.browser.mjs && node tests/onboarding.browser.mjs && node tests/mobile-workspace.browser.mjs",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:check": "tsx scripts/db-check.ts",
+    "test:database-app": "npm run build && node --import tsx tests/neon-app.browser.mjs",
     "db:schema-sql": "tsx scripts/export-schema-sql.ts"
   },
   "dependencies": {
@@ -19,6 +22,7 @@
     "@tailwindcss/vite": "^4.1.14",
     "@types/cookie-parser": "^1.4.10",
     "@types/express-session": "^1.18.2",
+    "@vercel/functions": "^3.11.2",
     "@vitejs/plugin-react": "^5.0.4",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
@@ -33,6 +37,7 @@
     "vite": "^6.2.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
     "@types/express": "^4.17.25",
     "@types/node": "^22.14.0",
     "@types/react": "^19.2.14",

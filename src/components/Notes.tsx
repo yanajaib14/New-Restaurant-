@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { T, NOTE_TAG_COLORS, Note, Task } from '../types';
 import { Modal, Field, inpStyle, Btn, Pill } from './UI';
 import { Share2, Eye, Trash2, Paperclip, Link2, X, UploadCloud, PenLine, ZoomIn, Copy, Check } from 'lucide-react';
+import { useDraftSave, DraftSaveError } from '../hooks/useDraftSave';
 
 const LINK_PATTERN = /((?:https?:\/\/|www\.)[^\s]+|(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(?:\/[^\s]*)?)/gi;
 
@@ -92,9 +93,11 @@ const resizeImageFile = (file: File, maxWidth = 1600, quality = 0.82) => new Pro
   reader.readAsDataURL(file);
 });
 
-export function NoteModal({ note, tasks, onSave, onClose }: { note: Note | null, tasks: Task[], onSave: (form: any) => void | Promise<boolean>, onClose: () => void }) {
-  const blank = { title: "", body: "", tag: "General", files: [], linkedTaskId: null };
+export function NoteModal({ note, tasks, onSave, onClose }: { note: Note | null, tasks: Task[], onSave: (form: any) => Promise<boolean>, onClose: () => void }) {
+  const blank = { title: "", body: "", tag: "General", date: new Date().toISOString().slice(0, 10), files: [], linkedTaskId: null };
   const [form, setForm] = React.useState<any>(note ? { ...note, files: [...(note.files || [])] } : blank);
+  const draft = useDraftSave(onClose);
+  const [readingFiles, setReadingFiles] = React.useState(false);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -109,6 +112,7 @@ export function NoteModal({ note, tasks, onSave, onClose }: { note: Note | null,
     const picked = Array.from(e.target.files || []);
     if (picked.length === 0) return;
 
+    setReadingFiles(true);
     try {
       const mapped = await Promise.all(picked.map(async (f: File) => {
         const isImage = f.type.startsWith("image/");
@@ -138,13 +142,28 @@ export function NoteModal({ note, tasks, onSave, onClose }: { note: Note | null,
       setForm((frm: any) => ({ ...frm, files: nextFiles }));
     } catch (err) {
       console.error("Attachment read error:", err);
-      alert((err as Error)?.message || "Failed to attach one or more files. Please try again.");
+      draft.setError((err as Error)?.message || "Failed to attach one or more files. Please try again.");
+    } finally {
+      setReadingFiles(false);
+      if (fileRef.current) fileRef.current.value = "";
     }
   };
 
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (fileRef.current && e.dataTransfer.files.length) {
+      const transfer = new DataTransfer();
+      Array.from(e.dataTransfer.files).forEach(file => transfer.items.add(file));
+      fileRef.current.files = transfer.files;
+      void handleFiles({ target: fileRef.current } as React.ChangeEvent<HTMLInputElement>);
+    }
+  };
+  const save = async () => { if (String(form.title || "").trim() && !readingFiles && await draft.save(() => onSave(form))) onClose(); };
+
   return (
-    <Modal title={note ? "Edit Note" : "Quick Entry"} onClose={onClose} width={640}>
+    <Modal title={note ? "Edit Note" : "Quick Entry"} onClose={draft.close} width={640}>
       <Field label="TITLE"><input value={form.title} onChange={e => set("title", e.target.value)} placeholder="Note title..." autoFocus style={{ ...inpStyle, border: "none", borderBottom: `1px solid ${T.border}`, borderRadius: 0, paddingLeft: 0, background: "transparent", fontSize: 18, fontWeight: 700 }} /></Field>
+      <Field label="DATE"><input type="date" value={form.date || ""} onChange={e => set("date", e.target.value)} style={inpStyle} /></Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 0 }}>
         <Field label="TAG">
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -173,7 +192,7 @@ export function NoteModal({ note, tasks, onSave, onClose }: { note: Note | null,
       </Field>
       <Field label="ATTACHMENTS">
         <div style={{ border: `2px dashed ${T.border}`, borderRadius: 10, padding: "18px 16px", textAlign: "center", cursor: "pointer", background: T.bg }}
-          onClick={() => fileRef.current?.click()}>
+          onClick={() => fileRef.current?.click()} onDragOver={e => e.preventDefault()} onDrop={handleDrop}>
           <UploadCloud size={24} style={{ margin: "0 auto 8px", color: T.blue }} />
           <div style={{ fontSize: 14, marginBottom: 6, color: T.text, fontWeight: 700 }}>Attach files</div>
           <div style={{ fontSize: 13, color: T.muted, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontWeight: 500 }}>Click to upload or drag & drop</div>
@@ -193,8 +212,9 @@ export function NoteModal({ note, tasks, onSave, onClose }: { note: Note | null,
         )}
       </Field>
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
-        <Btn onClick={onClose} variant="ghost">Cancel</Btn>
-        <Btn onClick={() => { if (form.title.trim()) onSave(form); }} variant="primary">{note ? "Save Changes" : "Add Note"}</Btn>
+        <DraftSaveError error={draft.error} />
+        <Btn onClick={draft.close} variant="ghost">Cancel</Btn>
+        <Btn disabled={draft.pending || readingFiles} onClick={save} variant="primary">{readingFiles ? 'Reading files…' : draft.pending ? 'Saving…' : note ? "Save Changes" : "Add Note"}</Btn>
       </div>
     </Modal>
   );
@@ -268,11 +288,12 @@ export function NoteCard({ note, onOpen, onDelete, isDriveConnected, onSaveToDri
 
 export function NoteDetailModal({ note, tasks, onClose, onSave, onDelete, isDriveConnected, onSaveToDrive, onOpenLinkedTask }: { note: Note, tasks: Task[], onClose: () => void, onSave: (form: any) => Promise<boolean>, onDelete: (id: number) => void, isDriveConnected: boolean, onSaveToDrive: (file: any) => void, onOpenLinkedTask?: (taskId: number) => void }) {
   const [form, setForm] = React.useState<any>({ ...note, files: [...(note.files || [])] });
+  const draft = useDraftSave(onClose);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
   const currentTagColor = NOTE_TAG_COLORS[form.tag] || NOTE_TAG_COLORS["General"];
   const [editMode, setEditMode] = React.useState(false);
   const [imagePreview, setImagePreview] = React.useState<string | null>(null);
-  const [saving, setSaving] = React.useState(false);
+  const [readingFiles, setReadingFiles] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -286,6 +307,7 @@ export function NoteDetailModal({ note, tasks, onClose, onSave, onDelete, isDriv
   const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = Array.from(e.target.files || []);
     if (picked.length === 0) return;
+    setReadingFiles(true);
     try {
       const mapped = await Promise.all(picked.map(async (f: File) => {
         const isImage = f.type.startsWith("image/");
@@ -304,18 +326,27 @@ export function NoteDetailModal({ note, tasks, onClose, onSave, onDelete, isDriv
       }
       setForm((frm: any) => ({ ...frm, files: nextFiles }));
     } catch (err) {
-      alert((err as Error)?.message || "Failed to attach one or more files. Please try again.");
+      draft.setError((err as Error)?.message || "Failed to attach one or more files. Please try again.");
     } finally {
+      setReadingFiles(false);
       if (fileRef.current) fileRef.current.value = "";
     }
   };
 
   const handleSave = async () => {
-    if (!String(form.title || "").trim()) return;
-    setSaving(true);
-    const ok = await onSave(form);
-    setSaving(false);
+    if (!String(form.title || "").trim() || readingFiles) return;
+    const ok = await draft.save(() => onSave(form));
     if (ok) setEditMode(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (fileRef.current && e.dataTransfer.files.length) {
+      const transfer = new DataTransfer();
+      Array.from(e.dataTransfer.files).forEach(file => transfer.items.add(file));
+      fileRef.current.files = transfer.files;
+      void handleFiles({ target: fileRef.current } as React.ChangeEvent<HTMLInputElement>);
+    }
   };
 
   const handleCopy = () => {
@@ -346,7 +377,7 @@ export function NoteDetailModal({ note, tasks, onClose, onSave, onDelete, isDriv
         </div>
       )}
 
-      <Modal title="📝 Note" onClose={onClose} width={960}>
+      <Modal title="📝 Note" onClose={draft.close} width={960}>
         {/* Tag color accent bar */}
         <div style={{ height: 4, background: `linear-gradient(90deg, ${currentTagColor.dot}, ${currentTagColor.dot}33)`, borderRadius: 4, marginBottom: 22, marginTop: -8 }} />
 
@@ -354,7 +385,7 @@ export function NoteDetailModal({ note, tasks, onClose, onSave, onDelete, isDriv
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, gap: 8, flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <Pill label={form.tag} color={currentTagColor.text} bg={currentTagColor.bg} border={`${currentTagColor.dot}33`} size={10} />
-            <span style={{ fontSize: 11, color: T.subtle, fontFamily: "'IBM Plex Mono',monospace", fontWeight: 700 }}>{note.date}</span>
+            {editMode ? <input type="date" value={form.date || ""} onChange={e => set("date", e.target.value)} style={{ ...inpStyle, width: 145, padding: "5px 8px", fontSize: 11 }} /> : <span style={{ fontSize: 11, color: T.subtle, fontFamily: "'IBM Plex Mono',monospace", fontWeight: 700 }}>{form.date}</span>}
             <span style={{ fontSize: 11, color: T.subtle, fontFamily: "'IBM Plex Mono',monospace", fontWeight: 700 }}>{countWords(form.body)} words</span>
             {(form.files || []).length > 0 && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: T.subtle, fontFamily: "'IBM Plex Mono',monospace", fontWeight: 700 }}>
@@ -525,6 +556,8 @@ export function NoteDetailModal({ note, tasks, onClose, onSave, onDelete, isDriv
               <div
                 style={{ border: `2px dashed ${T.border}`, borderRadius: 12, padding: "16px 14px", textAlign: "center", cursor: "pointer", background: T.bg, transition: "border-color .2s" }}
                 onClick={() => fileRef.current?.click()}
+                onDragOver={e => e.preventDefault()}
+                onDrop={handleDrop}
                 onMouseEnter={e => (e.currentTarget.style.borderColor = currentTagColor.dot)}
                 onMouseLeave={e => (e.currentTarget.style.borderColor = T.border)}
               >
@@ -541,10 +574,11 @@ export function NoteDetailModal({ note, tasks, onClose, onSave, onDelete, isDriv
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 24, flexWrap: "wrap", borderTop: `1px solid ${T.border}`, paddingTop: 18 }}>
           {editMode ? (
             <>
-              <Btn onClick={() => setEditMode(false)} variant="ghost">Cancel</Btn>
+              <DraftSaveError error={draft.error} />
+              <Btn disabled={draft.pending} onClick={() => setEditMode(false)} variant="ghost">Cancel</Btn>
               <Btn onClick={() => onDelete(note.id)} variant="danger" title="Delete note"><Trash2 size={13} /></Btn>
-              <Btn onClick={handleSave} variant="primary" disabled={saving}>
-                {saving ? "Saving…" : "Save Note"}
+              <Btn onClick={handleSave} variant="primary" disabled={draft.pending || readingFiles}>
+                {readingFiles ? "Reading files…" : draft.pending ? "Saving…" : "Save Note"}
               </Btn>
             </>
           ) : (

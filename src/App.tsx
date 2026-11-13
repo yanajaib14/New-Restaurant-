@@ -7,7 +7,7 @@ import {
   UtilityAccount, DigitalAsset, User, ActivityLog, DecisionLog, UserRole, Invoice, Position, Candidate,
   CalendarEvent
 } from "./types";
-import { Pill, Btn, SectionHeader, PinGate, ChangePinModal, inpStyle, dropdownStyle, ProgressRing, Modal, Field } from "./components/UI";
+import { Pill, Btn, SectionHeader, PinGate, ChangePinModal, ChangePasswordModal, inpStyle, dropdownStyle, ProgressRing, Modal, Field } from "./components/UI";
 import { TaskModal, TaskRow } from "./components/TaskBoard";
 import { MenuModal } from "./components/MenuPlanner";
 import { FinModal } from "./components/Financials";
@@ -17,22 +17,27 @@ import { Timeline, TimelineModal } from "./components/Timeline";
 import { NoteModal, NoteCard, NoteDetailModal } from "./components/Notes";
 import { AIAssistant } from "./components/AI";
 import { useAuth } from "./context/AuthContext";
-import { dbSelect, dbInsert, dbUpdate, dbDelete } from "./services/db";
+import { subscribeWorkspaceChanges, dbSelect, dbInsert, dbUpdate, dbDelete } from "./services/database";
 import { VendorManager, VendorModal, ContactManager, ContactModal, InventoryTracker, InventoryModal, PermitTracker, PermitModal, UtilityTracker, UtilityModal } from "./components/Operations";
 import { MasterInventory } from "./components/MasterInventory";
 import { MarketingCalendar, MarketingModal, TrainingPortal, TrainingModal, DailyChecklistManager, ChecklistModal, DigitalAssetManager, DigitalAssetModal } from "./components/MarketingTraining";
-import { InvoicesSection, InvoiceModal } from "./components/Invoices";
 import { TalentHiring, TeamMap, TeamMapMemberModal, PositionModal, CandidateModal } from "./components/Team";
-import { LaunchWindow, FullCalendar } from "./components/CalendarView";
+import { MobileWorkspace } from "./components/MobileWorkspace";
+import { LaunchWindow, FullCalendar, CalendarEventModal } from "./components/CalendarView";
 import { getGoogleAuthUrl, getGoogleDriveStatus, saveToGoogleDrive, fileToBase64 } from "./services/googleDriveService";
 import { exportToCSV } from "./lib/exportUtils";
 import {
   PartnerBadge, PartnerFilterPills, PartnerFilter, matchesPartner,
   PhaseTracker, DebriefModal, AiCopilotPanel, VoiceMicButton,
-  ShakeToUndoListener, UndoableAction,
+  ShakeToUndoListener, UndoableAction, PresenceIndicator, PresenceInfo,
   InspirationPreview, InspirationQuickAddSheet, PhotoPreviewStrip,
   TaskDetailSheet, SuccessToast, QuickAddSheet, PASTEL, PASTEL_CYCLE, HouseLogo, ReminderBanner, computePhases,
 } from "./components/Enhancements";
+import { csvRecords } from "./lib/csv";
+import { useTodoSync } from "./hooks/useTodoSync";
+import { newTodoId } from "./lib/todoSyncQueue";
+import { SharedSyncStatus } from "./components/SharedSyncStatus";
+import { useDraftSave, DraftSaveError } from "./hooks/useDraftSave";
 import { parseQuickTask } from "./lib/nlpParser";
 
 import { LayoutDashboard, CheckSquare, Utensils, ShoppingCart, Package, DollarSign, FileText, Box, Users, ShieldCheck, Megaphone, GraduationCap, ClipboardList, Calculator, UserPlus, Calendar, FileEdit, Sparkles, PenLine, Trash2, Printer, Download, Upload, ChevronRight, ChevronDown, Heart, Image, ExternalLink, Lightbulb, MapPin, BookOpen, MessageSquare } from "lucide-react";
@@ -86,7 +91,7 @@ const readStoredTaskTodos = (): TaskTodoItem[] | null => {
 
 const normalizeLegacyTodoStatus = (status: unknown): TaskTodoItem["status"] => {
   const value = String(status || "").trim();
-  if (value === "Not Started" || value === "In Progress" || value === "Done" || value === "On Hold") return value;
+  if (value === "Not Started" || value === "In Progress" || value === "Done" || value === "On Hold" || value === "Needs review") return value;
   if (value === "Inbox") return "Not Started";
   if (value === "Linked") return "In Progress";
   return "Not Started";
@@ -109,7 +114,8 @@ const TODO_STATUS_ORDER: Record<TaskTodoItem["status"], number> = {
   "Not Started": 0,
   "In Progress": 1,
   "On Hold": 2,
-  Done: 3,
+  "Needs review": 3,
+  Done: 4,
 };
 
 // ������ INITIAL DATA ��������������������������������������������������������������������������������������������������������������������������
@@ -319,6 +325,18 @@ const INIT_ASSETS: DigitalAsset[] = [
   { id: 4, name: "Dropbox Photo Folder", category: "Inspiration", folder: "Photo Sources", assetType: "Link", url: "https://www.dropbox.com/scl/fo/2bqe785ejhqtovanktrb7/AMn-iAg9rAWSmq7yXP7uQyE?rlkey=fm5kpcuktza3p1y2l35kz7huq&st=gjgw1few&dl=0", notes: "Shared Dropbox folder for inspiration photos", tags: "dropbox,photos,inspiration" },
 ];
 
+const checkedJson = async (response: Response) => {
+  const body = await response.json();
+  if (!response.ok || body?.error) throw new Error(body?.error || `Request failed (${response.status})`);
+  return body;
+};
+
+const checkedWrite = async <T extends { error?: any },>(request: Promise<T>): Promise<T> => {
+  const result = await request;
+  if (result.error) throw new Error(result.error.message || 'Shared write failed.');
+  return result;
+};
+
 export default function App() {
   const USE_SEED_DATA = false;
 
@@ -341,11 +359,8 @@ export default function App() {
     if (stored) return stored;
     return USE_SEED_DATA ? INIT_TASKS : [];
   });
-  const [taskTodos, setTaskTodos] = useState<TaskTodoItem[]>(() => {
-    const stored = readStoredTaskTodos();
-    if (stored && stored.length) return stored.map(sanitizeTaskTodo);
-    return USE_SEED_DATA ? INIT_TASK_TODOS.map(sanitizeTaskTodo) : [];
-  });
+  const todoSync = useTodoSync();
+  const taskTodos = todoSync.rows;
   const [menuItems, setMenuItems] = useState<MenuItem[]>(USE_SEED_DATA ? INIT_MENU : []);
   const [startup, setStartup]   = useState<StartupCost[]>(USE_SEED_DATA ? INIT_STARTUP : []);
   const [operating, setOp]      = useState<OperatingCost[]>(USE_SEED_DATA ? INIT_OPERATING : []);
@@ -368,6 +383,8 @@ export default function App() {
     if (stored) return stored;
     return USE_SEED_DATA ? INIT_CHECKLISTS : [];
   });
+  const [onboardingRecord, setOnboardingRecord] = useState<any>(null);
+  const [onboardingError, setOnboardingError] = useState("");
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [decisionLogs, setDecisionLogs] = useState<DecisionLog[]>(USE_SEED_DATA ? INIT_DECISION_LOGS : []);
 
@@ -396,10 +413,14 @@ export default function App() {
   const [canModal, setCanModal]     = useState<Candidate | "new" | null>(null);
   const [teamMapModal, setTeamMapModal] = useState<Candidate | "new" | null>(null);
   const [assetModal, setAssetModal] = useState<DigitalAsset | "new" | null>(null);
+  const [mobileEvent, setMobileEvent] = useState<CalendarEvent | "new" | null>(null);
+  const [mobileEventDate, setMobileEventDate] = useState("");
+  const [mobileUpdateOpen, setMobileUpdateOpen] = useState(false);
+  const updateDraftSave = useDraftSave(() => setMobileUpdateOpen(false));
   const [calDate, setCalDate]       = useState<string | null>(null);
   const [calendarFocusDate, setCalendarFocusDate] = useState<string | null>(null);
   const [invoiceModal, setInvoiceModal] = useState<any>(null);
-  const [isMobile, setIsMobile]     = useState(false);
+  const [isMobile, setIsMobile]     = useState(() => window.innerWidth < 1024);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -416,16 +437,21 @@ export default function App() {
   const [inspoSheetOpen, setInspoSheetOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [lastUndo, setLastUndo] = useState<UndoableAction | null>(null);
+  const [partnerPresence, setPartnerPresence] = useState<PresenceInfo | null>(null);
   const [decisionQuickText, setDecisionQuickText] = useState("");
+  const presenceSessionId = useRef(`s-${Math.random().toString(36).slice(2)}`);
   const aiPersistOk = useRef(true);
   const [isChangePinOpen, setIsChangePinOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [isPasswordUpdating, setIsPasswordUpdating] = useState(false);
   const [appTitle, setAppTitle] = useState("Glai Gung Won");
   const [editTitle, setEditTitle] = useState("Glai Gung Won");
   const [accessUsers, setAccessUsers] = useState<AccessUser[]>([]);
   const [accessLoading, setAccessLoading] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState("");
-  const [taskTodoStore, setTaskTodoStore] = useState<"local" | "db">("local");
+  const titleDraft = useDraftSave(() => {});
   const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
+  const [dataReadErrors, setDataReadErrors] = useState<string[]>([]);
   const [partnerUpdateDraft, setPartnerUpdateDraft] = useState("");
   const currentUserEmail = String(currentUser?.email || "").toLowerCase();
   const isPartnerAccount = currentUserEmail === "yanajaib@gmail.com";
@@ -446,8 +472,6 @@ export default function App() {
       const tableBindings: Array<{ table: string; set: (rows: any[]) => void }> = [
         { table: "tasks", set: setTasks as any },
         { table: "menu_items", set: setMenuItems as any },
-        { table: "startup_costs", set: setStartup as any },
-        { table: "operating_costs", set: setOp as any },
         { table: "milestones", set: setTL as any },
         { table: "notes", set: setNotes as any },
         { table: "vendors", set: setVendors as any },
@@ -458,7 +482,6 @@ export default function App() {
         { table: "marketing_posts", set: setMarketing as any },
         { table: "training_modules", set: setTraining as any },
         { table: "daily_checklists", set: setChecklists as any },
-        { table: "invoices", set: setInvoices as any },
         { table: "positions", set: setPositions as any },
         { table: "candidates", set: setCandidates as any },
         { table: "digital_assets", set: setAssets as any },
@@ -468,57 +491,27 @@ export default function App() {
         { table: "decision_logs", set: setDecisionLogs as any },
       ];
 
+      const failedReads: string[] = [];
       await Promise.all(
         tableBindings.map(async ({ table, set }) => {
-          const { data, error } = await dbSelect(table);
-          // Only update state when we get a real response (data is a non-null array).
-          // A null data + no error means the SDK silently failed; keep current state.
-          if (!error && Array.isArray(data)) {
+          try {
+            const { data, error } = await dbSelect(table);
+            if (error || !Array.isArray(data)) throw new Error("Shared list unavailable");
+            // A successful empty read is authoritative; backups are for failed reads only.
             const backupKey = tableBackupKeys[table];
-            if (!backupKey) {
-              set(data as any);
-              return;
-            }
-
-            if (data.length > 0) {
-              writeStoredRows(backupKey, data as unknown[]);
-              set(data as any);
-              return;
-            }
-
-            const stored = readStoredRows<any>(backupKey);
-            if (stored && stored.length > 0) {
-              set(stored as any);
-              return;
-            }
-
-            set([] as any);
-          }
+            if (backupKey) writeStoredRows(backupKey, data);
+            set(data);
+          } catch { failedReads.push(table); }
         })
       );
+      setDataReadErrors(failedReads);
 
-      const { data: todoRows, error: todoError } = await dbSelect("task_todos");
-      if (!todoError && Array.isArray(todoRows)) {
-        const normalized = ((todoRows as TaskTodoItem[]) || []).map(sanitizeTaskTodo);
-        if (normalized.length > 0) {
-          setTaskTodos(normalized);
-          writeStoredRows(TASK_TODOS_STORAGE_KEY, normalized as unknown[]);
-          setTaskTodoStore("db");
-        } else {
-          const stored = readStoredTaskTodos();
-          if (stored && stored.length > 0) {
-            setTaskTodos(stored.map(sanitizeTaskTodo));
-            setTaskTodoStore("local");
-          } else {
-            setTaskTodos([]);
-            setTaskTodoStore("db");
-          }
-        }
-      } else {
-        setTaskTodoStore("local");
-        const stored = readStoredTaskTodos();
-        setTaskTodos((stored ?? []).map(sanitizeTaskTodo));
-      }
+      try {
+        const result = await dbSelect("team_onboarding");
+        if (result.error || !Array.isArray(result.data)) throw new Error("Shared onboarding could not load. Check the additive migration and connection.");
+        setOnboardingRecord(result.data.find((row: any) => Number(row.id) === 1) || null);
+        setOnboardingError("");
+      } catch (e: any) { setOnboardingError(e.message); }
 
       const { data: activityRows, error: activityErr } = await dbSelect("activity_logs");
       if (!activityErr) {
@@ -539,11 +532,6 @@ export default function App() {
   useEffect(() => {
     loadAllData();
   }, [loadAllData]);
-
-  useEffect(() => {
-    if (!hasLoadedInitialData) return;
-    writeStoredRows(TASK_TODOS_STORAGE_KEY, taskTodos as unknown[]);
-  }, [taskTodos, hasLoadedInitialData]);
 
   useEffect(() => {
     if (!hasLoadedInitialData) return;
@@ -582,10 +570,11 @@ export default function App() {
     setAccessLoading(true);
     try {
       const res = await fetch("/api/access/users");
-      const body = await res.json();
+      const body = await checkedJson(res);
       setAccessUsers((body?.users || []) as AccessUser[]);
     } catch (e) {
       console.error("Access list load failed", e);
+      setSettingsMsg("Member records could not load. Access enforcement is not configured.");
     } finally {
       setAccessLoading(false);
     }
@@ -597,23 +586,13 @@ export default function App() {
     }
   }, [tab, isUnlocked, refreshAccessUsers]);
 
-  // Keep partners in sync: refresh every 10s while the tab is visible, and
-  // immediately when the window regains focus.
   useEffect(() => {
-    const poll = setInterval(() => {
-      if (document.visibilityState !== "visible") return;
-      loadAllData();
-    }, 10000);
-
-    const onFocus = () => loadAllData();
-    window.addEventListener("focus", onFocus);
-
-    return () => {
-      clearInterval(poll);
-      window.removeEventListener("focus", onFocus);
-    };
+    const refresh = () => { void loadAllData(); };
+    const unsubscribe = subscribeWorkspaceChanges(refresh);
+    const poll = setInterval(() => { if (document.visibilityState === "visible") refresh(); }, 15000);
+    window.addEventListener("focus", refresh);
+    return () => { unsubscribe(); clearInterval(poll); window.removeEventListener("focus", refresh); };
   }, [loadAllData]);
-
 
   const logActivity = (action: string) => {
     const actor = isPartnerAccount
@@ -629,11 +608,11 @@ export default function App() {
     const optimisticLog = { id: Date.now(), user: actor, action, timestamp };
     setActivity((p) => [optimisticLog, ...p.slice(0, 9)]);
 
-    void dbInsert("activity_logs", {
+    void checkedWrite(dbInsert("activity_logs", {
       user: actor,
       action,
       timestamp,
-    });
+    })).catch(() => { /* Main write already has its own confirmation; activity is best effort. */ });
   };
 
   // Auto-lock logic
@@ -731,6 +710,7 @@ export default function App() {
     } as ShoppingListItem));
     setShopManualItems(manual);
 
+    setShopRemovedSourceKeys(dbShoppingItems.filter(item => item.sourceKey && item.removed).map(item => item.sourceKey));
     const overrides: Record<string, Partial<ShoppingListItem>> = {};
     dbShoppingItems.filter(item => item.sourceKey).forEach(item => {
       overrides[item.sourceKey] = {
@@ -750,6 +730,7 @@ export default function App() {
     setShopItemOverrides(overrides);
   }, [dbShoppingItems]);
 
+  const deleteDraft = useDraftSave(() => setDelConfirm(null));
   const [delConfirm, setDelConfirm] = useState<any>(null); // {label, onConfirm}
   const [todoDraft, setTodoDraft] = useState<{
     title: string; category: string; status: TaskTodoItem["status"];
@@ -1152,13 +1133,15 @@ export default function App() {
   // ���� Centralized Database Handlers ����
   const deleteRecord = async (table: string, id: any, label: string, setter: (d: any[]) => void) => {
     try {
-      const { error } = await dbDelete(table, id);
+      const { error } = await checkedWrite(dbDelete(table, id));
       if (error) throw error;
       logActivity(`Deleted ${label}`);
       await refetch(table, setter);
+      return true;
     } catch (e: any) {
       console.error(`Delete Error (${table}):`, e);
       alert(`Failed to delete ${label}: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1166,7 +1149,7 @@ export default function App() {
   const setTaskStatusWithUndo = async (task: Task, status: string) => {
     const prevStatus = task.status;
     try {
-      const { error } = await dbUpdate("tasks", task.id, { status });
+      const { error } = await checkedWrite(dbUpdate("tasks", task.id, { status }));
       if (error) throw error;
       await refetch("tasks", setTasks);
       logActivity(`Set task "${task.task}" to ${status}`);
@@ -1174,15 +1157,17 @@ export default function App() {
         label: `set "${task.task}" to ${status}`,
         at: Date.now(),
         undo: async () => {
-          await dbUpdate("tasks", task.id, { status: prevStatus });
+          await checkedWrite(dbUpdate("tasks", task.id, { status: prevStatus }));
           await refetch("tasks", setTasks);
           logActivity(`Undid status change for task: ${task.task}`);
         },
       });
       setToastMsg(`✓ "${task.task}" → ${status}`);
+      return true;
     } catch (e: any) {
       console.error("Task status update failed", e);
       alert(`Failed to update task: ${e?.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1196,14 +1181,14 @@ export default function App() {
     const today = new Date();
     const isoDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     try {
-      const { error } = await dbInsert("decision_logs", {
+      const { error } = await checkedWrite(dbInsert("decision_logs", {
         title: text.length > 70 ? `${text.slice(0, 67)}...` : text,
         decision: text,
         owner: String(actor),
         date: isoDate,
         impact: "Medium",
         status: "Decided",
-      });
+      }));
       if (error) throw new Error((error as any).message || JSON.stringify(error));
       await refetch("decision_logs", setDecisionLogs as any);
       setDecisionQuickText("");
@@ -1218,7 +1203,7 @@ export default function App() {
   // Create a task from a parsed @B/@C proposal (shared by Quick Update + AI copilot)
   const createTaskFromParsed = async (parsed: { assignedTo: "B" | "C"; title: string; due: string | null; category: string }) => {
     try {
-      const { error } = await dbInsert("tasks", {
+      const { error } = await checkedWrite(dbInsert("tasks", {
         category: parsed.category,
         task: parsed.title,
         due: parsed.due || "",
@@ -1227,7 +1212,7 @@ export default function App() {
         checklist: [],
         assignedTo: parsed.assignedTo,
         isCritical: false,
-      });
+      }));
       if (error) throw new Error((error as any).message || JSON.stringify(error));
       await refetch("tasks", setTasks);
       logActivity(`Created task: ${parsed.title} (@${parsed.assignedTo})`);
@@ -1246,7 +1231,7 @@ export default function App() {
   // Quick-save an inspiration item from the dashboard sheet
   const saveQuickInspiration = async (payload: { name: string; url: string; sourceUrl?: string; tags: string; assetType: "Photo" | "Link" }) => {
     try {
-      const { error } = await dbInsert("digital_assets", {
+      const { error } = await checkedWrite(dbInsert("digital_assets", {
         name: payload.name,
         category: "Inspiration",
         url: payload.url,
@@ -1254,191 +1239,73 @@ export default function App() {
         assetType: payload.assetType,
         tags: payload.tags,
         notes: payload.sourceUrl && payload.sourceUrl !== payload.url ? `Source: ${payload.sourceUrl}` : "",
-      });
+      }));
       if (error) throw new Error((error as any).message || JSON.stringify(error));
       await refetch("digital_assets", setAssets);
       logActivity(`Added inspiration: ${payload.name}`);
       setToastMsg("✓ Saved to Inspiration Library");
+      return true;
     } catch (e: any) {
       console.error("Quick inspiration save failed", e);
       alert(`Couldn't save inspiration: ${e?.message || "Unknown error"}`);
+      return false;
     }
   };
 
   const updateRecord = async (table: string, id: any, patch: any, label: string, setter: (d: any[]) => void) => {
     try {
-      const { error } = await dbUpdate(table, id, patch);
+      const { error } = await checkedWrite(dbUpdate(table, id, patch));
       if (error) throw error;
       await refetch(table, setter);
+      return true;
     } catch (e: any) {
       console.error(`Update Error (${table}):`, e);
       alert(`Failed to update ${label}: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
   const saveTaskTodo = async () => {
     const title = todoDraft.title.trim();
-    if (!title) return;
-
-    const linkedTaskId = todoDraft.linkedTaskId ? Number(todoDraft.linkedTaskId) : null;
-    const payload = {
-      title,
-      category: todoDraft.category,
-      status: normalizeTodoStatus(todoDraft.status),
-      assignedTo: todoDraft.assignedTo.trim() || null,
-      linkedTaskId,
-      linkUrl: todoDraft.linkUrl.trim() || null,
-      note: todoDraft.note.trim() || null,
-      subtasks: todoDraft.subtasks,
-    };
-
+    if (!title) return false;
     try {
-      if (taskTodoStore === "db") {
-        if (todoModal && todoModal !== "new") {
-          const { error } = await dbUpdate("task_todos", todoModal.id, payload);
-          if (error) throw error;
-          logActivity(`Updated todo: ${title}`);
-        } else {
-          const { error } = await dbInsert("task_todos", payload);
-          if (error) throw error;
-          logActivity(`Added todo: ${title}`);
-        }
-        await refetch("task_todos", setTaskTodos as any);
-      } else {
-        const nextTodo: TaskTodoItem = {
-          id: todoModal && todoModal !== "new" ? todoModal.id : Date.now(),
-          title: payload.title,
-          category: payload.category,
-          status: payload.status,
-          assignedTo: payload.assignedTo || undefined,
-          linkedTaskId: payload.linkedTaskId,
-          linkUrl: payload.linkUrl || undefined,
-          note: payload.note || undefined,
-          subtasks: payload.subtasks,
-          created_at: todoModal && todoModal !== "new" ? todoModal.created_at : new Date().toISOString(),
-        };
-        setTaskTodos(prev => {
-          if (todoModal && todoModal !== "new") {
-            return prev.map(todo => todo.id === todoModal.id ? nextTodo : todo);
-          }
-          return [nextTodo, ...prev];
-        });
-        logActivity(`${todoModal && todoModal !== "new" ? "Updated" : "Added"} todo: ${title}`);
-      }
-
+      const existing = todoModal && todoModal !== "new" ? todoModal : null;
+      todoSync.put(sanitizeTaskTodo({
+        ...existing, ...todoDraft, id: existing?.id ?? newTodoId(), title,
+        linkedTaskId: todoDraft.linkedTaskId ? Number(todoDraft.linkedTaskId) : null,
+      }));
       setTodoModal(null);
-    } catch (e: any) {
-      console.error("Save Todo Error:", e);
-      alert(`Failed to save todo: ${e.message || JSON.stringify(e)}`);
-    }
+      return true;
+    } catch (e: any) { alert(`Could not keep your todo changes: ${e.message}`); return false; }
   };
 
   const deleteTaskTodo = async (todo: TaskTodoItem) => {
-    try {
-      if (taskTodoStore === "db") {
-        const { error } = await dbDelete("task_todos", todo.id);
-        if (error) throw error;
-        await refetch("task_todos", setTaskTodos as any);
-      } else {
-        setTaskTodos(prev => prev.filter(item => item.id !== todo.id));
-      }
-      logActivity(`Deleted todo: ${todo.title}`);
-      setTodoModal(null);
-    } catch (e: any) {
-      console.error("Delete Todo Error:", e);
-      alert(`Failed to delete todo: ${e.message || JSON.stringify(e)}`);
-    }
+    if (!window.confirm(`Delete "${todo.title}"?`)) return false;
+    try { todoSync.remove(todo.id); setTodoModal(null); return true; }
+    catch (e: any) { alert(`Could not keep this deletion: ${e.message}`); return false; }
   };
 
   const quickAddTodo = async () => {
     const title = quickTodoTitle.trim();
     if (!title) return;
-
-    const payload = {
-      title,
-      category: quickTodoCategory,
-      status: "Not Started" as TaskTodoItem["status"],
-      assignedTo: null,
-      linkedTaskId: null,
-      linkUrl: null,
-      note: null,
-    };
-
     try {
-      if (taskTodoStore === "db") {
-        const { error } = await dbInsert("task_todos", payload);
-        if (error) throw error;
-        await refetch("task_todos", setTaskTodos as any);
-      } else {
-        const nextTodo: TaskTodoItem = {
-          id: Date.now(),
-          title: payload.title,
-          category: payload.category,
-          status: payload.status,
-          created_at: new Date().toISOString(),
-        };
-        setTaskTodos(prev => [nextTodo, ...prev]);
-      }
-
+      todoSync.put(sanitizeTaskTodo({ id: newTodoId(), title, category: quickTodoCategory, status: "Not Started" }));
       setQuickTodoTitle("");
       setTodoCatFilter("All");
       setTodoStatusFilter("All");
-      logActivity(`Quick added todo: ${title}`);
-    } catch (e: any) {
-      console.error("Quick Add Todo Error:", e);
-      alert(`Failed to add todo: ${e.message || JSON.stringify(e)}`);
-    }
+    } catch (e: any) { alert(`Could not keep your todo: ${e.message}`); }
   };
 
   const toggleTodoDone = async (todo: TaskTodoItem) => {
-    const nextStatus: TaskTodoItem["status"] = todo.status === "Done" ? "Not Started" : "Done";
-    const prevStatus = todo.status;
-
-    try {
-      if (taskTodoStore === "db") {
-        const { error } = await dbUpdate("task_todos", todo.id, { status: nextStatus });
-        if (error) throw error;
-        await refetch("task_todos", setTaskTodos as any);
-      } else {
-        setTaskTodos(prev => prev.map(item => item.id === todo.id ? { ...item, status: nextStatus } : item));
-      }
-
-      setLastUndo({
-        label: `${nextStatus === "Done" ? "completed" : "reopened"} "${todo.title}"`,
-        at: Date.now(),
-        undo: async () => {
-          if (taskTodoStore === "db") {
-            await dbUpdate("task_todos", todo.id, { status: prevStatus });
-            await refetch("task_todos", setTaskTodos as any);
-          } else {
-            setTaskTodos(prev => prev.map(item => item.id === todo.id ? { ...item, status: prevStatus } : item));
-          }
-          logActivity(`Undid status change for todo: ${todo.title}`);
-        },
-      });
-
-      logActivity(`${nextStatus === "Done" ? "Completed" : "Reopened"} todo: ${todo.title}`);
-    } catch (e: any) {
-      console.error("Toggle Todo Status Error:", e);
-      alert(`Failed to update todo: ${e.message || JSON.stringify(e)}`);
-    }
+    try { todoSync.put({ ...todo, status: todo.status === "Done" ? "Not Started" : "Done" }); }
+    catch (e: any) { alert(`Could not keep the status change: ${e.message}`); }
   };
 
   const saveTodoSubtasks = async (todo: TaskTodoItem, subtasks: TodoSubtask[], fallbackStatus?: TaskTodoItem["status"]) => {
     const allDone = subtasks.length > 0 && subtasks.every(s => s.done);
     const nextStatus = allDone ? "Done" : (todo.status === "Done" ? (fallbackStatus || "In Progress") : todo.status);
-    try {
-      if (taskTodoStore === "db") {
-        const { error } = await dbUpdate("task_todos", todo.id, { subtasks, status: nextStatus });
-        if (error) throw error;
-        await refetch("task_todos", setTaskTodos as any);
-      } else {
-        setTaskTodos(prev => prev.map(item => item.id === todo.id ? { ...item, subtasks, status: nextStatus } : item));
-      }
-    } catch (e: any) {
-      console.error("Save Todo Subtasks Error:", e);
-      alert(`Failed to update subtasks: ${e.message || JSON.stringify(e)}`);
-    }
+    try { todoSync.put({ ...todo, subtasks, status: nextStatus }); }
+    catch (e: any) { alert(`Could not keep the checklist change: ${e.message}`); }
   };
 
   const toggleTodoSubtaskDone = async (todo: TaskTodoItem, sid: number) => {
@@ -1527,7 +1394,7 @@ export default function App() {
 
     try {
       await Promise.all(
-        affected.map(task => dbUpdate("tasks", task.id, { due: shiftIsoDateByDays(task.due, days) }))
+        affected.map(task => checkedWrite(dbUpdate("tasks", task.id, { due: shiftIsoDateByDays(task.due, days) })))
       );
       await refetch("tasks", setTasks);
       logActivity(`Shifted ${affected.length} ${sourceTask.category} tasks by ${days} day(s) from ${sourceTask.task}`);
@@ -1568,19 +1435,19 @@ export default function App() {
     const { id, _delete, ...rest } = form;
     try {
       if (_delete) {
-        const { error } = await dbDelete('tasks', id);
+        const { error } = await checkedWrite(dbDelete('tasks', id));
         if (error) throw error;
         setTasks(prev => prev.filter(task => task.id !== id));
         logActivity(`Deleted task: ${form.task}`);
       } else if (taskModal && taskModal !== 'new') {
-        const result = await dbUpdate('tasks', taskModal.id, rest);
+        const result = await checkedWrite(dbUpdate('tasks', taskModal.id, rest));
         const { error } = result;
         if (error) throw error;
         const optimistic = extractWriteRow(result) || { id: taskModal.id, ...rest };
         setTasks(prev => prev.map(task => task.id === taskModal.id ? (optimistic as Task) : task));
         logActivity(`Updated task: ${form.task}`);
       } else {
-        const result = await dbInsert('tasks', rest);
+        const result = await checkedWrite(dbInsert('tasks', rest));
         const { error } = result;
         if (error) throw error;
         const optimistic = extractWriteRow(result) || { id: Date.now(), ...rest };
@@ -1590,9 +1457,11 @@ export default function App() {
       await refetch('tasks', setTasks);
       setTaskModal(null);
       setCalDate(null);
+      return true;
     } catch (e: any) {
       console.error("Save Task Error:", e);
       alert(`Failed to save task: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1601,19 +1470,21 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (menuModal && menuModal !== 'new') {
-        const { error } = await dbUpdate('menu_items', menuModal.id, rest);
+        const { error } = await checkedWrite(dbUpdate('menu_items', menuModal.id, rest));
         if (error) throw error;
         logActivity(`Updated menu item: ${form.name}`);
       } else {
-        const { error } = await dbInsert('menu_items', rest);
+        const { error } = await checkedWrite(dbInsert('menu_items', rest));
         if (error) throw error;
         logActivity(`Added menu item: ${form.name}`);
       }
       await refetch('menu_items', setMenuItems);
       setMenuModal(null);
+      return true;
     } catch (e: any) {
       console.error("Save Menu Error:", e);
       alert(`Failed to save menu item: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1625,19 +1496,21 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (item) {
-        const { error } = await dbUpdate(table, item.id, rest);
+        const { error } = await checkedWrite(dbUpdate(table, item.id, rest));
         if (error) throw error;
         logActivity(`Updated financial item: ${form.category}`);
       } else {
-        const { error } = await dbInsert(table, rest);
+        const { error } = await checkedWrite(dbInsert(table, rest));
         if (error) throw error;
         logActivity(`Added financial item: ${form.category}`);
       }
       await refetch(table, setter);
       setFinModal(null);
+      return true;
     } catch (e: any) {
       console.error("Save Finance Error:", e);
       alert(`Failed to save financial data: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1646,17 +1519,19 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (tlModal && tlModal !== 'new') {
-        const { error } = await dbUpdate('milestones', tlModal.id, rest);
+        const { error } = await checkedWrite(dbUpdate('milestones', tlModal.id, rest));
         if (error) throw error;
       } else {
-        const { error } = await dbInsert('milestones', rest);
+        const { error } = await checkedWrite(dbInsert('milestones', rest));
         if (error) throw error;
       }
       await refetch('milestones', setTL);
       setTlModal(null);
+      return true;
     } catch (e: any) {
       console.error("Save Timeline Error:", e);
       alert(`Failed to save milestone: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1667,13 +1542,13 @@ export default function App() {
     try {
       const editingId = (noteModal && noteModal !== 'new') ? noteModal.id : (id || null);
       if (editingId) {
-        const result = await dbUpdate('notes', editingId, rest);
+        const result = await checkedWrite(dbUpdate('notes', editingId, rest));
         const { error } = result;
         if (error) throw error;
         const optimistic = extractWriteRow(result) || { id: editingId, ...rest };
         setNotes(prev => prev.map(note => note.id === editingId ? (optimistic as Note) : note));
       } else {
-        const result = await dbInsert('notes', { ...rest, date: d });
+        const result = await checkedWrite(dbInsert('notes', { ...rest, date: rest.date || d }));
         const { error } = result;
         if (error) throw error;
         const optimistic = extractWriteRow(result) || { id: Date.now(), ...rest, date: d };
@@ -1707,16 +1582,18 @@ export default function App() {
     const editId = _editId ?? (id && id !== 0 ? id : null);
     try {
       if (editId) {
-        const { error } = await dbUpdate('calendar_events', editId, rest);
+        const { error } = await checkedWrite(dbUpdate('calendar_events', editId, rest));
         if (error) throw error;
       } else {
-        const { error } = await dbInsert('calendar_events', rest);
+        const { error } = await checkedWrite(dbInsert('calendar_events', rest));
         if (error) throw error;
       }
       await refetch('calendar_events', setCalendarEvents as any);
+      return true;
     } catch (e: any) {
       console.error('Save Calendar Event Error:', e);
       alert(`Failed to save event: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1724,19 +1601,21 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (decisionModal && decisionModal !== "new") {
-        const { error } = await dbUpdate("decision_logs", decisionModal.id, rest);
+        const { error } = await checkedWrite(dbUpdate("decision_logs", decisionModal.id, rest));
         if (error) throw error;
         logActivity(`Updated decision: ${form.title}`);
       } else {
-        const { error } = await dbInsert("decision_logs", rest);
+        const { error } = await checkedWrite(dbInsert("decision_logs", rest));
         if (error) throw error;
         logActivity(`Added decision: ${form.title}`);
       }
       await refetch("decision_logs", setDecisionLogs as any);
       setDecisionModal(null);
+      return true;
     } catch (e: any) {
       console.error("Save Decision Error:", e);
       alert(`Failed to save decision: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1752,12 +1631,14 @@ export default function App() {
 
   const deleteCalendarEvent = async (id: number) => {
     try {
-      const { error } = await dbDelete('calendar_events', id);
+      const { error } = await checkedWrite(dbDelete('calendar_events', id));
       if (error) throw error;
       await refetch('calendar_events', setCalendarEvents as any);
+      return true;
     } catch (e: any) {
       console.error('Delete Calendar Event Error:', e);
       alert(`Failed to delete event: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1766,17 +1647,19 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (vendorModal && vendorModal !== 'new') {
-        const { error } = await dbUpdate('vendors', vendorModal.id, rest);
+        const { error } = await checkedWrite(dbUpdate('vendors', vendorModal.id, rest));
         if (error) throw error;
       } else {
-        const { error } = await dbInsert('vendors', rest);
+        const { error } = await checkedWrite(dbInsert('vendors', rest));
         if (error) throw error;
       }
       await refetch('vendors', setVendors);
       setVendorModal(null);
+      return true;
     } catch (e: any) {
       console.error("Save Vendor Error:", e);
       alert(`Failed to save vendor: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1784,17 +1667,19 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (contactModal && contactModal !== 'new') {
-        const { error } = await dbUpdate('contacts', contactModal.id, rest);
+        const { error } = await checkedWrite(dbUpdate('contacts', contactModal.id, rest));
         if (error) throw error;
       } else {
-        const { error } = await dbInsert('contacts', rest);
+        const { error } = await checkedWrite(dbInsert('contacts', rest));
         if (error) throw error;
       }
       await refetch('contacts', setContacts);
       setContactModal(null);
+      return true;
     } catch (e: any) {
       console.error("Save Contact Error:", e);
       alert(`Failed to save contact: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1803,17 +1688,19 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (invModal && invModal !== 'new') {
-        const { error } = await dbUpdate('inventory_items', invModal.id, rest);
+        const { error } = await checkedWrite(dbUpdate('inventory_items', invModal.id, rest));
         if (error) throw error;
       } else {
-        const { error } = await dbInsert('inventory_items', { ...rest, lastOrdered: 'Just now' });
+        const { error } = await checkedWrite(dbInsert('inventory_items', rest));
         if (error) throw error;
       }
       await refetch('inventory_items', setInventory);
       setInvModal(null);
+      return true;
     } catch (e: any) {
       console.error("Save Inventory Error:", e);
       alert(`Failed to save inventory item: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1822,12 +1709,12 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (permitModal && permitModal !== 'new') {
-        const { data, error } = await dbUpdate('permits', permitModal.id, rest);
+        const { data, error } = await checkedWrite(dbUpdate('permits', permitModal.id, rest));
         if (error) throw error;
         const updated = Array.isArray(data) && data[0] ? data[0] : { ...(permitModal as any), ...rest };
         setPermits(prev => prev.map(p => p.id === (permitModal as any).id ? (updated as any) : p));
       } else {
-        const { data, error } = await dbInsert('permits', rest);
+        const { data, error } = await checkedWrite(dbInsert('permits', rest));
         if (error) throw error;
         const inserted = Array.isArray(data) && data[0]
           ? data[0]
@@ -1836,9 +1723,11 @@ export default function App() {
       }
       await refetch('permits', setPermits);
       setPermitModal(null);
+      return true;
     } catch (e: any) {
       console.error("Save Permit Error:", e);
       alert(`Failed to save permit: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1847,20 +1736,22 @@ export default function App() {
     const { id, _delete, ...rest } = form;
     try {
       if (_delete) {
-        const { error } = await dbDelete('marketing_posts', id);
+        const { error } = await checkedWrite(dbDelete('marketing_posts', id));
         if (error) throw error;
       } else if (mktModal && mktModal !== 'new') {
-        const { error } = await dbUpdate('marketing_posts', mktModal.id, rest);
+        const { error } = await checkedWrite(dbUpdate('marketing_posts', mktModal.id, rest));
         if (error) throw error;
       } else {
-        const { error } = await dbInsert('marketing_posts', rest);
+        const { error } = await checkedWrite(dbInsert('marketing_posts', rest));
         if (error) throw error;
       }
       await refetch('marketing_posts', setMarketing);
       setMktModal(null);
+      return true;
     } catch (e: any) {
       console.error("Save Marketing Error:", e);
       alert(`Failed to save marketing post: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1869,20 +1760,22 @@ export default function App() {
     const { id, _delete, ...rest } = form;
     try {
       if (_delete) {
-        const { error } = await dbDelete('training_modules', id);
+        const { error } = await checkedWrite(dbDelete('training_modules', id));
         if (error) throw error;
       } else if (trainModal && trainModal !== 'new') {
-        const { error } = await dbUpdate('training_modules', trainModal.id, rest);
+        const { error } = await checkedWrite(dbUpdate('training_modules', trainModal.id, rest));
         if (error) throw error;
       } else {
-        const { error } = await dbInsert('training_modules', rest);
+        const { error } = await checkedWrite(dbInsert('training_modules', rest));
         if (error) throw error;
       }
       await refetch('training_modules', setTraining);
       setTrainModal(null);
+      return true;
     } catch (e: any) {
       console.error("Save Training Error:", e);
       alert(`Failed to save training module: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1890,12 +1783,12 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (utilityModal && utilityModal !== 'new') {
-        const { data, error } = await dbUpdate('utility_accounts', utilityModal.id, rest);
+        const { data, error } = await checkedWrite(dbUpdate('utility_accounts', utilityModal.id, rest));
         if (error) throw error;
         const updated = Array.isArray(data) && data[0] ? data[0] : { ...(utilityModal as any), ...rest };
         setUtilities(prev => prev.map(u => u.id === (utilityModal as any).id ? (updated as any) : u));
       } else {
-        const { data, error } = await dbInsert('utility_accounts', rest);
+        const { data, error } = await checkedWrite(dbInsert('utility_accounts', rest));
         if (error) throw error;
         const inserted = Array.isArray(data) && data[0]
           ? data[0]
@@ -1904,9 +1797,11 @@ export default function App() {
       }
       await refetch('utility_accounts', setUtilities);
       setUtilityModal(null);
+      return true;
     } catch (e: any) {
       console.error("Save Utility Error:", e);
       alert(`Failed to save utility account: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1914,17 +1809,19 @@ export default function App() {
     const { id, ...rest } = form as any;
     try {
       if (posModal && posModal !== 'new') {
-        const { error } = await dbUpdate('positions', (posModal as any).id, rest);
+        const { error } = await checkedWrite(dbUpdate('positions', (posModal as any).id, rest));
         if (error) throw error;
       } else {
-        const { error } = await dbInsert('positions', rest);
+        const { error } = await checkedWrite(dbInsert('positions', rest));
         if (error) throw error;
       }
       await refetch('positions', setPositions);
       setPosModal(null);
+      return true;
     } catch (e: any) {
       console.error("Save Position Error:", e);
       alert(`Failed to save position: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1932,23 +1829,25 @@ export default function App() {
     const { id, _delete, ...rest } = form as any;
     try {
       if (_delete) {
-        const { error } = await dbDelete('candidates', id);
+        const { error } = await checkedWrite(dbDelete('candidates', id));
         if (error) throw error;
         logActivity(`Removed candidate: ${form.name}`);
       } else if (canModal && canModal !== 'new') {
-        const { error } = await dbUpdate('candidates', (canModal as any).id, rest);
+        const { error } = await checkedWrite(dbUpdate('candidates', (canModal as any).id, rest));
         if (error) throw error;
         logActivity(`Updated candidate: ${form.name}`);
       } else {
-        const { error } = await dbInsert('candidates', rest);
+        const { error } = await checkedWrite(dbInsert('candidates', rest));
         if (error) throw error;
         logActivity(`Added candidate: ${form.name}`);
       }
       await refetch('candidates', setCandidates);
       setCanModal(null);
+      return true;
     } catch (e: any) {
       console.error("Save Candidate Error:", e);
       alert(`Failed to save candidate: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1957,19 +1856,21 @@ export default function App() {
     const payload = { ...rest, stage: "Hired" };
     try {
       if (teamMapModal && teamMapModal !== "new") {
-        const { error } = await dbUpdate("candidates", (teamMapModal as any).id, payload);
+        const { error } = await checkedWrite(dbUpdate("candidates", (teamMapModal as any).id, payload));
         if (error) throw error;
         logActivity(`Updated team member: ${form.name}`);
       } else {
-        const { error } = await dbInsert("candidates", payload);
+        const { error } = await checkedWrite(dbInsert("candidates", payload));
         if (error) throw error;
         logActivity(`Added transferred team member: ${form.name}`);
       }
       await refetch("candidates", setCandidates);
       setTeamMapModal(null);
+      return true;
     } catch (e: any) {
       console.error("Save Team Member Error:", e);
       alert(`Failed to save team member: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1977,20 +1878,22 @@ export default function App() {
     const { id, _delete, ...rest } = form as any;
     try {
       if (_delete) {
-        const { error } = await dbDelete('digital_assets', id);
+        const { error } = await checkedWrite(dbDelete('digital_assets', id));
         if (error) throw error;
       } else if (assetModal && assetModal !== 'new') {
-        const { error } = await dbUpdate('digital_assets', (assetModal as any).id, rest);
+        const { error } = await checkedWrite(dbUpdate('digital_assets', (assetModal as any).id, rest));
         if (error) throw error;
       } else {
-        const { error } = await dbInsert('digital_assets', rest);
+        const { error } = await checkedWrite(dbInsert('digital_assets', rest));
         if (error) throw error;
       }
       await refetch('digital_assets', setAssets);
       setAssetModal(null);
+      return true;
     } catch (e: any) {
       console.error("Save Asset Error:", e);
       alert(`Failed to save digital asset: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -1999,24 +1902,26 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (invoiceModal && invoiceModal !== 'new') {
-        const { error } = await dbUpdate('invoices', invoiceModal.id, rest);
+        const { error } = await checkedWrite(dbUpdate('invoices', invoiceModal.id, rest));
         if (error) throw error;
       } else {
-        const { error } = await dbInsert('invoices', rest);
+        const { error } = await checkedWrite(dbInsert('invoices', rest));
         if (error) throw error;
       }
       await refetch('invoices', setInvoices);
       setInvoiceModal(null);
+      return true;
     } catch (e: any) {
       console.error("Save Invoice Error:", e);
       alert(`Failed to save invoice: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
   const importInvoicesFromCSV = async (rows: Partial<Invoice>[]) => {
     try {
       for (const row of rows) {
-        await dbInsert('invoices', row);
+        await checkedWrite(dbInsert('invoices', row));
       }
       await refetch('invoices', setInvoices);
       alert(`${rows.length} invoice(s) imported successfully.`);
@@ -2031,17 +1936,19 @@ export default function App() {
     const { id, ...rest } = form;
     try {
       if (chkModal && chkModal !== 'new') {
-        const { error } = await dbUpdate('daily_checklists', chkModal.id, rest);
+        const { error } = await checkedWrite(dbUpdate('daily_checklists', chkModal.id, rest));
         if (error) throw error;
       } else {
-        const { error } = await dbInsert('daily_checklists', rest);
+        const { error } = await checkedWrite(dbInsert('daily_checklists', rest));
         if (error) throw error;
       }
       await refetch('daily_checklists', setChecklists);
       setChkModal(null);
+      return true;
     } catch (e: any) {
       console.error("Save Checklist Error:", e);
       alert(`Failed to save checklist: ${e.message || JSON.stringify(e)}`);
+      return false;
     }
   };
 
@@ -2060,32 +1967,15 @@ export default function App() {
     });
   }, [operating, totalMonthlyUtilities]);
 
-  const buildLocalAiFallback = (msg: string) => {
-    const q = msg.toLowerCase();
-    if (q.includes("overdue") || q.includes("task") || q.includes("due")) {
-      return {
-        content: `I could not reach the AI service, but here is a live task snapshot. You currently have ${overdue} overdue task(s), and overall launch progress is ${prog}%. Start by clearing overdue critical items first, then move to tasks due in the next 7 days.`,
-        suggestions: ["Show me the highest-priority overdue tasks", "Which tasks are due in the next 7 days?"]
-      };
-    }
-
-    if (q.includes("budget") || q.includes("cost") || q.includes("expense") || q.includes("financial")) {
-      return {
-        content: `I could not reach the AI service, but your financial snapshot is available. Startup budget is $${totBudget.toLocaleString()} and actual spend is $${totActual.toLocaleString()}. Estimated monthly operating cost is $${totOp.toLocaleString()}.`,
-        suggestions: ["What is currently over budget?", "How can I reduce monthly operating costs?"]
-      };
-    }
-
-    return {
-      content: `I am having trouble reaching the AI service right now, but your data is loaded. Launch progress is ${prog}%, overdue tasks are ${overdue}, startup spend is $${totActual.toLocaleString()}, and monthly operating cost is $${totOp.toLocaleString()}.`,
-      suggestions: ["What should I focus on this week?", "Show a quick risk summary"]
-    };
-  };
+  const buildLocalAiFallback = (_msg: string) => ({
+    content: "The AI service is unavailable. I cannot verify an answer right now. Review the workspace records directly. Bookkeeping will live in QuickBooks; no spending data is connected.",
+    suggestions: [] as string[],
+  });
 
   const persistAiMessage = (role: "user" | "assistant", content: string) => {
     if (!aiPersistOk.current) return;
     const userId = isPartnerAccount ? "C" : "B";
-    dbInsert("ai_messages", { user_id: userId, role, content, context: tab })
+    checkedWrite(dbInsert("ai_messages", { user_id: userId, role, content, context: tab }))
       .then(res => { if (res.error) aiPersistOk.current = false; })
       .catch(() => { aiPersistOk.current = false; });
   };
@@ -2116,8 +2006,7 @@ export default function App() {
         Current Restaurant: ${appTitle}
         Launch Progress: ${prog}%
         Overdue Tasks: ${overdue}
-        Startup Budget: $${totBudget.toLocaleString()} (Actual: $${totActual.toLocaleString()})
-        Operating Monthly Cost: $${totOp.toLocaleString()}
+        Bookkeeping: unavailable here. QuickBooks is a placeholder awaiting owner-provided details. Do not infer or invent financial figures.
 
         Open tasks (assignee in brackets):
         ${openWithDue || "- none"}
@@ -2196,7 +2085,7 @@ export default function App() {
       files: []
     };
     try {
-      const { error } = await dbInsert('notes', newNote);
+      const { error } = await checkedWrite(dbInsert('notes', newNote));
       if (error) throw error;
       await refetch('notes', setNotes);
       setTab("notes");
@@ -2226,7 +2115,7 @@ export default function App() {
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Phoenix' }),
         files: [],
       };
-      const { error } = await dbInsert("notes", payload as any);
+      const { error } = await checkedWrite(dbInsert("notes", payload as any));
       if (error) throw error;
       await refetch("notes", setNotes);
       logActivity(`Saved weekly team brief (${dateLabel})`);
@@ -2239,14 +2128,14 @@ export default function App() {
 
   const savePartnerUpdate = async () => {
     const message = partnerUpdateDraft.trim();
-    if (!message) return;
+    if (!message) return false;
 
     // NLP quick-task: "@B finalize interim agreement by Friday" creates a real task.
     const parsed = parseQuickTask(message);
     if (parsed) {
       const ok = await createTaskFromParsed(parsed);
       if (ok) setPartnerUpdateDraft("");
-      return;
+      return ok;
     }
 
     const actor = isPartnerAccount
@@ -2268,14 +2157,16 @@ export default function App() {
     };
 
     try {
-      const { error } = await dbInsert("notes", payload as any);
+      const { error } = await checkedWrite(dbInsert("notes", payload as any));
       if (error) throw new Error(error.message || JSON.stringify(error));
       await refetch("notes", setNotes);
       setPartnerUpdateDraft("");
       logActivity("Posted team update note");
+      return true;
     } catch (e: any) {
       console.error("Save team update failed", e);
       alert(`Couldn't save team update: ${e?.message || "Unknown error"}`);
+      return false;
     }
   };
 
@@ -2304,8 +2195,7 @@ export default function App() {
     { id: "permits", label: "Permits", icon: ShieldCheck, group: "OPERATIONS" },
     { id: "checklists", label: "Checklists", icon: ClipboardList, group: "OPERATIONS" },
     
-    { id: "financials", label: "Financials", icon: DollarSign, group: "FINANCIALS" },
-    { id: "invoices", label: "Invoices", icon: FileText, group: "FINANCIALS" },
+    { id: "financials", label: "QuickBooks", icon: DollarSign, group: "FINANCIALS" },
     
     { id: "talent", label: "Talent & Hiring", icon: Users, group: "TEAM" },
     { id: "training", label: "Training", icon: GraduationCap, group: "TEAM" },
@@ -2443,197 +2333,83 @@ export default function App() {
     setShopItemModal(item);
   };
 
-  const saveShopItem = async () => {
+  const shopSave = useDraftSave(() => setShopItemModal(null));
+  const saveShopItem = async () => shopSave.save(async () => {
     const name = shopItemDraft.name.trim();
-    if (!name) return;
-    const rowItems = shopItemDraft.items.split(",").map(v => v.trim()).filter(Boolean);
+    if (!name) throw new Error("Enter an item name.");
+    const quantity = Number(shopItemDraft.quantity), totalCost = Number(shopItemDraft.totalCost);
+    if (![quantity, totalCost].every(n => Number.isFinite(n) && n >= 0)) throw new Error("Quantity and cost must be finite, nonnegative numbers.");
+    const payload = {
+      name, quantity, totalCost, unit: shopItemDraft.unit.trim(), category: shopItemDraft.category,
+      department: shopItemDraft.department, items: shopItemDraft.items.split(",").map(v => v.trim()).filter(Boolean).join(","),
+      purchaseType: shopItemDraft.purchaseType || null,
+      vendorName: shopItemDraft.purchaseType === "Vendor" ? shopItemDraft.vendorName.trim() || null : null,
+      storeName: shopItemDraft.purchaseType === "Store" ? shopItemDraft.storeName.trim() || null : null,
+      storeUrl: shopItemDraft.purchaseType === "Store" ? shopItemDraft.storeUrl.trim() || null : null,
+      sourceKey: shopItemModal && shopItemModal !== "new" ? shopItemModal.sourceKey || null : null,
+    };
+    const result = await dbSelect("shopping_list_items");
+    if (result.error || !Array.isArray(result.data)) throw new Error("Shopping list could not be checked. Please retry.");
+    const existing = shopItemModal && shopItemModal !== "new" && (shopItemModal.isManual
+      ? result.data.find((row: any) => String(row.id) === shopItemModal.id)
+      : result.data.find((row: any) => row.sourceKey === payload.sourceKey));
+    if (existing) await checkedWrite(dbUpdate("shopping_list_items", existing.id, payload));
+    else if (shopItemModal !== "new" && shopItemModal?.isManual) throw new Error("This item was deleted elsewhere. Close and refresh the list.");
+    else await checkedWrite(dbInsert("shopping_list_items", payload));
+    await refetch("shopping_list_items", setDbShoppingItems);
+    setShopItemModal(null); return true;
+  });
 
-    if (shopItemModal === "new") {
-      const newItem: ShoppingListItem = {
-        id: `manual-${Date.now()}`,
-        name,
-        category: shopItemDraft.category,
-        department: shopItemDraft.department,
-        quantity: Number(shopItemDraft.quantity) || 0,
-        unit: shopItemDraft.unit.trim(),
-        totalCost: Number(shopItemDraft.totalCost) || 0,
-        items: rowItems,
-        isManual: true,
-      };
-      
-      // Save to database
-      try {
-        await dbInsert("shopping_list_items", {
-          name,
-          category: shopItemDraft.category,
-          department: shopItemDraft.department,
-          quantity: Number(shopItemDraft.quantity) || 0,
-          unit: shopItemDraft.unit.trim(),
-          totalCost: Number(shopItemDraft.totalCost) || 0,
-          items: rowItems.join(","),
-          purchaseType: shopItemDraft.purchaseType || null,
-          vendorName: shopItemDraft.purchaseType === "Vendor" ? (shopItemDraft.vendorName.trim() || null) : null,
-          storeName: shopItemDraft.purchaseType === "Store" ? (shopItemDraft.storeName.trim() || null) : null,
-          storeUrl: shopItemDraft.purchaseType === "Store" ? (shopItemDraft.storeUrl.trim() || null) : null,
-          sourceKey: null,
-        });
-        await refetch("shopping_list_items", setDbShoppingItems);
-      } catch (e) {
-        console.error("Failed to save shopping item:", e);
-        alert("Failed to save shopping item");
-      }
-      
-      setShopItemModal(null);
-      return;
+  const setSourceRemoved = async (item: ShoppingListItem, removed: boolean) => {
+    const result = await dbSelect("shopping_list_items");
+    if (result.error || !Array.isArray(result.data)) throw new Error("Could not check the shared shopping list.");
+    const existing = result.data.find((row: any) => row.sourceKey === item.sourceKey);
+    if (existing) await checkedWrite(dbUpdate("shopping_list_items", existing.id, { removed }));
+    else {
+      const { id, isManual, items, ...rest } = item;
+      await checkedWrite(dbInsert("shopping_list_items", { ...rest, items: items.join(","), removed }));
     }
-
-    if (!shopItemModal) return;
-
-    if (shopItemModal.isManual) {
-      // Update manual item in DB
-      const dbItem = dbShoppingItems.find(item => 
-        item.name === shopItemModal.name && 
-        !item.sourceKey && 
-        item.category === shopItemModal.category
-      );
-      
-      if (dbItem) {
-        try {
-          await dbUpdate("shopping_list_items", dbItem.id, {
-            name,
-            category: shopItemDraft.category,
-            department: shopItemDraft.department,
-            quantity: Number(shopItemDraft.quantity) || 0,
-            unit: shopItemDraft.unit.trim(),
-            totalCost: Number(shopItemDraft.totalCost) || 0,
-            items: rowItems.join(","),
-            purchaseType: shopItemDraft.purchaseType || null,
-            vendorName: shopItemDraft.purchaseType === "Vendor" ? (shopItemDraft.vendorName.trim() || null) : null,
-            storeName: shopItemDraft.purchaseType === "Store" ? (shopItemDraft.storeName.trim() || null) : null,
-            storeUrl: shopItemDraft.purchaseType === "Store" ? (shopItemDraft.storeUrl.trim() || null) : null,
-          });
-          await refetch("shopping_list_items", setDbShoppingItems);
-        } catch (e) {
-          console.error("Failed to update shopping item:", e);
-          alert("Failed to update shopping item");
-        }
-      }
-    } else if (shopItemModal.sourceKey) {
-      // Update override item in DB
-      const dbItem = dbShoppingItems.find(item => item.sourceKey === shopItemModal.sourceKey);
-      
-      if (dbItem) {
-        try {
-          await dbUpdate("shopping_list_items", dbItem.id, {
-            name,
-            category: shopItemDraft.category,
-            department: shopItemDraft.department,
-            quantity: Number(shopItemDraft.quantity) || 0,
-            unit: shopItemDraft.unit.trim(),
-            totalCost: Number(shopItemDraft.totalCost) || 0,
-            items: rowItems.join(","),
-            purchaseType: shopItemDraft.purchaseType || null,
-            vendorName: shopItemDraft.purchaseType === "Vendor" ? (shopItemDraft.vendorName.trim() || null) : null,
-            storeName: shopItemDraft.purchaseType === "Store" ? (shopItemDraft.storeName.trim() || null) : null,
-            storeUrl: shopItemDraft.purchaseType === "Store" ? (shopItemDraft.storeUrl.trim() || null) : null,
-          });
-          await refetch("shopping_list_items", setDbShoppingItems);
-        } catch (e) {
-          console.error("Failed to update shopping override:", e);
-          alert("Failed to update shopping override");
-        }
-      } else {
-        // Create new override item if not found
-        try {
-          await dbInsert("shopping_list_items", {
-            name,
-            category: shopItemDraft.category,
-            department: shopItemDraft.department,
-            quantity: Number(shopItemDraft.quantity) || 0,
-            unit: shopItemDraft.unit.trim(),
-            totalCost: Number(shopItemDraft.totalCost) || 0,
-            items: rowItems.join(","),
-            purchaseType: shopItemDraft.purchaseType || null,
-            vendorName: shopItemDraft.purchaseType === "Vendor" ? (shopItemDraft.vendorName.trim() || null) : null,
-            storeName: shopItemDraft.purchaseType === "Store" ? (shopItemDraft.storeName.trim() || null) : null,
-            storeUrl: shopItemDraft.purchaseType === "Store" ? (shopItemDraft.storeUrl.trim() || null) : null,
-            sourceKey: shopItemModal.sourceKey,
-          });
-          await refetch("shopping_list_items", setDbShoppingItems);
-        } catch (e) {
-          console.error("Failed to save shopping override:", e);
-          alert("Failed to save shopping override");
-        }
-      }
-    }
-
-    setShopItemModal(null);
+    await refetch("shopping_list_items", setDbShoppingItems);
   };
-
   const removeShopItem = async (item: ShoppingListItem) => {
-    if (item.isManual) {
-      // Delete manual item from DB
-      const dbItem = dbShoppingItems.find(dbItem => 
-        dbItem.name === item.name && 
-        !dbItem.sourceKey && 
-        dbItem.category === item.category
-      );
-      
-      if (dbItem) {
-        try {
-          await dbDelete("shopping_list_items", dbItem.id);
-          await refetch("shopping_list_items", setDbShoppingItems);
-        } catch (e) {
-          console.error("Failed to delete shopping item:", e);
-          alert("Failed to delete shopping item");
-        }
-      }
-      return;
-    }
-    
-    if (item.sourceKey) {
-      // Delete override item from DB
-      const dbItem = dbShoppingItems.find(dbItem => dbItem.sourceKey === item.sourceKey);
-      
-      if (dbItem) {
-        try {
-          await dbDelete("shopping_list_items", dbItem.id);
-          await refetch("shopping_list_items", setDbShoppingItems);
-        } catch (e) {
-          console.error("Failed to delete shopping override:", e);
-          alert("Failed to delete shopping override");
-        }
-      }
-    }
-  };
-
-  const saveCostCalcOverride = async (itemId: number, data: any) => {
+    if (!confirm(`Remove "${item.name}" from the shopping list?`)) return;
     try {
-      // Check if override already exists
-      const existing = dbCostCalcOverrides.find((o: any) => o.itemId === itemId);
-      
-      if (existing) {
-        // Update existing
-        await dbUpdate("cost_calculator_overrides", existing.id, {
-          price: data.price,
-          targetFoodCost: data.targetFoodCost,
-          ingredients: data.ingredients,
-        });
-      } else {
-        // Create new
-        await dbInsert("cost_calculator_overrides", {
-          itemId,
-          price: data.price,
-          targetFoodCost: data.targetFoodCost,
-          ingredients: data.ingredients,
-        });
-      }
-      await refetch("cost_calculator_overrides", setDbCostCalcOverrides);
-    } catch (e) {
-      console.error("Failed to save cost calculator override:", e);
-    }
+      if (item.isManual) { await checkedWrite(dbDelete("shopping_list_items", item.id)); await refetch("shopping_list_items", setDbShoppingItems); }
+      else await setSourceRemoved(item, true);
+    } catch (e: any) { alert(`Could not remove item: ${e.message}`); }
   };
 
+  const saveOnboarding = async (payload: any) => {
+    try {
+      const result = await dbSelect("team_onboarding");
+      if (result.error || !Array.isArray(result.data)) throw new Error("Could not check shared onboarding. Your draft has been kept.");
+      const exists = result.data.some((row: any) => Number(row.id) === 1);
+      const { id, ...values } = payload;
+      if (exists) await checkedWrite(dbUpdate("team_onboarding", 1, values));
+      else await checkedWrite(dbInsert("team_onboarding", { id: 1, ...values }));
+      setOnboardingRecord({ id: 1, ...values }); setOnboardingError(""); return true;
+    } catch (e: any) { setOnboardingError(e.message); return false; }
+  };
+
+  const saveCostCalcOverride = async (itemId: number, data: any): Promise<boolean> => {
+    const persist = async () => {
+      try {
+        const result = await dbSelect("cost_calculator_overrides");
+        if (result.error || !Array.isArray(result.data)) throw new Error("Could not check saved costing. Please retry.");
+        const existing = result.data.find((row: any) => Number(row.itemId) === itemId);
+        const payload = { itemId, price: data.price, targetFoodCost: data.targetFoodCost, ingredients: data.ingredients };
+        if (existing) await checkedWrite(dbUpdate("cost_calculator_overrides", existing.id, payload));
+        else {
+          // A deterministic high ID makes retries/cross-device creates conflict instead of duplicating.
+          const stableId = 4000000000000000 + Number(itemId);
+          if (!Number.isSafeInteger(stableId)) throw new Error("Invalid menu item identifier.");
+          await checkedWrite(dbInsert("cost_calculator_overrides", { id: stableId, ...payload }));
+        }
+        await refetch("cost_calculator_overrides", setDbCostCalcOverrides); return true;
+      } catch (e) { console.error("Cost override not saved", e); return false; }
+    };
+    return navigator.locks ? navigator.locks.request(`restaurant-cost-${itemId}`, persist) : persist();
+  };
   return (
     <div style={{ minHeight:"100dvh", background:"transparent", color:T.text, fontFamily:"var(--font-sans)", paddingBottom: isMobile ? "calc(64px + env(safe-area-inset-bottom, 0px))" : "env(safe-area-inset-bottom, 0px)" }}>
       {/* ���� LOGIN SCREEN ���� */}
@@ -2642,7 +2418,7 @@ export default function App() {
       ) : (
         <>
           {/* ���� HEADER ���� */}
-          <div className="glass" style={{ borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 100, paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)", boxShadow: "0 8px 20px rgba(15, 28, 42, 0.06)" }}>
+          <div className="glass" style={{ display: isMobile ? "none" : undefined, borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 100, paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)", boxShadow: "0 8px 20px rgba(15, 28, 42, 0.06)" }}>
             {/* Critical Banner */}
             {criticalOverdue > 0 && (
               <div style={{ 
@@ -2754,7 +2530,7 @@ export default function App() {
       )}
 
         {/* Mobile Menu Overlay (full tab list via "More") */}
-        {isMobile && isMenuOpen && (
+        {false && isMobile && isMenuOpen && (
           <div style={{ position:"fixed", inset:0, top:"calc(80px + env(safe-area-inset-top, 0px))", background:"#FFF", zIndex:150, padding:"16px 16px calc(80px + env(safe-area-inset-bottom, 0px))", display:"flex", flexDirection:"column", gap:4, overflowY:"auto", WebkitOverflowScrolling:"touch" }}>
             <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:10, color:T.subtle, letterSpacing:1.2, fontWeight:600, padding:"0 4px", marginBottom:8 }}>ALL SECTIONS</div>
             {GROUPS.map(group => (
@@ -2776,7 +2552,7 @@ export default function App() {
         )}
 
         {/* iOS-style Bottom Navigation Bar */}
-        {isMobile && (
+        {false && isMobile && (
           <nav className="bottom-nav no-print">
             {[
               { id: "overview", label: "Hub",   icon: LayoutDashboard },
@@ -2899,7 +2675,6 @@ export default function App() {
           setTaskModal(linked);
         }
       }} />}
-      {invoiceModal && <InvoiceModal invoice={invoiceModal === "new" ? null : invoiceModal} vendors={vendors} onSave={saveInvoice} onClose={() => setInvoiceModal(null)} />}
       {decisionModal && (
         <Modal title={decisionModal === "new" ? "New Decision" : "Edit Decision"} onClose={() => setDecisionModal(null)} width={560}>
           <Field label="TITLE"><input value={decisionDraft.title} onChange={e => setDecisionDraft((f: any) => ({ ...f, title: e.target.value }))} style={inpStyle} placeholder="e.g. Launch weekend menu scope" /></Field>
@@ -2932,7 +2707,7 @@ export default function App() {
       {invModal && <InventoryModal item={invModal === "new" ? null : invModal} vendors={vendors} onSave={saveInv} onClose={() => setInvModal(null)} />}
       {permitModal && <PermitModal permit={permitModal === "new" ? null : permitModal} onSave={savePermit} onClose={() => setPermitModal(null)} />}
       {shopItemModal && (
-        <Modal title={shopItemModal === "new" ? "Add Shopping Item" : "Edit Shopping Item"} onClose={() => setShopItemModal(null)} width={460}>
+        <Modal title={shopItemModal === "new" ? "Add Shopping Item" : "Edit Shopping Item"} onClose={shopSave.close} width={460}>
           <Field label="ITEM NAME"><input value={shopItemDraft.name} onChange={e => setShopItemDraft(d => ({ ...d, name: e.target.value }))} style={inpStyle} placeholder="e.g. Olive Oil" /></Field>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="CATEGORY">
@@ -2978,8 +2753,8 @@ export default function App() {
           )}
           <Field label="USED IN DISHES (COMMA SEPARATED)"><input value={shopItemDraft.items} onChange={e => setShopItemDraft(d => ({ ...d, items: e.target.value }))} style={inpStyle} placeholder="Pasta, Salad, Special" /></Field>
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
-            <Btn onClick={() => setShopItemModal(null)} variant="ghost">Cancel</Btn>
-            <Btn onClick={saveShopItem} variant="primary">Save Item</Btn>
+            <Btn onClick={shopSave.close} variant="ghost">Cancel</Btn>
+            <DraftSaveError error={shopSave.error} /><Btn disabled={shopSave.pending} onClick={saveShopItem} variant="primary">Save Item</Btn>
           </div>
         </Modal>
       )}
@@ -2992,18 +2767,44 @@ export default function App() {
       {utilityModal && <UtilityModal account={utilityModal === "new" ? null : utilityModal} onSave={saveUtility} onClose={() => setUtilityModal(null)} />}
       {chkModal && <ChecklistModal checklist={chkModal === "new" ? null : chkModal} onSave={saveChk} onClose={() => setChkModal(null)} />}
       {delConfirm && (
-        <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.3)",zIndex:998,display:"flex",alignItems:"center",justifyContent:"center" }} onClick={()=>setDelConfirm(null)}>
+        <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.3)",zIndex:998,display:"flex",alignItems:"center",justifyContent:"center" }} onClick={deleteDraft.close}>
           <div style={{ background:"#FFF",borderRadius:14,padding:26,width:340,boxShadow:"0 16px 40px rgba(0,0,0,.12)" }} onClick={e=>e.stopPropagation()}>
             <div style={{ fontFamily:"'Segoe UI', 'Helvetica Neue', Arial, sans-serif",fontSize:17,marginBottom:10 }}>Remove this item?</div>
             <div style={{ fontSize:13,color:T.muted,marginBottom:22 }}><strong style={{color:T.text}}>{delConfirm.label}</strong> will be permanently removed.</div>
             <div style={{ display:"flex",gap:10,justifyContent:"flex-end" }}>
-              <Btn onClick={()=>setDelConfirm(null)} variant="ghost">Cancel</Btn>
-              <Btn onClick={()=>{delConfirm.onConfirm();setDelConfirm(null);}} variant="danger" title="Delete"><Trash2 size={13} /></Btn>
+              <Btn onClick={deleteDraft.close} variant="ghost">Cancel</Btn>
+              <DraftSaveError error={deleteDraft.error} /><Btn disabled={deleteDraft.pending} onClick={async () => { if (await deleteDraft.save(delConfirm.onConfirm)) setDelConfirm(null); }} variant="danger" title="Delete"><Trash2 size={13} /></Btn>
             </div>
           </div>
         </div>
       )}
 
+      <div style={{maxWidth:1360,margin:"0 auto",padding:"0 16px"}}><SharedSyncStatus {...todoSync} /></div>
+      {dataReadErrors.length > 0 && <aside role="alert" style={{padding:12,margin:16,border:"1px solid #e4b16b",borderRadius:12,background:"#fff6e9"}}>
+        Some workspace lists could not load. Displayed records and counts may be older or incomplete.
+        <button onClick={() => void loadAllData()} style={{marginLeft:12}}>Retry workspace load</button>
+      </aside>}
+      {isMobile && <MobileWorkspace appTitle={appTitle} tasks={tasks} todos={taskTodos} events={calendarEvents}
+        updates={partnerUpdates} pendingTodoIds={todoSync.pendingIds} onEditTask={setTaskModal}
+        onNewTask={() => setTaskModal("new")} onChangeTaskStatus={setTaskStatusWithUndo}
+        onEditTodo={openEditTodo} onChangeTodoStatus={async (todo, status) => {
+          try { todoSync.put({ ...todo, status: status as TaskTodoItem["status"] }); return true; }
+          catch { return false; }
+        }} onNewUpdate={() => setMobileUpdateOpen(true)} onEditUpdate={setNoteModal}
+        onOpenEvent={setMobileEvent} onNewEvent={date => { setMobileEventDate(date); setMobileEvent("new"); }} />}
+      {mobileEvent && <CalendarEventModal event={mobileEvent === "new" ? null : mobileEvent} initialDate={mobileEventDate}
+        onClose={() => setMobileEvent(null)} onSave={async form => {
+          const ok = await saveCalendarEvent({ ...form, _editId: mobileEvent !== "new" ? mobileEvent.id : undefined });
+          if (ok) setMobileEvent(null); return ok;
+        }} />}
+      {mobileUpdateOpen && <Modal title="Post Update" onClose={updateDraftSave.close}>
+        <Field label="UPDATE"><textarea style={inpStyle} value={partnerUpdateDraft} onChange={event => setPartnerUpdateDraft(event.target.value)} /></Field>
+        <DraftSaveError error={updateDraftSave.error} />
+        <Btn disabled={updateDraftSave.pending} onClick={() => void updateDraftSave.save(async () => {
+          const ok = await savePartnerUpdate(); if (ok) setMobileUpdateOpen(false); return ok;
+        })}>Post Update</Btn>
+      </Modal>}
+      {!isMobile && (
       <div style={{ padding: isMobile ? "16px" : "22px 24px", maxWidth: 1360, margin: "0 auto", display: "flex", gap: 24, paddingBottom: isMobile ? "96px" : undefined }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* �"��"��"��"��"��"� OVERVIEW �"��"��"��"��"��"� */}
@@ -3015,6 +2816,7 @@ export default function App() {
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
                   <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, letterSpacing: 1, color: T.subtle, fontWeight: 700, textTransform: "uppercase" }}>{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</span>
+                  <PresenceIndicator presence={partnerPresence} />
                 </div>
                 <button
                   onClick={() => setDebriefOpen(true)}
@@ -3291,6 +3093,7 @@ export default function App() {
                           <div style={{ background: isDone ? T.subtle : T.border, borderRadius: 99 }} />
                           <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                             <button
+                              aria-label={`${isDone ? "Reopen" : "Complete"} todo: ${todo.title}`}
                               onClick={() => toggleTodoDone(todo)}
                               style={{ width: isMobile ? 22 : 18, height: isMobile ? 22 : 18, minWidth: isMobile ? 22 : 18, border: `2px solid ${isDone ? T.text : T.border}`, borderRadius: 5, background: isDone ? T.bg : "#FFF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer", padding: 0, marginTop: 1, transition: "all .15s" }}
                             >
@@ -3305,7 +3108,7 @@ export default function App() {
                                 >
                                   {isExpanded ? <ChevronDown size={14} style={{ flexShrink: 0 }} /> : <ChevronRight size={14} style={{ flexShrink: 0 }} />}
                                   <PartnerBadge assignedTo={todo.assignedTo} size={16} />
-                                  <span style={{ flex: 1 }}>{todo.title}</span>
+                                  <span style={{ flex: 1 }}>{todo.title}{todoSync.pendingIds.includes(todo.id) && <small style={{display:"block",color:T.gold}}>Pending — only on this device</small>}</span>
                                 </button>
                                 <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                                   <button onClick={() => openEditTodo(todo)} title="Edit" style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: isMobile ? "8px 10px" : "5px 7px", color: T.muted, cursor: "pointer", display: "flex", alignItems: "center" }}><PenLine size={12} /></button>
@@ -3836,13 +3639,19 @@ export default function App() {
         {/* �"��"��"��"��"��"� SHOPPING LIST �"��"��"��"��"��"� */}
         {tab === "shopping" && (
           <div className="fu">
+            {shopRemovedSourceKeys.length > 0 && <button onClick={async () => {
+              try { for (const key of shopRemovedSourceKeys) {
+                const row = aggregatedIngredients.find(item => item.sourceKey === key);
+                if (row) await setSourceRemoved(row, false);
+              } } catch (e: any) { alert(`Could not restore items: ${e.message}`); }
+            }}>Restore removed menu ingredients ({shopRemovedSourceKeys.length})</button>}
             <SectionHeader title="Consolidated Shopping List" subtitle="All ingredients required for your current menu items"
               action={
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                   <Btn onClick={() => {
                     // Download CSV template
                     const header = "name,category,department,quantity,unit,totalCost,purchaseType,vendorName,storeName,storeUrl";
-                    const eg = "Avocados,Operating Supplies,Kitchen,10,flats,35.00,Vendor,Green Valley Farms,,";
+                    const eg = "";
                     const blob = new Blob([header + "\n" + eg], { type: "text/csv" });
                     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "shopping_import_template.csv"; a.click();
                   }} variant="ghost" small><Download size={13} style={{ marginRight: 4 }} />Template</Btn>
@@ -3851,18 +3660,21 @@ export default function App() {
                       const file = e.target.files?.[0]; if (!file) return;
                       const reader = new FileReader();
                       reader.onload = async () => {
+                        let imported = 0;
                         try {
-                          const text = String(reader.result || "");
-                          const lines = text.trim().split("\n");
-                          const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ""));
-                          const rows = lines.slice(1).map(line => {
-                            const vals = line.split(",").map(v => v.trim().replace(/^"|"$/g, ""));
-                            const obj: any = {};
-                            headers.forEach((h, i) => { obj[h] = vals[i] ?? ""; });
-                            return obj;
-                          }).filter(r => r.name);
+                          const rows = csvRecords(String(reader.result || ""));
+                          for (const [index, row] of rows.entries()) {
+                            if (!row.name?.trim()) throw new Error(`Row ${index + 2} needs an item name.`);
+                            for (const field of ["quantity", "totalCost"]) {
+                              const value = row[field]?.trim() || "0";
+                              if (!Number.isFinite(Number(value)) || Number(value) < 0) throw new Error(`Row ${index + 2}: ${field} must be finite and nonnegative.`);
+                            }
+                            if (row.category && !INV_CATEGORIES.includes(row.category)) throw new Error(`Row ${index + 2} has an unknown category.`);
+                            if (row.department && !DEPARTMENTS.includes(row.department)) throw new Error(`Row ${index + 2} has an unknown department.`);
+                            if (row.purchaseType && !["Vendor", "Store"].includes(row.purchaseType)) throw new Error(`Row ${index + 2} has an unknown purchase type.`);
+                          }
                           for (const row of rows) {
-                            await dbInsert("shopping_list_items", {
+                            await checkedWrite(dbInsert("shopping_list_items", {
                               name: row.name,
                               category: row.category || "Operating Supplies",
                               department: row.department || "Kitchen",
@@ -3875,11 +3687,15 @@ export default function App() {
                               storeName: row.purchaseType === "Store" ? (row.storeName || null) : null,
                               storeUrl: row.purchaseType === "Store" ? (row.storeUrl || null) : null,
                               sourceKey: null,
-                            });
+                            }));
+                            imported++;
                           }
                           await refetch("shopping_list_items", setDbShoppingItems);
                           alert(`${rows.length} item(s) imported.`);
-                        } catch { alert("Failed to parse CSV. Please use the template."); }
+                        } catch (error: any) {
+                          await refetch("shopping_list_items", setDbShoppingItems);
+                          alert(`Import stopped. ${imported} item(s) saved. ${error?.message || "Please check the CSV and retry unsaved rows."}`);
+                        }
                         e.target.value = "";
                       };
                       reader.readAsText(file);
@@ -4051,7 +3867,7 @@ export default function App() {
             items={inventory} 
             vendors={vendors} 
             onEdit={setInvModal} 
-            onView={() => {}}
+            onView={setInvModal}
             onDelete={id => {
               const item = inventory.find(x => x.id === id);
               if (item) setDelConfirm({ label: item.name, onConfirm: () => deleteRecord('inventory_items', id, item.name, setInventory) });
@@ -4061,123 +3877,18 @@ export default function App() {
         )}
 
         {/* �"��"��"��"��"��"� FINANCIALS �"��"��"��"��"��"� */}
-        {tab==="financials" && (
-          !isUnlocked ? <PinGate onUnlock={() => setIsUnlocked(true)} correctPin={securityPin} /> : (
-          <div className="fu">
-            <SectionHeader 
-              title="Financial Tracker" 
-              subtitle="Startup costs, operating expenses & break-even"
-              action={
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <Btn onClick={() => {
-                    const combined = [
-                      ...startup.map(s => ({ ...s, type: 'Startup' })),
-                      ...operatingCostsWithUtilities.map(o => ({ ...o, type: 'Operating' }))
-                    ];
-                    exportToCSV(combined, 'Restaurant_Financials', [
-                      { key: 'type' as any, label: 'Cost Type' },
-                      { key: 'category', label: 'Category' },
-                      { key: 'budgeted', label: 'Budgeted/Monthly' },
-                      { key: 'actual', label: 'Actual' },
-                    ]);
-                  }} variant="outline" small>Export</Btn>
-                  {canManageAccess && <Btn onClick={() => setIsChangePinOpen(true)} variant="outline" small>Change PIN</Btn>}
-                  {canManageAccess && (
-                    <Btn onClick={() => setDelConfirm({
-                      label: "all financial data",
-                      onConfirm: async () => {
-                        await Promise.all([
-                          ...startup.map(c => dbDelete('startup_costs', c.id)),
-                          ...operating.map(c => dbDelete('operating_costs', c.id)),
-                        ]);
-                        setStartup([]);
-                        setOp([]);
-                        logActivity("Reset all financial data");
-                      }
-                    })} variant="danger" small>Reset All</Btn>
-                  )}
-                </div>
-              }
-            />
-            
-            {/* Financial KPIs */}
-            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap:12, marginBottom:16 }}>
-              {[
-                {label:"Startup Budget",value:`$${(totBudget/1000).toFixed(0)}K`,sub:`Actual $${(totActual/1000).toFixed(0)}K`,color:totActual>totBudget?T.red:T.green,dot:totActual>totBudget?T.redLight:T.greenLight},
-                {label:"Break-Even / Mo",value:`$${(totOp/1000).toFixed(1)}K`,sub:"Monthly operating costs",color:T.gold,dot:T.goldLight},
-                {label:"Proj. Revenue / Mo",value:`$${(projRev/1000).toFixed(0)}K`,sub:"At 30% food cost",color:T.blue,dot:T.blueLight},
-              ].map(k=>(
-                <div key={k.label} style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, padding: isMobile ? "14px 16px" : 20 }}>
-                  <div style={{ fontSize:11, color:T.muted, fontFamily:"'IBM Plex Mono',monospace", marginBottom:6, letterSpacing:.5 }}>{k.label.toUpperCase()}</div>
-                  <div style={{ fontFamily:"'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: isMobile ? 28 : 24, fontWeight:700, color:k.color }}>{k.value}</div>
-                  <div style={{ fontSize:11, color:T.muted, marginTop:4 }}>{k.sub}</div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap:16 }}>
-              {/* Startup Costs */}
-              <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, padding: isMobile ? 16 : 22 }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-                  <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:10, color:T.muted, letterSpacing:.8 }}>STARTUP COSTS</span>
-                  <Btn onClick={()=>setFinModal({type:"startup",item:null})} variant="outline" small>+ Add</Btn>
-                </div>
-                {startup.length === 0 && <p style={{ fontSize:13, color:T.muted, textAlign:"center", padding:"20px 0" }}>No startup costs yet. Tap + Add to begin.</p>}
-                {startup.map(c=>{
-                  const diff=Number(c.actual)-Number(c.budgeted);
-                  return (
-                    <div key={c.id} style={{ marginBottom:14 }}>
-                      <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5, alignItems:"center" }}>
-                        <span style={{ fontSize:13, color:T.text, fontWeight:500 }}>{c.category}</span>
-                        <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                          <span style={{ fontSize:11, fontFamily:"'IBM Plex Mono',monospace", color:T.muted }}>${Number(c.budgeted).toLocaleString()}</span>
-                          <span style={{ fontSize:12, fontFamily:"'IBM Plex Mono',monospace", fontWeight:700, color:diff>0?T.red:T.green }}>${Number(c.actual).toLocaleString()}</span>
-                          <button onClick={()=>setFinModal({type:"startup",item:c})} title="Edit" style={{ background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1,display:"flex",alignItems:"center" }}><PenLine size={13} /></button>
-                          <button onClick={()=>setDelConfirm({label:c.category,onConfirm:()=>deleteRecord('startup_costs', c.id, c.category, setStartup)})} title="Delete" style={{ background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1,display:"flex",alignItems:"center" }}><Trash2 size={13} /></button>
-                        </div>
-                      </div>
-                      <div style={{ height:5, background:T.border, borderRadius:3 }}>
-                        <div style={{ height:"100%", width:`${Math.min((Number(c.actual)/Number(c.budgeted))*100,100)}%`, background:diff>0?T.red:T.green, borderRadius:3 }}/>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {/* Operating Costs */}
-              <div style={{ background:"#FFF", border:`1px solid ${T.border}`, borderRadius:12, padding: isMobile ? 16 : 22 }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-                  <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:10, color:T.muted, letterSpacing:.8 }}>MONTHLY OPERATING COSTS</span>
-                  <Btn onClick={()=>setFinModal({type:"operating",item:null})} variant="outline" small>+ Add</Btn>
-                </div>
-                {operating.length === 0 && <p style={{ fontSize:13, color:T.muted, textAlign:"center", padding:"20px 0" }}>No operating costs yet. Tap + Add to begin.</p>}
-                {operatingCostsWithUtilities.map(c=>(
-                  <div key={c.id} style={{ display:"flex", justifyContent:"space-between", padding:"10px 0", borderBottom:`1px solid ${T.border}`, alignItems:"center" }}>
-                    <div>
-                      <span style={{ fontSize:13, color:T.text, fontWeight:500 }}>{c.category}</span>
-                      {c.category === "Utilities" && (
-                        <div style={{ fontSize:9, color:T.blue, marginTop:2 }}>Auto from Service Accounts</div>
-                      )}
-                    </div>
-                    <div style={{ display:"flex", gap:10, alignItems:"center" }}>
-                      <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:13, fontWeight:600, color:T.text }}>${Number(c.monthly).toLocaleString()}</span>
-                      <button onClick={()=>setFinModal({type:"operating",item:c})} title="Edit" style={{ background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:14,padding:"2px 4px",display:"flex",alignItems:"center" }}><PenLine size={13} /></button>
-                      <button onClick={()=>setDelConfirm({label:c.category,onConfirm:()=>deleteRecord('operating_costs', c.id, c.category, setOp)})} title="Delete" style={{ background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:14,padding:"2px 4px",display:"flex",alignItems:"center" }}><Trash2 size={13} /></button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+        {tab === "financials" && <section className="fu" aria-label="QuickBooks placeholder">
+          <SectionHeader title="QuickBooks — coming later" subtitle="Bookkeeping, invoices, and receipts will live in QuickBooks." />
+          <div style={{padding:24,background:"white",border:`1px solid ${T.border}`,borderRadius:14}}>
+            <p>QuickBooks details have not been provided yet.</p>
+            <div data-slot="quickbooks-link" aria-label="QuickBooks link reserved" />
+            <div data-slot="quickbooks-summary" aria-label="Future spending summary reserved" />
           </div>
-          )
-        )}
+        </section>}
 
-        {/* �"��"��"��"��"��"� COST CALCULATOR �"��"��"��"��"��"� */}
-        {tab==="costcalc" && <CostCalculator menuItems={menuItems} dbCostCalcOverrides={dbCostCalcOverrides} onSaveOverride={saveCostCalcOverride} />}
+        {tab === "costcalc" && <CostCalculator menuItems={menuItems} dbCostCalcOverrides={dbCostCalcOverrides} onSaveOverride={saveCostCalcOverride} />}
+        {tab === "onboarding" && <TeamOnboarding record={onboardingRecord} onSave={saveOnboarding} loadError={onboardingError} />}
 
-        {/* �"��"��"��"��"��"� TEAM ONBOARDING �"��"��"��"��"��"� */}
-        {tab==="onboarding" && <TeamOnboarding />}
-
-        {/* �"��"��"��"��"��"� TIMELINE �"��"��"��"��"��"� */}
         {tab==="timeline" && <Timeline timeline={timeline} onToggle={id => {
           const m = timeline.find(x => x.id === id);
           if (m) updateRecord('milestones', id, { done: !m.done }, 'Milestone', setTL);
@@ -4403,14 +4114,14 @@ export default function App() {
         {tab === "settings" && (
           !isUnlocked ? <PinGate onUnlock={() => setIsUnlocked(true)} correctPin={securityPin} /> : !canManageAccess ? (
             <div className="fu">
-              <SectionHeader title="Settings" subtitle="Locked controls for title and account access" />
+              <SectionHeader title="Settings" subtitle="Workspace settings. The device PIN is a convenience lock; guest access is still in use." />
               <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 20, textAlign: "center" }}>
                 <p style={{ color: T.muted, fontSize: 13 }}>Only owner and team accounts can access settings.</p>
               </div>
             </div>
           ) : (
             <div className="fu">
-              <SectionHeader title="Settings" subtitle="Locked controls for title and account access" />
+              <SectionHeader title="Settings" subtitle="Workspace settings. The device PIN is a convenience lock; guest access is still in use." />
 
               <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 20, marginBottom: 18 }}>
                 <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: .8, marginBottom: 10 }}>APP TITLE</div>
@@ -4421,30 +4132,27 @@ export default function App() {
                     style={{ ...inpStyle, flex: 1, fontFamily: /[\u0E00-\u0E7F]/.test(editTitle) ? "var(--font-thai-display)" : "'Segoe UI', 'Helvetica Neue', Arial, sans-serif" }}
                     placeholder="Restaurant name"
                   />
-                  <Btn onClick={async () => {
+                  <Btn disabled={titleDraft.pending} onClick={() => void titleDraft.save(async () => {
                     const title = editTitle.trim();
-                    if (!title) return;
+                    if (!title) throw new Error("Enter a restaurant name.");
                     const res = await fetch("/api/settings/title", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ title }),
+                      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title }),
                     });
                     const body = await res.json();
-                    if (body?.ok) {
-                      setAppTitle(body.title || title);
-                      setSettingsMsg("Title updated.");
-                      logActivity(`Updated app title to ${title}`);
-                    } else {
-                      setSettingsMsg(body?.error || "Failed to update title");
-                    }
-                  }} variant="primary">Save Title</Btn>
+                    if (!res.ok || !body?.ok) throw new Error(body?.error || "Title was not saved.");
+                    setAppTitle(body.title || title);
+                    setSettingsMsg("Title updated.");
+                    return true;
+                  })} variant="primary">{titleDraft.pending ? "Saving…" : "Save Title"}</Btn>
+                  <DraftSaveError error={titleDraft.error} />
                 </div>
               </div>
 
               <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, padding: 20, marginBottom: 18 }}>
                 <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: .8, marginBottom: 12 }}>ACCOUNT SECURITY</div>
                 <div style={{ display: "flex", gap: 10, flexDirection: "column" }}>
-                  <Btn onClick={() => setIsChangePinOpen(true)} variant="outline" style={{ width: "100%", justifyContent: "flex-start" }}>Change Security PIN</Btn>
+                  <Btn onClick={() => setIsChangePinOpen(true)} variant="outline" style={{ width: "100%", justifyContent: "flex-start" }}>Change Device PIN</Btn>
+                  <Btn disabled={currentUser?.id === "guest-open-access"} onClick={() => setIsChangePasswordOpen(true)} variant="outline" style={{ width: "100%", justifyContent: "flex-start" }}>Change Sign-In Password</Btn>
                 </div>
               </div>
 
@@ -4468,23 +4176,27 @@ export default function App() {
                         </div>
                         {u.is_active ? (
                           <Btn onClick={async () => {
-                            await fetch("/api/access/revoke", {
+                            try {
+                            await checkedJson(await fetch("/api/access/revoke", {
                               method: "POST",
                               headers: { "Content-Type": "application/json" },
                               body: JSON.stringify({ email: u.email, revokedBy: currentUser?.email || "Owner" }),
-                            });
+                            }));
                             logActivity(`Revoked access for ${u.email}`);
-                            refreshAccessUsers();
+                            await refreshAccessUsers();
+                            } catch (error: any) { setSettingsMsg(error.message || "Member update was not saved."); }
                           }} variant="danger" small>Revoke</Btn>
                         ) : (
                           <Btn onClick={async () => {
-                            await fetch("/api/access/restore", {
+                            try {
+                            await checkedJson(await fetch("/api/access/restore", {
                               method: "POST",
                               headers: { "Content-Type": "application/json" },
                               body: JSON.stringify({ email: u.email }),
-                            });
+                            }));
                             logActivity(`Restored access for ${u.email}`);
-                            refreshAccessUsers();
+                            await refreshAccessUsers();
+                            } catch (error: any) { setSettingsMsg(error.message || "Member update was not saved."); }
                           }} variant="outline" small>Restore</Btn>
                         )}
                       </div>
@@ -4500,15 +4212,6 @@ export default function App() {
         )}
 
         {/* �"��"��"��"��"��"� INVOICES �"��"��"��"��"��"� */}
-        {tab === "invoices" && (
-          <InvoicesSection 
-            invoices={invoices} 
-            onEdit={setInvoiceModal} 
-            onDelete={inv => setDelConfirm({ label: `Invoice from ${inv.vendorName}`, onConfirm: () => deleteRecord('invoices', inv.id, `Invoice ${inv.vendorName}`, setInvoices) })} 
-            onAdd={() => setInvoiceModal("new")}
-            onImportCSV={importInvoicesFromCSV}
-          />
-        )}
 
         {/* �"��"��"��"��"��"� TALENT & HIRING �"��"��"��"��"��"� */}
         {tab === "talent" && (
@@ -4545,6 +4248,7 @@ export default function App() {
         )}
       </div>
     </div>
+      )}
 
       {/* AI Copilot toggle (desktop — mobile reaches AI via the tab bar) */}
       {!isMobile && !copilotOpen && (
@@ -4564,14 +4268,13 @@ export default function App() {
       )}
 
       {/* Quick Add FAB */}
-      <div style={{ position: "fixed", bottom: isMobile ? "calc(76px + env(safe-area-inset-bottom, 0px))" : "calc(24px + env(safe-area-inset-bottom, 0px))", right: isMobile ? 16 : 24, zIndex: 100 }}>
+      <div style={{ display: isMobile ? "none" : undefined, position: "fixed", bottom: isMobile ? "calc(76px + env(safe-area-inset-bottom, 0px))" : "calc(24px + env(safe-area-inset-bottom, 0px))", right: isMobile ? 16 : 24, zIndex: 100 }}>
         {quickAddOpen && !isMobile && (
           <div style={{ position: "absolute", bottom: 70, right: 0, display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end" }}>
             <Btn onClick={() => { setTaskModal("new"); setQuickAddOpen(false); }} variant="primary" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>+ New Task</Btn>
             <Btn onClick={() => { setNoteModal("new"); setQuickAddOpen(false); }} variant="outline" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)", background: "#FFF" }}>+ New Note</Btn>
             <Btn onClick={() => { setInspoSheetOpen(true); setQuickAddOpen(false); }} variant="outline" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)", background: "#FFF" }}>+ Inspiration</Btn>
             <Btn onClick={() => { setDebriefOpen(true); setQuickAddOpen(false); }} variant="outline" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)", background: "#FFF" }}>📋 Daily Debrief</Btn>
-            <Btn onClick={() => { setInvoiceModal("new"); setQuickAddOpen(false); }} variant="outline" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.1)", background: "#FFF" }}>+ Import Invoice</Btn>
           </div>
         )}
         <button
@@ -4655,6 +4358,9 @@ export default function App() {
         />
       )}
 
+      {isChangePasswordOpen && <Modal title="Account sign-in unavailable" onClose={() => setIsChangePasswordOpen(false)}>
+        <p>Neon Postgres is the database. Individual account sign-in has not been configured yet.</p>
+      </Modal>}
     </>
   )}
 </div>
