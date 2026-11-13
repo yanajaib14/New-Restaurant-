@@ -24,7 +24,6 @@ import { MarketingCalendar, MarketingModal, TrainingPortal, TrainingModal, Daily
 import { TalentHiring, TeamMap, TeamMapMemberModal, PositionModal, CandidateModal } from "./components/Team";
 import { MobileWorkspace } from "./components/MobileWorkspace";
 import { LaunchWindow, FullCalendar, CalendarEventModal } from "./components/CalendarView";
-import { getGoogleAuthUrl, getGoogleDriveStatus, saveToGoogleDrive, fileToBase64 } from "./services/googleDriveService";
 import { exportToCSV } from "./lib/exportUtils";
 import {
   PartnerBadge, PartnerFilterPills, PartnerFilter, matchesPartner,
@@ -427,7 +426,6 @@ export default function App() {
   const { user: currentUser, role: userRole, logout, isLoading: isAuthLoading } = useAuth();
   const [securityPin, setSecurityPin] = useState(() => localStorage.getItem("app_security_pin") || "1379");
   const [activity, setActivity] = useState<ActivityLog[]>(USE_SEED_DATA ? INIT_ACTIVITY : []);
-  const [isDriveConnected, setIsDriveConnected] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   // ── Launch-hub enhancements ──
   const [partnerFilter, setPartnerFilter] = useState<PartnerFilter>("All");
@@ -633,52 +631,6 @@ export default function App() {
       window.removeEventListener("keydown", activityHandler);
     };
   }, [isUnlocked]);
-
-  useEffect(() => {
-    const checkDriveStatus = async () => {
-      try {
-        const { connected } = await getGoogleDriveStatus();
-        setIsDriveConnected(connected);
-      } catch (e) {
-        console.error("Failed to check Drive status", e);
-      }
-    };
-    checkDriveStatus();
-  }, []);
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'GOOGLE_AUTH_SUCCESS') {
-        setIsDriveConnected(true);
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
-  const handleGoogleConnect = async () => {
-    try {
-      const { url } = await getGoogleAuthUrl();
-      window.open(url, 'google_auth', 'width=600,height=700');
-    } catch (e) {
-      console.error("Failed to get Google Auth URL", e);
-    }
-  };
-
-  const handleSaveToDrive = async (file: any) => {
-    try {
-      const base64 = await fileToBase64(file.url);
-      const res = await saveToGoogleDrive({ name: file.name, type: file.type, base64 });
-      if (res.success) {
-        alert(`Saved "${file.name}" to Google Drive!`);
-      } else {
-        alert("Failed to save to Drive: " + (res.error || "Unknown error"));
-      }
-    } catch (e) {
-      console.error("Save to Drive error", e);
-      alert("Error saving to Google Drive");
-    }
-  };
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
@@ -2667,7 +2619,7 @@ export default function App() {
         const selected = noteDetail;
         setNoteDetail(null);
         setDelConfirm({ label: selected.title, onConfirm: () => deleteRecord('notes', id, selected.title, setNotes) });
-      }} isDriveConnected={isDriveConnected} onSaveToDrive={handleSaveToDrive} onOpenLinkedTask={(taskId) => {
+      }} onOpenLinkedTask={(taskId) => {
         const linked = tasks.find(t => t.id === taskId);
         if (linked) {
           setNoteDetail(null);
@@ -3900,9 +3852,6 @@ export default function App() {
             <SectionHeader title="Notes & Ideas" subtitle="Capture ideas, vendor contacts, recipes, and attach files"
               action={
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", width: isMobile ? "100%" : undefined, justifyContent: isMobile ? "stretch" : "flex-end" }}>
-                  {!isDriveConnected && (
-                    <Btn onClick={handleGoogleConnect} variant="outline" small>Connect Drive</Btn>
-                  )}
                   <Btn onClick={()=>setNoteModal("new")} variant="primary">+ New Note</Btn>
                 </div>
               }/>
@@ -3940,8 +3889,6 @@ export default function App() {
                     note={n} 
                     onOpen={setNoteDetail} 
                     onDelete={id => setDelConfirm({ label: n.title, onConfirm: () => deleteRecord('notes', id, n.title, setNotes) })}
-                    isDriveConnected={isDriveConnected}
-                    onSaveToDrive={handleSaveToDrive}
                     onOpenLinkedTask={(taskId) => {
                       const linked = tasks.find(t => t.id === taskId);
                       if (linked) {

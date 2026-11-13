@@ -38,3 +38,13 @@ Prompt 2's full functionality audit is still incomplete. Follow the source brief
 8. Finish visual design polish after functional work is verified.
 
 Known limits to repeat clearly: the app still uses a shared guest Owner identity; PIN is only a browser convenience lock, not authorization; confidential hiring data currently loads before PIN unlock; person-specific notifications, push inbox and closed-app push were not recovered or implemented. Do not invent owners, dates, restaurant records, menu prices, vendors, or policies. For delegated straightforward work, use smaller/cheaper models as the user requested.
+
+## Current owner priorities and mobile contract
+
+The owner approved removing Google Drive. On `remove-google-drive`, its connect/save UI, status checks, OAuth/Drive server routes, client helper and exclusive SDK/session dependencies are removed. Note attachment preview, local download and CRUD remain. The regression check is `tests/no-google-drive.browser.mjs`; it is included in `npm run test:browser`.
+
+The current priority is: Drive removal → CI on pushes/PRs → owner-approved design polish → owners' opening-day must-haves and remaining functionality. This supersedes the older ordering that put visual polish last. CI is a separate `ci-test-build` branch; design evidence/plan is a separate `mobile-design-plan` branch. Do not merge or directly deploy these branches.
+
+Mobile below 1024px must retain exactly Today, Tasks, Calendar and Updates, with no additional tabs, menus or sections. Detailed desktop tools stay desktop-only. Keep short cards/forms, one clear primary action per screen, 44×44px touch targets and at least 16px body/input text. Mobile design work is polish only; ask before adding any mobile feature. Test 390×844 and 375×667 with no horizontal overflow or inaccessible content behind navigation/safe areas; also check 768/1024/1440 widths. Capture matching mobile and desktop before/after evidence. The attached owner handoff requires design-plan approval before visual implementation.
+
+Production remains on the owner's existing Vercel/Neon connection. Do not restore the obsolete Neon CLI project. This task made no production requests or SQL changes; live schema readiness and live editing remain owner verification items.

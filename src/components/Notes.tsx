@@ -220,7 +220,7 @@ export function NoteModal({ note, tasks, onSave, onClose }: { note: Note | null,
   );
 }
 
-export function NoteCard({ note, onOpen, onDelete, isDriveConnected, onSaveToDrive, onOpenLinkedTask, listMode = false }: { note: Note, onOpen: (n: Note) => void, onDelete: (id: number) => void, isDriveConnected: boolean, onSaveToDrive: (file: any) => void, onOpenLinkedTask?: (taskId: number) => void, listMode?: boolean, key?: any }) {
+export function NoteCard({ note, onOpen, onDelete, onOpenLinkedTask, listMode = false }: { note: Note, onOpen: (n: Note) => void, onDelete: (id: number) => void, onOpenLinkedTask?: (taskId: number) => void, listMode?: boolean, key?: any }) {
   const tc = NOTE_TAG_COLORS[note.tag] || NOTE_TAG_COLORS["General"];
   const preview = makePreview(note.body);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 1024;
@@ -267,9 +267,6 @@ export function NoteCard({ note, onOpen, onDelete, isDriveConnected, onSaveToDri
                     <a href={f.url} download={f.name} style={{ fontSize: 10, color: T.blue, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", textDecoration: "none", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} onClick={e => e.stopPropagation()}>{f.name}</a>
                   </>
                 }
-                {isDriveConnected && (
-                  <button onClick={e => { e.stopPropagation(); onSaveToDrive(f); }} title="Save to Drive" style={{ background: "rgba(255,255,255,0.85)", border: "none", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 10, position: "absolute", top: 2, right: 2, boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>G</button>
-                )}
               </div>
             ))}
             {note.files.length > 4 && <span style={{ fontSize: 11, color: T.muted, padding: "4px 8px", background: T.bg, borderRadius: 8, border: `1px solid ${T.border}` }}>+{note.files.length - 4}</span>}
@@ -286,7 +283,7 @@ export function NoteCard({ note, onOpen, onDelete, isDriveConnected, onSaveToDri
   );
 }
 
-export function NoteDetailModal({ note, tasks, onClose, onSave, onDelete, isDriveConnected, onSaveToDrive, onOpenLinkedTask }: { note: Note, tasks: Task[], onClose: () => void, onSave: (form: any) => Promise<boolean>, onDelete: (id: number) => void, isDriveConnected: boolean, onSaveToDrive: (file: any) => void, onOpenLinkedTask?: (taskId: number) => void }) {
+export function NoteDetailModal({ note, tasks, onClose, onSave, onDelete, onOpenLinkedTask }: { note: Note, tasks: Task[], onClose: () => void, onSave: (form: any) => Promise<boolean>, onDelete: (id: number) => void, onOpenLinkedTask?: (taskId: number) => void }) {
   const [form, setForm] = React.useState<any>({ ...note, files: [...(note.files || [])] });
   const draft = useDraftSave(onClose);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
@@ -522,9 +519,6 @@ export function NoteDetailModal({ note, tasks, onClose, onSave, onDelete, isDriv
                         <X size={12} />
                       </button>
                     )}
-                    {isDriveConnected && !editMode && (
-                      <button onClick={e => { e.stopPropagation(); onSaveToDrive(f); }} title="Save to Drive" style={{ position: "absolute", top: 5, left: 5, background: "rgba(255,255,255,0.85)", border: "none", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 10, fontWeight: 700 }}>G</button>
-                    )}
                   </div>
                 ))}
               </div>
@@ -542,9 +536,6 @@ export function NoteDetailModal({ note, tasks, onClose, onSave, onDelete, isDriv
                     </div>
                     {editMode && (
                       <button onClick={() => setForm((frm: any) => ({ ...frm, files: frm.files.filter((x: any) => x.id !== f.id) }))} style={{ background: T.redLight, border: `1px solid ${T.redBorder}`, borderRadius: "50%", width: 20, height: 20, color: T.red, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0, marginLeft: 4 }}><X size={11} /></button>
-                    )}
-                    {isDriveConnected && !editMode && (
-                      <button onClick={() => onSaveToDrive(f)} title="Save to Drive" style={{ background: "rgba(255,255,255,0.85)", border: "none", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 10, fontWeight: 700 }}>G</button>
                     )}
                   </div>
                 ))}

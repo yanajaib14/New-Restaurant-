@@ -15,7 +15,7 @@ This application serves as a central workspace for launch tasks, menu planning, 
 -   **Operations Portal**: Manage vendors, inventory par levels, permits, and utilities in one place.
 -   **Marketing & Training**: Plan your opening campaign and manage staff training modules with progress tracking.
 -   **Talent & Hiring**: Manage roles, candidates, and trial shifts. The browser PIN is a convenience lock, not server authorization; sensitive hiring data is not protected by individual accounts yet.
--   **Cloud Integration**: Export your consolidated shopping lists and data directly to Google Drive.
+-   **Local Exports**: Download supported CSV exports and note attachments locally.
 
 ## 🛠️ Tech Stack
 
@@ -23,7 +23,7 @@ This application serves as a central workspace for launch tasks, menu planning, 
 -   **Icons**: Lucide React
 -   **Backend**: Node.js, Express, Vercel API handlers
 -   **Database**: Neon Postgres accessed through server-side `pg` routes; the browser does not receive database credentials
--   **Optional integrations**: Google Gemini and Google Drive
+-   **Optional integrations**: Google Gemini
 
 ## 🗄️ Database setup
 
@@ -67,7 +67,7 @@ Neon database setup does not establish sign-in or secure partner permissions. Th
 
 -   `/src/App.tsx`: Main application logic and routing.
 -   `/src/components/`: Modular UI components for each feature area.
--   `/src/services/`: Integration services for Gemini AI and Google Drive.
+-   `/src/services/`: The same-origin data client and other application services.
 -   `/server.ts`: Express server configuration.
 
 ---
