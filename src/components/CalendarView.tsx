@@ -3,17 +3,18 @@ import { T, Task, MarketingPost, TrainingModule, Candidate, Permit,
   CalendarEvent, CalendarEventType, CALENDAR_EVENT_TYPES, CALENDAR_EVENT_COLORS } from '../types';
 import { Modal, Field, inpStyle, selStyle, Btn } from './UI';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Clock, X, PenLine, Trash2 } from 'lucide-react';
+import { useDraftSave, DraftSaveError } from '../hooks/useDraftSave';
 
-const toDateStr = (date: Date) => date.toISOString().split('T')[0];
+const toDateStr = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
 const fmtDate = (ds: string) => {
   const d = new Date(ds + 'T12:00:00');
-  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Phoenix' });
+  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 };
 
 const fmtShort = (ds: string) => {
   const d = new Date(ds + 'T12:00:00');
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Phoenix' });
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
 // ─── CalendarEventModal ──────────────────────────────────────────────────────
@@ -26,15 +27,16 @@ export function CalendarEventModal({
 }: {
   event: CalendarEvent | null;
   initialDate?: string;
-  onSave: (form: any) => void;
+  onSave: (form: any) => boolean | Promise<boolean>;
   onClose: () => void;
 }) {
   const blank = { title: '', date: initialDate || toDateStr(new Date()), time: '', type: 'Event' as CalendarEventType, notes: '' };
   const [form, setForm] = React.useState<any>(event ? { ...event } : blank);
+  const draftSave = useDraftSave(onClose);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
   return (
-    <Modal title={event ? 'Edit Event' : 'New Event'} onClose={onClose} width={480}>
+    <Modal title={event ? 'Edit Event' : 'New Event'} onClose={draftSave.close} width={480}>
       <Field label="TITLE">
         <input
           value={form.title}
@@ -75,9 +77,10 @@ export function CalendarEventModal({
           rows={3} style={{ ...inpStyle, resize: 'vertical', lineHeight: 1.6 }} />
       </Field>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
-        <Btn onClick={onClose} variant="ghost">Cancel</Btn>
-        <Btn onClick={() => { if (form.title.trim()) onSave(form); }} variant="primary">
-          {event ? 'Save Changes' : 'Add Event'}
+        <DraftSaveError error={draftSave.error} />
+        <Btn onClick={draftSave.close} variant="ghost" disabled={draftSave.pending}>Cancel</Btn>
+        <Btn onClick={() => { if (form.title.trim()) draftSave.save(() => onSave(form)).then(ok => { if (ok) onClose(); }); }} variant="primary" disabled={draftSave.pending}>
+          {draftSave.pending ? 'Saving…' : event ? 'Save Changes' : 'Add Event'}
         </Btn>
       </div>
     </Modal>
@@ -396,7 +399,7 @@ export function FullCalendar({
   onEditMkt: (m: any) => void;
   onEditTrain: (t: any) => void;
   onEditCan: (c: any) => void;
-  onSaveCalendarEvent: (form: any) => void;
+  onSaveCalendarEvent: (form: any) => boolean | Promise<boolean>;
   onDeleteCalendarEvent: (id: number) => void;
   initialSelectedDate?: string | null;
 }) {
@@ -465,9 +468,7 @@ export function FullCalendar({
   }, [initialSelectedDate]);
 
   const handleSaveEvent = (form: any) => {
-    onSaveCalendarEvent({ ...form, _editId: eventModal !== 'new' ? (eventModal as CalendarEvent)?.id : undefined });
-    setEventModal(null);
-    // Keep day panel open so user can see the new event
+    return onSaveCalendarEvent({ ...form, _editId: eventModal !== 'new' ? (eventModal as CalendarEvent)?.id : undefined });
   };
 
   const handleDeleteEvent = (id: number) => {
@@ -494,7 +495,7 @@ export function FullCalendar({
             letterSpacing: 1.2, fontWeight: 700, marginBottom: 4 }}>PROJECT CALENDAR</div>
           <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, color: T.text,
             fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif" }}>
-            {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'America/Phoenix' })}
+            {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -626,6 +627,16 @@ export function FullCalendar({
                         <div style={{ fontSize: 7, color: T.muted, lineHeight: '5px' }}>+</div>
                       )}
                     </div>
+                  )}
+                  {totalCount === 0 && (
+                    <button
+                      type="button"
+                      aria-label={`Add event on ${fmtDate(ds)}`}
+                      title={`Add event on ${fmtShort(ds)}`}
+                      onClick={e => { e.stopPropagation(); setSelectedDay(ds); setEventModal('new'); }}
+                      style={{ position: 'absolute', right: 5, bottom: 4, border: `1px solid ${T.goldBorder}`, borderRadius: 6,
+                        background: T.goldLight, color: T.gold, padding: '2px 5px', cursor: 'pointer', fontSize: 10, lineHeight: 1.2 }}
+                    >+ Add Event</button>
                   )}
                 </div>
               );

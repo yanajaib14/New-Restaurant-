@@ -1,45 +1,15 @@
 import type pg from "pg";
 
-// Logic for the settings and access-list endpoints, shared by the local
+// Logic for the access-list endpoints, shared by the local
 // Express server (server.ts) and the Vercel functions in /api.
 // Each returns an HTTP status and a JSON body.
 
 type Result = { status: number; body: Record<string, unknown> };
 
-const DEFAULT_TITLE = "ไกลกังวล";
-
 const fail = (error: any, fallback: string): Result => {
   console.error(fallback, error);
   return { status: 500, body: { error: error?.message || fallback } };
 };
-
-export async function getTitle(pool: pg.Pool | null): Promise<Result> {
-  if (!pool) return { status: 200, body: { ok: true, title: DEFAULT_TITLE, preview: true } };
-  try {
-    const result = await pool.query(`SELECT value FROM app_settings WHERE key = 'app_title' LIMIT 1`);
-    return { status: 200, body: { ok: true, title: result.rows[0]?.value || DEFAULT_TITLE } };
-  } catch (error) {
-    return fail(error, "Settings read failed");
-  }
-}
-
-export async function setTitle(pool: pg.Pool | null, rawTitle: unknown): Promise<Result> {
-  const title = String(rawTitle || "").trim();
-  if (!title) return { status: 400, body: { error: "Missing title" } };
-  if (title.length > 200) return { status: 400, body: { error: "Title is too long" } };
-  if (!pool) return { status: 200, body: { ok: true, title, preview: true } };
-  try {
-    await pool.query(
-      `INSERT INTO app_settings (key, value, updated_at)
-       VALUES ('app_title', $1, NOW())
-       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
-      [title]
-    );
-    return { status: 200, body: { ok: true, title } };
-  } catch (error) {
-    return fail(error, "Settings update failed");
-  }
-}
 
 export async function listAccessUsers(pool: pg.Pool | null): Promise<Result> {
   if (!pool) return { status: 200, body: { ok: true, users: [], preview: true } };

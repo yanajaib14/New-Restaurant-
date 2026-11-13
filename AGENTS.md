@@ -1,3 +1,13 @@
+# Current database provider: Neon
+
+The app runs on Neon Postgres (see `docs/neon-setup.md`). Browser data access goes
+through `/api/records/:table`; server code uses the pooled DATABASE_URL via
+`server/database.ts`. Schema changes are additive files in `migrations/`; apply them
+with `npm run db:migrate` (DATABASE_URL_UNPOOLED) or by pasting the regenerated
+`db/neon-setup.sql` into the Neon SQL Editor. Do not run schema.sql. Do not re-link
+a Neon CLI project; the Vercel DATABASE_URL is the source of truth.
+The InsForge guidance below is historical and does not override this migration.
+
 ---
 description: Instructions building apps with MCP
 globs: *

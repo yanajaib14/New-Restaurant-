@@ -3,17 +3,19 @@ import { T, CATEGORIES, Task, Note } from '../types';
 import { Modal, Field, inpStyle, selStyle, Btn } from './UI';
 import { PartnerBadge } from './Enhancements';
 import { PenLine, Trash2 } from 'lucide-react';
+import { useDraftSave, DraftSaveError } from '../hooks/useDraftSave';
 
-export function TaskModal({ task, initialDate, notes, onSave, onClose }: { task: Task | null, initialDate?: string, notes: Note[], onSave: (form: any) => void, onClose: () => void }) {
+export function TaskModal({ task, initialDate, notes, onSave, onClose }: { task: Task | null, initialDate?: string, notes: Note[], onSave: (form: any) => boolean | Promise<boolean>, onClose: () => void }) {
   const isMobile = window.innerWidth < 1024;
   const blank = { task: "", category: "Lease & TI", due: initialDate || "", status: "Not Started", priority: "Medium", checklist: [], assignedTo: "", isCritical: false, linkedNoteId: null };
   const [form, setForm] = useState<any>(task ? { ...task, checklist: task.checklist.map(c => ({ ...c })) } : blank);
   const [newItem, setNewItem] = useState("");
+  const draftSave = useDraftSave(onClose);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
   const addItem = () => { if (!newItem.trim()) return; setForm((f: any) => ({ ...f, checklist: [...f.checklist, { id: Date.now(), text: newItem.trim(), done: false, assignedTo: "" }] })); setNewItem(""); };
 
   return (
-    <Modal title={task ? "Edit Task" : "New Task"} onClose={onClose}>
+    <Modal title={task ? "Edit Task" : "New Task"} onClose={draftSave.close}>
       <Field label="TASK NAME"><input value={form.task} onChange={e => set("task", e.target.value)} placeholder="e.g. Apply for Health Permit" style={inpStyle} /></Field>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, background: form.isCritical ? T.redLight : T.bg, padding: "8px 12px", borderRadius: 8, border: `1px solid ${form.isCritical ? T.redBorder : T.border}`, transition: "all .2s" }}>
         <input type="checkbox" checked={form.isCritical} onChange={e => set("isCritical", e.target.checked)} style={{ cursor: "pointer", width: 16, height: 16 }} />
@@ -24,7 +26,7 @@ export function TaskModal({ task, initialDate, notes, onSave, onClose }: { task:
         <Field label="CATEGORY"><select value={form.category} onChange={e => set("category", e.target.value)} style={selStyle}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></Field>
         <Field label="PRIORITY"><select value={form.priority} onChange={e => set("priority", e.target.value)} style={selStyle}>{["Low", "Medium", "High", "Critical"].map(p => <option key={p}>{p}</option>)}</select></Field>
         <Field label="DUE DATE"><input type="date" value={form.due} onChange={e => set("due", e.target.value)} style={inpStyle} /></Field>
-        <Field label="STATUS"><select value={form.status} onChange={e => set("status", e.target.value)} style={selStyle}>{["Not Started", "In Progress", "Complete", "Overdue"].map(s => <option key={s}>{s}</option>)}</select></Field>
+        <Field label="STATUS"><select value={form.status} onChange={e => set("status", e.target.value)} style={selStyle}>{["Not Started", "In Progress", "Needs review", "Complete", "Overdue"].map(s => <option key={s}>{s}</option>)}</select></Field>
       </div>
       <Field label="ASSIGNED TO">
         <input list="assignee-suggestions" value={form.assignedTo} onChange={e => set("assignedTo", e.target.value)} placeholder="Anyone — e.g. B, C, Alex, Manager" style={inpStyle} />
@@ -62,11 +64,12 @@ export function TaskModal({ task, initialDate, notes, onSave, onClose }: { task:
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20, flexWrap: "wrap" }}>
         {task && (
           <div style={{ marginRight: "auto" }}>
-            <Btn onClick={() => onSave({ ...form, _delete: true })} variant="outline" style={{ color: T.red, borderColor: T.redBorder }} title="Delete task"><Trash2 size={13} /></Btn>
+            <Btn onClick={() => draftSave.save(() => onSave({ ...form, _delete: true })).then(ok => { if (ok) onClose(); })} variant="outline" style={{ color: T.red, borderColor: T.redBorder }} title="Delete task" disabled={draftSave.pending}><Trash2 size={13} /></Btn>
           </div>
         )}
-        <Btn onClick={onClose} variant="ghost">Cancel</Btn>
-        <Btn onClick={() => { if (form.task.trim()) onSave(form); }} variant="primary">{task ? "Save Changes" : "Create Task"}</Btn>
+        <DraftSaveError error={draftSave.error} />
+        <Btn onClick={draftSave.close} variant="ghost" disabled={draftSave.pending}>Cancel</Btn>
+        <Btn onClick={() => { if (form.task.trim()) draftSave.save(() => onSave(form)).then(ok => { if (ok) onClose(); }); }} variant="primary" disabled={draftSave.pending}>{draftSave.pending ? "Saving…" : task ? "Save Changes" : "Create Task"}</Btn>
       </div>
     </Modal>
   );
@@ -184,7 +187,7 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange, onSaveChecklis
             style={{ background: "#FFF", border: `1px solid ${T.border}`, color: T.text, borderRadius: 20, padding: "4px 10px", fontSize: 11, cursor: isBlocked ? "not-allowed" : "pointer", outline: "none", fontWeight: 700, whiteSpace: "nowrap", opacity: isBlocked ? 0.6 : 1 }}
             disabled={isBlocked}
           >
-            {["Not Started", "In Progress", "Complete", "Overdue"].map(s => <option key={s}>{s}</option>)}
+            {["Not Started", "In Progress", "Needs review", "Complete", "Overdue"].map(s => <option key={s}>{s}</option>)}
           </select>
           {blockedReason && <div style={{ fontSize: 10, color: T.subtle, maxWidth: 190, textAlign: "right" }}>{blockedReason}</div>}
           <div style={{ display: "flex", gap: 2 }}>

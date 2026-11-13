@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { T, WHEN_COLORS } from '../types';
+import React, { useState } from 'react';
+import { T } from '../types';
 import { Btn } from './UI';
-import { PenLine, Trash2, Plus } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 
 type RuleItem = { id: number; title: string; detail: string };
 type RuleCategory = { id: number; category: string; icon: string; rules: RuleItem[] };
@@ -296,629 +296,165 @@ const INIT_ROLES: RoleCard[] = [
   },
 ];
 
-const HOUSE_RULES_STORAGE_KEY = 'restaurant_house_rules_v1';
-const TEAM_ROLES_STORAGE_KEY = 'restaurant_team_roles_v1';
+const DRAFT_KEY = 'restaurant_team_onboarding_shared_draft_v1';
+const EMPTY_RECORD = { id: 1, roles: [] as RoleCard[], rule_categories: [] as RuleCategory[], completion: {} as Record<string, boolean> };
+const normalizeRecord = (record: any) => ({
+  id: 1,
+  roles: Array.isArray(record?.roles) ? record.roles : [],
+  rule_categories: Array.isArray(record?.rule_categories) ? record.rule_categories : [],
+  completion: record?.completion && typeof record.completion === 'object' ? record.completion : {},
+});
 
-const readStoredArray = <T,>(key: string, fallback: T[]): T[] => {
-  if (typeof window === 'undefined') return fallback;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as T[]) : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
-const writeStoredArray = (key: string, value: unknown[]) => {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // Ignore storage write errors.
-  }
-};
-
-export function TeamOnboarding() {
+export function TeamOnboarding({ record, onSave, loadError }: { record: any | null; onSave: (payload: any) => Promise<boolean>; loadError?: string }) {
   const isMobile = window.innerWidth < 1024;
-  const [section, setSection] = useState('roles');
-  const [activeRole, setActiveRole] = useState('server');
-  const [activeCat, setActiveCat] = useState<number | null>(null);
-  const [expandedRule, setExpandedRule] = useState<string | null>(null);
-  const [expandedTask, setExpandedTask] = useState<string | number | null>(null);
+  const [section, setSection] = useState<'roles' | 'rules' | 'checklist'>('roles');
+  const [data, setData] = useState(() => normalizeRecord(record ?? EMPTY_RECORD));
+  const [activeRoleId, setActiveRoleId] = useState<string | null>(null);
   const [whenFilter, setWhenFilter] = useState('All');
-  const [checkedTasks, setCheckedTasks] = useState<Record<string, boolean>>({});
-  const [editingRule, setEditingRule] = useState<(RuleItem & { catId: number }) | null>(null);
-  const [editingTask, setEditingTask] = useState<(SideworkTask & { roleId: string }) | null>(null);
-  const [houseRules, setHouseRules] = useState<RuleCategory[]>(() => readStoredArray<RuleCategory>(HOUSE_RULES_STORAGE_KEY, INIT_HOUSE_RULES));
-  const [roles, setRoles] = useState<RoleCard[]>(() => readStoredArray<RoleCard>(TEAM_ROLES_STORAGE_KEY, INIT_ROLES));
-  const [newRuleText, setNewRuleText] = useState({ title: '', detail: '' });
-  const [newTaskText, setNewTaskText] = useState({ task: '', when: 'Opening', detail: '' });
-  const [addingRuleTo, setAddingRuleTo] = useState<number | null>(null);
-  const [addingTaskTo, setAddingTaskTo] = useState<string | null>(null);
-  const [editingCat, setEditingCat] = useState<RuleCategory | null>(null);
-  const [addingCat, setAddingCat] = useState(false);
-  const [newCatText, setNewCatText] = useState({ category: '', icon: '' });
+  const [pending, setPending] = useState(false);
+  const pendingRef = React.useRef(false);
+  const [saveError, setSaveError] = useState('');
+  const [dirty, setDirty] = useState(false);
+  const [remoteRecord, setRemoteRecord] = useState<any | null>(null);
+  const lastRecordRef = React.useRef(JSON.stringify(normalizeRecord(record ?? EMPTY_RECORD)));
+  const pendingPayloadRef = React.useRef<string | null>(null);
+  const editVersionRef = React.useRef(0);
+  const [recoveryDraft, setRecoveryDraft] = useState<any | null>(null);
+  const [roleDraft, setRoleDraft] = useState({ label: '', icon: '', description: '' });
+  const [taskDraft, setTaskDraft] = useState({ task: '', when: 'Opening', detail: '' });
+  const [categoryDraft, setCategoryDraft] = useState({ category: '', icon: '' });
+  const [ruleDraft, setRuleDraft] = useState({ title: '', detail: '' });
+  const [legacyReview, setLegacyReview] = useState(false);
 
-  const role = roles.find((entry) => entry.id === activeRole);
-  const filteredSidework = role
-    ? whenFilter === 'All'
-      ? role.sidework
-      : role.sidework.filter((task) => task.when === whenFilter)
-    : [];
+  React.useEffect(() => {
+    const incoming = normalizeRecord(record ?? EMPTY_RECORD);
+    const fingerprint = JSON.stringify(incoming);
+    if (fingerprint === lastRecordRef.current) return;
+    lastRecordRef.current = fingerprint;
+    if (pendingRef.current && pendingPayloadRef.current === fingerprint) {
+      setRemoteRecord(null);
+      return;
+    }
+    if (dirty || pendingRef.current) {
+      setRemoteRecord(incoming);
+      return;
+    }
+    setData(incoming);
+    setRemoteRecord(null);
+  }, [record, dirty]);
 
-  const toggleCheck = (roleId: string, taskId: string | number) => {
-    const key = `${roleId}:${taskId}`;
-    setCheckedTasks((previous) => ({ ...previous, [key]: !previous[key] }));
+  React.useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(DRAFT_KEY);
+      if (raw) setRecoveryDraft(normalizeRecord(JSON.parse(raw)));
+    } catch { /* Ignore invalid local recovery data. */ }
+  }, []);
+
+  const update = (change: (current: typeof data) => typeof data) => {
+    editVersionRef.current += 1;
+    setData(current => change(current));
+    setDirty(true);
+    setSaveError('');
   };
-
-  const isChecked = (roleId: string, taskId: string | number) => Boolean(checkedTasks[`${roleId}:${taskId}`]);
-
-  const roleProgress = (entry: RoleCard) => {
-    const total = entry.sidework.length;
-    const done = entry.sidework.filter((task) => isChecked(entry.id, task.id)).length;
-    return { done, total, pct: total ? Math.round((done / total) * 100) : 0 };
+  const saveShared = async () => {
+    if (pendingRef.current || !dirty) return;
+    pendingRef.current = true;
+    setPending(true);
+    setSaveError('');
+    const payload = { id: 1, roles: data.roles, rule_categories: data.rule_categories, completion: data.completion };
+    const payloadFingerprint = JSON.stringify(normalizeRecord(payload));
+    const saveVersion = editVersionRef.current;
+    pendingPayloadRef.current = payloadFingerprint;
+    try {
+      if (await onSave(payload) !== true) throw new Error('Could not save shared onboarding. Your draft is kept on this device.');
+      window.localStorage.removeItem(DRAFT_KEY);
+      setRecoveryDraft(null);
+      if (editVersionRef.current === saveVersion) {
+        setDirty(false);
+        setRemoteRecord(current => current && JSON.stringify(normalizeRecord(current)) === payloadFingerprint ? null : current);
+      }
+    } catch (error) {
+      try { window.localStorage.setItem(DRAFT_KEY, JSON.stringify(payload)); } catch { /* Keep the in-memory draft. */ }
+      setSaveError(error instanceof Error ? error.message : 'Could not save shared onboarding. Your draft is kept on this device.');
+    } finally {
+      pendingPayloadRef.current = null;
+      pendingRef.current = false;
+      setPending(false);
+    }
   };
-
-  const saveRule = (catId: number, rule: RuleItem) => {
-    setHouseRules((previous) =>
-      previous.map((cat) =>
-        cat.id === catId ? { ...cat, rules: cat.rules.map((item) => (item.id === rule.id ? rule : item)) } : cat,
-      ),
-    );
-    setEditingRule(null);
+  const restoreDraft = () => {
+    if (!recoveryDraft) return;
+    editVersionRef.current += 1;
+    setData(normalizeRecord(recoveryDraft));
+    setDirty(true);
+    setRecoveryDraft(null);
   };
-
-  const addRule = (catId: number) => {
-    if (!newRuleText.title.trim()) return;
-    setHouseRules((previous) =>
-      previous.map((cat) =>
-        cat.id === catId ? { ...cat, rules: [...cat.rules, { id: Date.now(), ...newRuleText }] } : cat,
-      ),
-    );
-    setNewRuleText({ title: '', detail: '' });
-    setAddingRuleTo(null);
+  const reloadRemoteRecord = () => {
+    if (!remoteRecord) return;
+    editVersionRef.current += 1;
+    setData(normalizeRecord(remoteRecord));
+    setDirty(false);
+    setRemoteRecord(null);
+    setSaveError('');
   };
-
-  const deleteRule = (catId: number, ruleId: number) => {
-    setHouseRules((previous) =>
-      previous.map((cat) =>
-        cat.id === catId ? { ...cat, rules: cat.rules.filter((rule) => rule.id !== ruleId) } : cat,
-      ),
-    );
+  const addRole = () => {
+    if (!roleDraft.label.trim()) return;
+    const id = `role-${Date.now()}`;
+    const role: RoleCard = { id, label: roleDraft.label.trim(), icon: roleDraft.icon.trim(), color: T.blue, colorLight: T.blueLight, colorBorder: T.blueBorder, description: roleDraft.description.trim(), sidework: [] };
+    update(current => ({ ...current, roles: [...current.roles, role] }));
+    setActiveRoleId(id);
+    setRoleDraft({ label: '', icon: '', description: '' });
   };
-
-  const saveCategory = (updated: RuleCategory) => {
-    setHouseRules((prev) => prev.map((cat) => cat.id === updated.id ? { ...cat, category: updated.category, icon: updated.icon } : cat));
-    setEditingCat(null);
-  };
-
-  const addCategory = () => {
-    if (!newCatText.category.trim()) return;
-    setHouseRules((prev) => [...prev, { id: Date.now(), category: newCatText.category, icon: newCatText.icon || '📋', rules: [] }]);
-    setNewCatText({ category: '', icon: '' });
-    setAddingCat(false);
-  };
-
-  const deleteCategory = (catId: number) => {
-    setHouseRules((prev) => prev.filter((cat) => cat.id !== catId));
-    if (activeCat === catId) setActiveCat(null);
-  };
-
   const addTask = (roleId: string) => {
-    if (!newTaskText.task.trim()) return;
-    setRoles((previous) =>
-      previous.map((entry) =>
-        entry.id === roleId ? { ...entry, sidework: [...entry.sidework, { id: Date.now(), ...newTaskText }] } : entry,
-      ),
-    );
-    setNewTaskText({ task: '', when: 'Opening', detail: '' });
-    setAddingTaskTo(null);
+    if (!taskDraft.task.trim()) return;
+    update(current => ({ ...current, roles: current.roles.map(role => role.id === roleId ? { ...role, sidework: [...role.sidework, { id: Date.now(), ...taskDraft, task: taskDraft.task.trim() }] } : role) }));
+    setTaskDraft({ task: '', when: 'Opening', detail: '' });
   };
-
-  const deleteTask = (roleId: string, taskId: string | number) => {
-    setRoles((previous) =>
-      previous.map((entry) =>
-        entry.id === roleId ? { ...entry, sidework: entry.sidework.filter((task) => task.id !== taskId) } : entry,
-      ),
-    );
+  const addCategory = () => {
+    if (!categoryDraft.category.trim()) return;
+    update(current => ({ ...current, rule_categories: [...current.rule_categories, { id: Date.now(), ...categoryDraft, category: categoryDraft.category.trim(), rules: [] }] }));
+    setCategoryDraft({ category: '', icon: '' });
   };
-
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    background: '#FAFAFA',
-    border: `1px solid ${T.border}`,
-    borderRadius: 7,
-    padding: '8px 11px',
-    color: T.text,
-    fontSize: 12,
-    fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+  const addRule = (categoryId: number) => {
+    if (!ruleDraft.title.trim()) return;
+    update(current => ({ ...current, rule_categories: current.rule_categories.map(category => category.id === categoryId ? { ...category, rules: [...category.rules, { id: Date.now(), ...ruleDraft, title: ruleDraft.title.trim() }] } : category) }));
+    setRuleDraft({ title: '', detail: '' });
   };
+  const toggleCompletion = (roleId: string, taskId: string | number) => {
+    const key = `${roleId}:${taskId}`;
+    update(current => ({ ...current, completion: { ...current.completion, [key]: !current.completion[key] } }));
+  };
+  const role = data.roles.find(item => item.id === activeRoleId) ?? data.roles[0];
+  const inputStyle: React.CSSProperties = { width: '100%', background: '#FAFAFA', border: `1px solid ${T.border}`, borderRadius: 7, padding: '8px 11px', color: T.text, fontSize: 12, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif" };
+  const cardStyle: React.CSSProperties = { background: '#FFF', border: `1px solid ${T.border}`, borderRadius: 12, padding: 16 };
+  const actionStyle: React.CSSProperties = { background: '#FFF', border: `1px solid ${T.border}`, borderRadius: 6, padding: '4px 7px', color: T.muted, cursor: 'pointer' };
 
-  useEffect(() => {
-    writeStoredArray(HOUSE_RULES_STORAGE_KEY, houseRules as unknown[]);
-  }, [houseRules]);
-
-  useEffect(() => {
-    writeStoredArray(TEAM_ROLES_STORAGE_KEY, roles as unknown[]);
-  }, [roles]);
-
-  return (
-    <div className="fu">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-        <div>
-          <h2 style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: 22, margin: '0 0 3px', fontWeight: 700, color: T.text }}>
-            Team Onboarding
-          </h2>
-          <p style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", color: T.muted, fontSize: 12, margin: 0 }}>
-            House rules, role responsibilities, and sidework checklists for every team member
-          </p>
-        </div>
-      </div>
-
-      <div
-        style={{
-          display: 'flex',
-          background: T.bg,
-          border: `1px solid ${T.border}`,
-          borderRadius: 10,
-          padding: 3,
-          gap: 3,
-          marginBottom: 22,
-          width: isMobile ? '100%' : 'fit-content',
-          overflowX: isMobile ? 'auto' : 'visible',
-        }}
-      >
-        {[
-          ['roles', 'Roles & Sidework'],
-          ['rules', 'House Rules'],
-          ['checklist', 'Shift Checklist'],
-        ].map(([id, label]) => (
-          <button
-            key={id}
-            onClick={() => setSection(id)}
-            style={{
-              background: section === id ? '#FFF' : 'transparent',
-              border: section === id ? `1px solid ${T.borderStrong}` : '1px solid transparent',
-              borderRadius: 8,
-              padding: isMobile ? '8px 12px' : '8px 20px',
-              cursor: 'pointer',
-              fontSize: 12,
-              fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
-              fontWeight: section === id ? 600 : 400,
-              color: section === id ? T.text : T.muted,
-              boxShadow: section === id ? '0 1px 4px rgba(0,0,0,.07)' : 'none',
-              transition: 'all .15s',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {section === 'roles' && (
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '220px 1fr', gap: 14 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {roles.map((entry) => {
-              const { done, total, pct } = roleProgress(entry);
-              const active = activeRole === entry.id;
-              return (
-                <button
-                  key={entry.id}
-                  onClick={() => {
-                    setActiveRole(entry.id);
-                    setWhenFilter('All');
-                    setExpandedTask(null);
-                  }}
-                  style={{
-                    background: active ? '#FFF' : T.bg,
-                    border: `1px solid ${active ? entry.colorBorder : T.border}`,
-                    borderRadius: 10,
-                    padding: '12px 14px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all .15s',
-                    boxShadow: active ? '0 2px 8px rgba(0,0,0,.06)' : 'none',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <span style={{ fontSize: 18 }}>{entry.icon}</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: active ? entry.color : T.text }}>{entry.label}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{ flex: 1, height: 3, background: T.border, borderRadius: 2 }}>
-                      <div style={{ height: '100%', width: `${pct}%`, background: entry.color, borderRadius: 2, transition: 'width .3s' }} />
-                    </div>
-                    <span style={{ fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: T.muted }}>{done}/{total}</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {role && (
-            <div>
-              <div style={{ background: '#FFF', border: `1px solid ${T.border}`, borderRadius: 12, padding: isMobile ? 14 : 20, marginBottom: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                  <span style={{ fontSize: 26 }}>{role.icon}</span>
-                  <div>
-                    <div style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: 18, fontWeight: 700, color: T.text }}>{role.label}</div>
-                    <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>{role.description}</div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-                  {['All', 'Opening', 'During Service', 'Closing'].map((when) => {
-                    const colors = WHEN_COLORS[when] || { bg: T.bg, dot: T.muted, border: T.border };
-                    const active = whenFilter === when;
-                    return (
-                      <button
-                        key={when}
-                        onClick={() => setWhenFilter(when)}
-                        style={{
-                          cursor: 'pointer',
-                          borderRadius: 20,
-                          padding: '5px 12px',
-                          fontSize: 11,
-                          fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
-                          border: `1px solid ${active ? colors.dot : T.border}`,
-                          background: active ? colors.bg : '#FFF',
-                          color: active ? colors.dot : T.muted,
-                          fontWeight: active ? 600 : 400,
-                          transition: 'all .15s',
-                        }}
-                      >
-                        {when}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div style={{ background: '#FFF', border: `1px solid ${T.border}`, borderRadius: 12, overflow: 'hidden' }}>
-                {filteredSidework.map((task, index) => {
-                  const checked = isChecked(role.id, task.id);
-                  const colors = WHEN_COLORS[task.when] || WHEN_COLORS.Opening;
-                  const isExpanded = expandedTask === task.id;
-                  const isEditing = editingTask?.id === task.id;
-                  return (
-                    <div key={task.id} style={{ borderBottom: `1px solid ${T.border}`, background: checked ? role.colorLight : index % 2 === 0 ? '#FFF' : T.bg }}>
-                      <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', gap: 12, padding: isMobile ? '11px 12px' : '13px 18px' }}>
-                        <button
-                          onClick={() => toggleCheck(role.id, task.id)}
-                          style={{
-                            width: 20,
-                            height: 20,
-                            minWidth: 20,
-                            border: `2px solid ${checked ? role.color : T.border}`,
-                            borderRadius: 4,
-                            background: checked ? role.color : '#FFF',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: 0,
-                            flexShrink: 0,
-                            transition: 'all .15s',
-                          }}
-                        >
-                          {checked && <span style={{ color: '#FFF', fontSize: 12, lineHeight: 1 }}>x</span>}
-                        </button>
-                        <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setExpandedTask(isExpanded ? null : task.id)}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: 13, fontWeight: 500, color: checked ? T.muted : T.text, textDecoration: checked ? 'line-through' : 'none' }}>{task.task}</span>
-                            <span style={{ fontSize: 10, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontWeight: 500, padding: '2px 8px', borderRadius: 12, background: colors.bg, color: colors.dot, border: `1px solid ${T.border}` }}>{task.when}</span>
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-                          <button
-                            onClick={() => setExpandedTask(isExpanded ? null : task.id)}
-                            style={{ background: 'none', border: `1px solid ${T.border}`, borderRadius: 6, padding: '3px 8px', color: T.muted, cursor: 'pointer', fontSize: 11, transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}
-                          >
-                            {'>'}
-                          </button>
-                          <button
-                            onClick={() => setEditingTask(isEditing ? null : { ...task, roleId: role.id })}
-                            title="Edit task"
-                            style={{ background: 'none', border: `1px solid ${T.border}`, borderRadius: 6, padding: '3px 8px', color: T.muted, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center' }}
-                          >
-                            <PenLine size={12} />
-                          </button>
-                          <button
-                            onClick={() => deleteTask(role.id, task.id)}
-                            title="Delete task"
-                            style={{ background: 'none', border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: '3px 8px', color: T.red, cursor: 'pointer', fontSize: 11, display: 'flex', alignItems: 'center' }}
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      </div>
-                      {isExpanded && !isEditing && (
-                        <div style={{ padding: isMobile ? '0 12px 12px 44px' : '0 18px 14px 50px', fontSize: 12, color: '#555', lineHeight: 1.7, fontStyle: 'italic' }}>{task.detail}</div>
-                      )}
-                      {isEditing && editingTask && (
-                        <div style={{ padding: isMobile ? '0 12px 12px 44px' : '0 18px 14px 50px' }}>
-                          <input value={editingTask.task} onChange={(event) => setEditingTask((previous) => (previous ? { ...previous, task: event.target.value } : previous))} style={{ ...inputStyle, marginBottom: 8 }} />
-                          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                            <select value={editingTask.when} onChange={(event) => setEditingTask((previous) => (previous ? { ...previous, when: event.target.value } : previous))} style={{ ...inputStyle, width: isMobile ? '100%' : 160 }}>
-                              {['Opening', 'During Service', 'Closing'].map((when) => (
-                                <option key={when}>{when}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <textarea value={editingTask.detail} onChange={(event) => setEditingTask((previous) => (previous ? { ...previous, detail: event.target.value } : previous))} rows={2} style={{ ...inputStyle, resize: 'vertical', marginBottom: 8 }} />
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <Btn
-                              variant="primary"
-                              small
-                              onClick={() => {
-                                setRoles((previous) =>
-                                  previous.map((entry) =>
-                                    entry.id === editingTask.roleId
-                                      ? { ...entry, sidework: entry.sidework.map((taskItem) => (taskItem.id === editingTask.id ? { id: editingTask.id, task: editingTask.task, when: editingTask.when, detail: editingTask.detail } : taskItem)) }
-                                      : entry,
-                                  ),
-                                );
-                                setEditingTask(null);
-                              }}
-                            >
-                              Save
-                            </Btn>
-                            <Btn variant="ghost" small onClick={() => setEditingTask(null)}>
-                              Cancel
-                            </Btn>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-                {addingTaskTo === role.id ? (
-                  <div style={{ padding: 16, borderTop: `1px solid ${T.border}`, background: T.bg }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 160px', gap: 8, marginBottom: 8 }}>
-                      <input value={newTaskText.task} onChange={(event) => setNewTaskText((previous) => ({ ...previous, task: event.target.value }))} placeholder="Sidework task name..." style={inputStyle} />
-                      <select value={newTaskText.when} onChange={(event) => setNewTaskText((previous) => ({ ...previous, when: event.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
-                        {['Opening', 'During Service', 'Closing'].map((when) => (
-                          <option key={when}>{when}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <textarea value={newTaskText.detail} onChange={(event) => setNewTaskText((previous) => ({ ...previous, detail: event.target.value }))} placeholder="Describe the task in detail..." rows={2} style={{ ...inputStyle, resize: 'vertical', marginBottom: 8 }} />
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <Btn variant="primary" small onClick={() => addTask(role.id)}>
-                        Add Task
-                      </Btn>
-                      <Btn variant="ghost" small onClick={() => setAddingTaskTo(null)}>
-                        Cancel
-                      </Btn>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ padding: '10px 18px', borderTop: `1px solid ${T.border}` }}>
-                    <button
-                      onClick={() => setAddingTaskTo(role.id)}
-                      style={{ background: 'none', border: `1px dashed ${T.borderStrong}`, borderRadius: 7, padding: '6px 14px', color: T.muted, cursor: 'pointer', fontSize: 12, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif" }}
-                    >
-                      + Add Sidework Task
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {section === 'rules' && (
-        <div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 18, alignItems: 'center' }}>
-            <button
-              onClick={() => setActiveCat(null)}
-              style={{ cursor: 'pointer', borderRadius: 20, padding: '5px 12px', fontSize: 11, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", border: `1px solid ${activeCat === null ? T.gold : T.border}`, background: activeCat === null ? T.goldLight : '#FFF', color: activeCat === null ? T.gold : T.muted, fontWeight: activeCat === null ? 600 : 400 }}
-            >
-              All Categories
-            </button>
-            {houseRules.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCat(activeCat === cat.id ? null : cat.id)}
-                style={{ cursor: 'pointer', borderRadius: 20, padding: '5px 12px', fontSize: 11, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", border: `1px solid ${activeCat === cat.id ? T.gold : T.border}`, background: activeCat === cat.id ? T.goldLight : '#FFF', color: activeCat === cat.id ? T.gold : T.muted, fontWeight: activeCat === cat.id ? 600 : 400 }}
-              >
-                {cat.icon} {cat.category}
-              </button>
-            ))}
-            <button
-              onClick={() => setAddingCat(true)}
-              style={{ cursor: 'pointer', borderRadius: 20, padding: '5px 12px', fontSize: 11, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", border: `1px dashed ${T.borderStrong}`, background: '#FFF', color: T.muted, display: 'flex', alignItems: 'center', gap: 4 }}
-            >
-              <Plus size={11} /> New Category
-            </button>
-          </div>
-
-          {/* Add Category inline form */}
-          {addingCat && (
-            <div style={{ background: '#FFF', border: `1px solid ${T.border}`, borderRadius: 10, padding: 14, marginBottom: 16, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <div style={{ flex: 1, minWidth: 120 }}>
-                <div style={{ fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: T.muted, marginBottom: 4 }}>ICON (emoji)</div>
-                <input value={newCatText.icon} onChange={(e) => setNewCatText((p) => ({ ...p, icon: e.target.value }))} placeholder="📋" style={{ ...inputStyle, width: 60 }} maxLength={2} />
-              </div>
-              <div style={{ flex: 3, minWidth: 160 }}>
-                <div style={{ fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: T.muted, marginBottom: 4 }}>CATEGORY NAME</div>
-                <input value={newCatText.category} onChange={(e) => setNewCatText((p) => ({ ...p, category: e.target.value }))} placeholder="e.g. Health & Safety" style={inputStyle} />
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Btn variant="primary" small onClick={addCategory}>Add</Btn>
-                <Btn variant="ghost" small onClick={() => { setAddingCat(false); setNewCatText({ category: '', icon: '' }); }}>Cancel</Btn>
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill,minmax(${isMobile ? 260 : 420}px,1fr))`, gap: 14 }}>
-            {houseRules
-              .filter((cat) => activeCat === null || cat.id === activeCat)
-              .map((cat) => (
-                <div key={cat.id} style={{ background: '#FFF', border: `1px solid ${T.border}`, borderRadius: 12, overflow: 'hidden' }}>
-                  {/* Category header */}
-                  {editingCat?.id === cat.id ? (
-                    <div style={{ padding: '12px 18px', background: T.goldLight, borderBottom: `1px solid ${T.goldBorder}`, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                      <input value={editingCat.icon} onChange={(e) => setEditingCat((p) => p ? { ...p, icon: e.target.value } : p)} style={{ ...inputStyle, width: 52 }} maxLength={2} placeholder="📋" />
-                      <input value={editingCat.category} onChange={(e) => setEditingCat((p) => p ? { ...p, category: e.target.value } : p)} style={{ ...inputStyle, flex: 1, minWidth: 120 }} placeholder="Category name" />
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <Btn variant="primary" small onClick={() => saveCategory(editingCat)}>Save</Btn>
-                        <Btn variant="ghost" small onClick={() => setEditingCat(null)}>Cancel</Btn>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ padding: '14px 18px', background: T.goldLight, borderBottom: `1px solid ${T.goldBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 18 }}>{cat.icon}</span>
-                        <span style={{ fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", fontSize: 14, fontWeight: 700, color: T.text }}>{cat.category}</span>
-                        <span style={{ fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: T.muted }}>{cat.rules.length} rules</span>
-                      </div>
-                      <div style={{ display: 'flex', gap: 5 }}>
-                        <button onClick={() => setEditingCat({ ...cat })} title="Edit category" style={{ background: 'none', border: `1px solid ${T.goldBorder}`, borderRadius: 6, padding: '4px 6px', color: T.gold, cursor: 'pointer', display: 'flex', alignItems: 'center' }}><PenLine size={12} /></button>
-                        <button onClick={() => deleteCategory(cat.id)} title="Delete category" style={{ background: 'none', border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: '4px 6px', color: T.red, cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Trash2 size={12} /></button>
-                      </div>
-                    </div>
-                  )}
-                  {cat.rules.map((rule, index) => {
-                    const isExpanded = expandedRule === `${cat.id}:${rule.id}`;
-                    const isEditing = editingRule?.id === rule.id;
-                    return (
-                      <div key={rule.id} style={{ borderBottom: `1px solid ${T.border}`, background: index % 2 === 0 ? '#FFF' : T.bg }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 18px' }}>
-                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: T.gold, flexShrink: 0 }} />
-                          <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setExpandedRule(isExpanded ? null : `${cat.id}:${rule.id}`)}>
-                            <span style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{rule.title}</span>
-                          </div>
-                          <div style={{ display: 'flex', gap: 5 }}>
-                            <button
-                              onClick={() => setExpandedRule(isExpanded ? null : `${cat.id}:${rule.id}`)}
-                              style={{ background: 'none', border: `1px solid ${T.border}`, borderRadius: 6, padding: '3px 7px', color: T.muted, cursor: 'pointer', fontSize: 11, transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}
-                            >
-                              {'>'}
-                            </button>
-                            <button
-                              onClick={() => setEditingRule(isEditing ? null : { ...rule, catId: cat.id })}
-                              title="Edit rule"
-                              style={{ background: 'none', border: `1px solid ${T.border}`, borderRadius: 6, padding: '4px 6px', color: T.muted, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                            >
-                              <PenLine size={12} />
-                            </button>
-                            <button
-                              onClick={() => deleteRule(cat.id, rule.id)}
-                              title="Delete rule"
-                              style={{ background: 'none', border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: '4px 6px', color: T.red, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
-                        </div>
-                        {isExpanded && !isEditing && <div style={{ padding: '0 18px 12px 34px', fontSize: 12, color: '#555', lineHeight: 1.7 }}>{rule.detail}</div>}
-                        {isEditing && editingRule && (
-                          <div style={{ padding: '0 18px 12px 34px' }}>
-                            <input value={editingRule.title} onChange={(event) => setEditingRule((previous) => (previous ? { ...previous, title: event.target.value } : previous))} style={{ ...inputStyle, marginBottom: 8 }} />
-                            <textarea value={editingRule.detail} onChange={(event) => setEditingRule((previous) => (previous ? { ...previous, detail: event.target.value } : previous))} rows={3} style={{ ...inputStyle, resize: 'vertical', marginBottom: 8 }} />
-                            <div style={{ display: 'flex', gap: 8 }}>
-                              <Btn variant="primary" small onClick={() => saveRule(cat.id, { id: editingRule.id, title: editingRule.title, detail: editingRule.detail })}>
-                                Save
-                              </Btn>
-                              <Btn variant="ghost" small onClick={() => setEditingRule(null)}>
-                                Cancel
-                              </Btn>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {addingRuleTo === cat.id ? (
-                    <div style={{ padding: 14, borderTop: `1px solid ${T.border}`, background: T.bg }}>
-                      <input value={newRuleText.title} onChange={(event) => setNewRuleText((previous) => ({ ...previous, title: event.target.value }))} placeholder="Rule title..." style={{ ...inputStyle, marginBottom: 8 }} />
-                      <textarea value={newRuleText.detail} onChange={(event) => setNewRuleText((previous) => ({ ...previous, detail: event.target.value }))} placeholder="Describe the rule in detail..." rows={2} style={{ ...inputStyle, resize: 'vertical', marginBottom: 8 }} />
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <Btn variant="primary" small onClick={() => addRule(cat.id)}>
-                          Add Rule
-                        </Btn>
-                        <Btn variant="ghost" small onClick={() => setAddingRuleTo(null)}>
-                          Cancel
-                        </Btn>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ padding: '10px 18px' }}>
-                      <button onClick={() => setAddingRuleTo(cat.id)} style={{ background: 'none', border: `1px dashed ${T.borderStrong}`, borderRadius: 7, padding: '5px 12px', color: T.muted, cursor: 'pointer', fontSize: 12, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif" }}>
-                        + Add Rule
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-          </div>
-        </div>
-      )}
-
-      {section === 'checklist' && (
-        <div>
-          <div style={{ background: T.goldLight, border: `1px solid ${T.goldBorder}`, borderRadius: 10, padding: '12px 18px', marginBottom: 18, fontSize: 12, color: T.gold }}>
-            Use this checklist at the start of each shift to confirm all team members have completed their sidework.
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill,minmax(${isMobile ? 240 : 340}px,1fr))`, gap: 14 }}>
-            {roles.map((entry) => {
-              const { done, total, pct } = roleProgress(entry);
-              return (
-                <div key={entry.id} style={{ background: '#FFF', border: `1px solid ${pct === 100 ? entry.colorBorder : T.border}`, borderRadius: 12, overflow: 'hidden', transition: 'border-color .3s' }}>
-                  <div style={{ padding: '12px 16px', background: pct === 100 ? entry.colorLight : T.bg, borderBottom: `1px solid ${pct === 100 ? entry.colorBorder : T.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background .3s' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 18 }}>{entry.icon}</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: pct === 100 ? entry.color : T.text }}>{entry.label}</span>
-                      {pct === 100 && <span style={{ fontSize: 11, color: entry.color }}>All done</span>}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ width: 60, height: 4, background: T.border, borderRadius: 2 }}>
-                        <div style={{ height: '100%', width: `${pct}%`, background: entry.color, borderRadius: 2, transition: 'width .3s' }} />
-                      </div>
-                      <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: T.muted }}>{done}/{total}</span>
-                    </div>
-                  </div>
-                  {['Opening', 'During Service', 'Closing'].map((period) => {
-                    const periodTasks = entry.sidework.filter((task) => task.when === period);
-                    if (!periodTasks.length) return null;
-                    const colors = WHEN_COLORS[period];
-                    return (
-                      <div key={period}>
-                        <div style={{ padding: '6px 16px', background: colors.bg, borderBottom: `1px solid ${T.border}` }}>
-                          <span style={{ fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: colors.dot, letterSpacing: 0.8 }}>{period.toUpperCase()}</span>
-                        </div>
-                        {periodTasks.map((task) => {
-                          const checked = isChecked(entry.id, task.id);
-                          return (
-                            <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: `1px solid ${T.border}`, cursor: 'pointer', background: checked ? entry.colorLight : '#FFF', transition: 'background .15s' }} onClick={() => toggleCheck(entry.id, task.id)}>
-                              <div style={{ width: 16, height: 16, minWidth: 16, border: `2px solid ${checked ? entry.color : T.border}`, borderRadius: 3, background: checked ? entry.color : '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s' }}>
-                                {checked && <span style={{ color: '#FFF', fontSize: 10 }}>x</span>}
-                              </div>
-                              <span style={{ fontSize: 12, color: checked ? T.muted : T.text, textDecoration: checked ? 'line-through' : 'none', userSelect: 'none' }}>{task.task}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
-          <div style={{ marginTop: 18, textAlign: 'center' }}>
-            <Btn variant="ghost" onClick={() => setCheckedTasks({})}>
-              Reset All Checkboxes
-            </Btn>
-          </div>
-        </div>
-      )}
+  return <div className="fu">
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
+      <div><h2 style={{ fontSize: 24, margin: 0, color: T.text }}>Team Onboarding</h2><p style={{ color: T.muted, fontSize: 13, margin: '5px 0 0' }}>Manage shared roles, sidework, rule categories, rules, and completion.</p></div>
+      <Btn onClick={() => void saveShared()} variant="primary" disabled={pending || !dirty}>{pending ? 'Saving…' : 'Save shared changes'}</Btn>
     </div>
-  );
+    {loadError && <p role="alert" style={{ color: T.red, background: T.redLight, border: `1px solid ${T.redBorder}`, borderRadius: 8, padding: 10 }}>{loadError} Editing is still available; shared changes can be saved when the connection recovers.</p>}
+    {saveError && <p role="alert" style={{ color: T.red, background: T.redLight, border: `1px solid ${T.redBorder}`, borderRadius: 8, padding: 10 }}>{saveError}</p>}
+    {remoteRecord && <div role="status" style={{ ...cardStyle, marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><span style={{ flex: 1 }}>Shared onboarding changed elsewhere while you have local edits. Your current draft is preserved.</span><Btn small variant="outline" onClick={() => setRemoteRecord(null)}>Keep my draft</Btn><Btn small variant="danger" onClick={reloadRemoteRecord}>Reload shared data and discard my draft</Btn></div>}
+    {recoveryDraft && <div role="status" style={{ ...cardStyle, marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}><span style={{ flex: 1 }}>A saved draft from a previous unsuccessful save is available on this device.</span><Btn small variant="primary" onClick={restoreDraft}>Restore draft</Btn><Btn small variant="ghost" onClick={() => { window.localStorage.removeItem(DRAFT_KEY); setRecoveryDraft(null); }}>Discard draft</Btn></div>}
+    <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+      {([['roles', 'Roles & Sidework'], ['rules', 'Rules'], ['checklist', 'Completion']] as const).map(([id, label]) => <button key={id} onClick={() => setSection(id)} style={{ ...actionStyle, padding: '8px 14px', background: section === id ? T.goldLight : '#FFF', fontWeight: section === id ? 700 : 500 }}>{label}</button>)}
+    </div>
+    {section === 'roles' && <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '230px 1fr', gap: 14 }}>
+      <aside style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 8, alignSelf: 'start' }}>
+        <strong>Roles</strong>{data.roles.map(item => <div key={item.id} style={{ display: 'flex', gap: 6 }}><button onClick={() => setActiveRoleId(item.id)} style={{ ...actionStyle, textAlign: 'left', flex: 1, background: (role?.id === item.id) ? T.goldLight : '#FFF' }}>{item.icon} {item.label}</button><button aria-label={`Delete ${item.label}`} onClick={() => update(current => ({ ...current, roles: current.roles.filter(entry => entry.id !== item.id) }))} style={actionStyle}><Trash2 size={13}/></button></div>)}
+        {!data.roles.length && <span style={{ color: T.muted, fontSize: 12 }}>No roles defined.</span>}
+        <input placeholder="Role title" value={roleDraft.label} onChange={e => setRoleDraft(p => ({ ...p, label: e.target.value }))} style={inputStyle}/><div style={{ display: 'flex', gap: 6 }}><input aria-label="Role icon" placeholder="Icon" value={roleDraft.icon} onChange={e => setRoleDraft(p => ({ ...p, icon: e.target.value }))} style={{ ...inputStyle, width: 65 }}/><input placeholder="Short description" value={roleDraft.description} onChange={e => setRoleDraft(p => ({ ...p, description: e.target.value }))} style={inputStyle}/></div><Btn small variant="outline" onClick={addRole}>Add role</Btn>
+      </aside>
+      {role ? <section style={{ ...cardStyle }}><div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}><span style={{ fontSize: 22 }}>{role.icon}</span><input aria-label="Role title" value={role.label} onChange={e => update(current => ({ ...current, roles: current.roles.map(entry => entry.id === role.id ? { ...entry, label: e.target.value } : entry) }))} style={{ ...inputStyle, fontWeight: 700 }}/><button title="Delete role" onClick={() => update(current => ({ ...current, roles: current.roles.filter(entry => entry.id !== role.id) }))} style={actionStyle}><Trash2 size={14}/></button></div><textarea aria-label="Role description" value={role.description || ''} onChange={e => update(current => ({ ...current, roles: current.roles.map(entry => entry.id === role.id ? { ...entry, description: e.target.value } : entry) }))} rows={2} style={{ ...inputStyle, resize: 'vertical', marginBottom: 12 }}/>
+        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 12 }}>{['All', 'Opening', 'During Service', 'Closing'].map(when => <button key={when} onClick={() => setWhenFilter(when)} style={{ ...actionStyle, background: whenFilter === when ? T.goldLight : '#FFF' }}>{when}</button>)}</div>
+        {(role.sidework || []).filter(task => whenFilter === 'All' || task.when === whenFilter).map(task => { const key = `${role.id}:${task.id}`; const checked = Boolean(data.completion[key]); return <div key={key} style={{ display: 'grid', gridTemplateColumns: '24px 1fr auto', gap: 8, padding: '10px 0', borderTop: `1px solid ${T.border}`, alignItems: 'center' }}><input type="checkbox" checked={checked} onChange={() => toggleCompletion(role.id, task.id)}/><div><input value={task.task} aria-label="Sidework task" onChange={e => update(current => ({ ...current, roles: current.roles.map(entry => entry.id === role.id ? { ...entry, sidework: entry.sidework.map(t => t.id === task.id ? { ...t, task: e.target.value } : t) } : entry) }))} style={inputStyle}/><div style={{ display: 'flex', gap: 6, marginTop: 5 }}><select value={task.when} aria-label="Sidework timing" onChange={e => update(current => ({ ...current, roles: current.roles.map(entry => entry.id === role.id ? { ...entry, sidework: entry.sidework.map(t => t.id === task.id ? { ...t, when: e.target.value } : t) } : entry) }))} style={inputStyle}>{['Opening', 'During Service', 'Closing'].map(when => <option key={when}>{when}</option>)}</select><input value={task.detail} aria-label="Sidework details" placeholder="Details" onChange={e => update(current => ({ ...current, roles: current.roles.map(entry => entry.id === role.id ? { ...entry, sidework: entry.sidework.map(t => t.id === task.id ? { ...t, detail: e.target.value } : t) } : entry) }))} style={inputStyle}/></div></div><button aria-label="Delete sidework" onClick={() => update(current => ({ ...current, roles: current.roles.map(entry => entry.id === role.id ? { ...entry, sidework: entry.sidework.filter(t => t.id !== task.id) } : entry) }))} style={actionStyle}><Trash2 size={13}/></button></div>; })}
+        <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 12, marginTop: 8 }}><input placeholder="New sidework task" value={taskDraft.task} onChange={e => setTaskDraft(p => ({ ...p, task: e.target.value }))} style={{ ...inputStyle, marginBottom: 6 }}/><div style={{ display: 'flex', gap: 6 }}><select value={taskDraft.when} onChange={e => setTaskDraft(p => ({ ...p, when: e.target.value }))} style={inputStyle}>{['Opening', 'During Service', 'Closing'].map(when => <option key={when}>{when}</option>)}</select><input placeholder="Details" value={taskDraft.detail} onChange={e => setTaskDraft(p => ({ ...p, detail: e.target.value }))} style={inputStyle}/><Btn small onClick={() => addTask(role.id)}>Add</Btn></div></div>
+      </section> : <div style={{ ...cardStyle, color: T.muted }}>Add a role to define its sidework tasks.</div>}
+    </div>}
+    {section === 'rules' && <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(220px, 1fr) 2fr', gap: 14 }}><section style={cardStyle}><strong>Rule categories</strong>{data.rule_categories.map(category => <div key={category.id} style={{ display: 'flex', gap: 6, marginTop: 8 }}><input value={category.category} aria-label="Rule category" onChange={e => update(current => ({ ...current, rule_categories: current.rule_categories.map(c => c.id === category.id ? { ...c, category: e.target.value } : c) }))} style={inputStyle}/><button onClick={() => update(current => ({ ...current, rule_categories: current.rule_categories.filter(c => c.id !== category.id) }))} style={actionStyle}><Trash2 size={13}/></button></div>)}<div style={{ display: 'flex', gap: 6, marginTop: 12 }}><input placeholder="New category" value={categoryDraft.category} onChange={e => setCategoryDraft(p => ({ ...p, category: e.target.value }))} style={inputStyle}/><input aria-label="Category icon" placeholder="Icon" value={categoryDraft.icon} onChange={e => setCategoryDraft(p => ({ ...p, icon: e.target.value }))} style={{ ...inputStyle, width: 65 }}/><Btn small onClick={addCategory}>Add</Btn></div></section><section style={cardStyle}><strong>Rules</strong>{data.rule_categories.map(category => <div key={category.id} style={{ borderTop: `1px solid ${T.border}`, marginTop: 10, paddingTop: 10 }}><h3 style={{ margin: 0, fontSize: 14 }}>{category.icon} {category.category}</h3>{category.rules.map(rule => <div key={rule.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, padding: '8px 0' }}><div><input value={rule.title} aria-label="Rule title" onChange={e => update(current => ({ ...current, rule_categories: current.rule_categories.map(c => c.id === category.id ? { ...c, rules: c.rules.map(r => r.id === rule.id ? { ...r, title: e.target.value } : r) } : c) }))} style={{ ...inputStyle, marginBottom: 5 }}/><textarea value={rule.detail} aria-label="Rule details" onChange={e => update(current => ({ ...current, rule_categories: current.rule_categories.map(c => c.id === category.id ? { ...c, rules: c.rules.map(r => r.id === rule.id ? { ...r, detail: e.target.value } : r) } : c) }))} rows={2} style={{ ...inputStyle, resize: 'vertical' }}/></div><button aria-label="Delete rule" onClick={() => update(current => ({ ...current, rule_categories: current.rule_categories.map(c => c.id === category.id ? { ...c, rules: c.rules.filter(r => r.id !== rule.id) } : c) }))} style={actionStyle}><Trash2 size={13}/></button></div>)}<div style={{ display: 'flex', gap: 6 }}><input placeholder="Rule title" value={ruleDraft.title} onChange={e => setRuleDraft(p => ({ ...p, title: e.target.value }))} style={inputStyle}/><input placeholder="Rule details" value={ruleDraft.detail} onChange={e => setRuleDraft(p => ({ ...p, detail: e.target.value }))} style={inputStyle}/><Btn small onClick={() => addRule(category.id)}>Add rule</Btn></div></div>)}{!data.rule_categories.length && <p style={{ color: T.muted, fontSize: 12 }}>No rule categories or policies are preloaded.</p>}</section></div>}
+    {section === 'checklist' && <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill,minmax(${isMobile ? 250 : 340}px,1fr))`, gap: 12 }}>{data.roles.map(entry => { const tasks = entry.sidework || []; const done = tasks.filter(task => data.completion[`${entry.id}:${task.id}`]).length; return <section key={entry.id} style={cardStyle}><h3 style={{ margin: '0 0 8px' }}>{entry.icon} {entry.label} <small style={{ color: T.muted }}>{done}/{tasks.length}</small></h3>{tasks.map(task => { const key = `${entry.id}:${task.id}`; return <label key={key} style={{ display: 'flex', gap: 8, padding: '6px 0', borderTop: `1px solid ${T.border}` }}><input type="checkbox" checked={Boolean(data.completion[key])} onChange={() => toggleCompletion(entry.id, task.id)}/><span>{task.task}</span></label>; })}{!tasks.length && <p style={{ color: T.muted, fontSize: 12 }}>No sidework defined.</p>}</section>; })}{!data.roles.length && <div style={{ ...cardStyle, color: T.muted }}>Completion appears here after roles and sidework are defined.</div>}</div>}
+    <div style={{ marginTop: 20, ...cardStyle }}><button onClick={() => setLegacyReview(value => !value)} style={{ ...actionStyle, fontWeight: 700 }}>Review legacy sample definitions ({INIT_ROLES.length} roles, {INIT_HOUSE_RULES.length} categories) {legacyReview ? '−' : '+'}</button><p style={{ color: T.muted, fontSize: 12, marginBottom: 0 }}>These are old illustrative samples, not approved house policy. They are never imported automatically.</p>{legacyReview && <div style={{ marginTop: 12 }}><p style={{ fontSize: 12, color: T.muted }}>Review every definition before importing. Import adds copies to your current draft; save shared changes to publish them.</p><div style={{ maxHeight: 420, overflow: 'auto', fontSize: 12, marginBottom: 10 }}>{INIT_ROLES.map(item => <section key={item.id} style={{ borderTop: `1px solid ${T.border}`, padding: '8px 0' }}><strong>Role: {item.label}</strong><p>{item.description}</p>{item.sidework.map(task => <div key={task.id} style={{ margin: '6px 0 6px 12px' }}><strong>{task.when}: {task.task}</strong><div>{task.detail}</div></div>)}</section>)}{INIT_HOUSE_RULES.map(category => <section key={category.id} style={{ borderTop: `1px solid ${T.border}`, padding: '8px 0' }}><strong>Rule category: {category.category}</strong>{category.rules.map(rule => <div key={rule.id} style={{ margin: '6px 0 6px 12px' }}><strong>{rule.title}</strong><div>{rule.detail}</div></div>)}</section>)}</div><Btn variant="outline" onClick={() => { update(current => ({ ...current, roles: [...current.roles, ...INIT_ROLES.map(item => ({ ...item, id: `${item.id}-${Date.now()}`, sidework: item.sidework.map(task => ({ ...task, id: `${task.id}-${Date.now()}` })) }))], rule_categories: [...current.rule_categories, ...INIT_HOUSE_RULES.map(item => ({ ...item, id: Date.now() + item.id, rules: item.rules.map(rule => ({ ...rule, id: Date.now() + rule.id })) }))] })); setLegacyReview(false); }}>Import reviewed samples into draft</Btn></div>}</div>
+  </div>;
 }
-
