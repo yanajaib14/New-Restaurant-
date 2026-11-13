@@ -1,6 +1,4 @@
-import pg from "pg";
-
-const { Pool } = pg;
+import { createPool } from "../../db/pool.js";
 
 const DB_READ_TABLES = new Set([
   "tasks", "task_todos", "menu_items", "startup_costs", "operating_costs", "milestones", "notes",
@@ -15,7 +13,7 @@ const DB_SELECT_DEBUG_LOGS = String(process.env.DB_SELECT_DEBUG_LOGS || "").trim
 const DB_ROUTE_KEY = String(process.env.DB_ROUTE_KEY || "").trim();
 const DB_ROUTE_REQUIRE_TRUSTED = String(process.env.DB_ROUTE_REQUIRE_TRUSTED || "1").trim() !== "0";
 
-const pool = DB_CONNECTION ? new Pool({ connectionString: DB_CONNECTION }) : null;
+const pool = createPool(DB_CONNECTION);
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_PER_WINDOW = Number(process.env.DB_SELECT_RATE_LIMIT_PER_MIN || 120);
 const blockedIps = new Set(

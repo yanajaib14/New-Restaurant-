@@ -7,7 +7,7 @@ import {
   UtilityAccount, DigitalAsset, User, ActivityLog, DecisionLog, UserRole, Invoice, Position, Candidate,
   CalendarEvent
 } from "./types";
-import { Pill, Btn, SectionHeader, PinGate, ChangePinModal, ChangePasswordModal, inpStyle, dropdownStyle, ProgressRing, Modal, Field } from "./components/UI";
+import { Pill, Btn, SectionHeader, PinGate, ChangePinModal, inpStyle, dropdownStyle, ProgressRing, Modal, Field } from "./components/UI";
 import { TaskModal, TaskRow } from "./components/TaskBoard";
 import { MenuModal } from "./components/MenuPlanner";
 import { FinModal } from "./components/Financials";
@@ -17,7 +17,7 @@ import { Timeline, TimelineModal } from "./components/Timeline";
 import { NoteModal, NoteCard, NoteDetailModal } from "./components/Notes";
 import { AIAssistant } from "./components/AI";
 import { useAuth } from "./context/AuthContext";
-import { insforge, SYNC_CHANNEL, dbSelect, dbInsert, dbUpdate, dbDelete } from "./services/insforge";
+import { dbSelect, dbInsert, dbUpdate, dbDelete } from "./services/db";
 import { VendorManager, VendorModal, ContactManager, ContactModal, InventoryTracker, InventoryModal, PermitTracker, PermitModal, UtilityTracker, UtilityModal } from "./components/Operations";
 import { MasterInventory } from "./components/MasterInventory";
 import { MarketingCalendar, MarketingModal, TrainingPortal, TrainingModal, DailyChecklistManager, ChecklistModal, DigitalAssetManager, DigitalAssetModal } from "./components/MarketingTraining";
@@ -29,7 +29,7 @@ import { exportToCSV } from "./lib/exportUtils";
 import {
   PartnerBadge, PartnerFilterPills, PartnerFilter, matchesPartner,
   PhaseTracker, DebriefModal, AiCopilotPanel, VoiceMicButton,
-  ShakeToUndoListener, UndoableAction, PresenceIndicator, PresenceInfo,
+  ShakeToUndoListener, UndoableAction,
   InspirationPreview, InspirationQuickAddSheet, PhotoPreviewStrip,
   TaskDetailSheet, SuccessToast, QuickAddSheet, PASTEL, PASTEL_CYCLE, HouseLogo, ReminderBanner, computePhases,
 } from "./components/Enhancements";
@@ -416,13 +416,9 @@ export default function App() {
   const [inspoSheetOpen, setInspoSheetOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [lastUndo, setLastUndo] = useState<UndoableAction | null>(null);
-  const [partnerPresence, setPartnerPresence] = useState<PresenceInfo | null>(null);
   const [decisionQuickText, setDecisionQuickText] = useState("");
-  const presenceSessionId = useRef(`s-${Math.random().toString(36).slice(2)}`);
   const aiPersistOk = useRef(true);
   const [isChangePinOpen, setIsChangePinOpen] = useState(false);
-  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
-  const [isPasswordUpdating, setIsPasswordUpdating] = useState(false);
   const [appTitle, setAppTitle] = useState("Glai Gung Won");
   const [editTitle, setEditTitle] = useState("Glai Gung Won");
   const [accessUsers, setAccessUsers] = useState<AccessUser[]>([]);
@@ -601,77 +597,23 @@ export default function App() {
     }
   }, [tab, isUnlocked, refreshAccessUsers]);
 
+  // Keep partners in sync: refresh every 10s while the tab is visible, and
+  // immediately when the window regains focus.
   useEffect(() => {
-    let active = true;
-
-    const handleSync = () => {
-      if (!active) return;
-      loadAllData();
-    };
-
-    const handlePresence = (payload: any) => {
-      if (!active) return;
-      const data = payload?.payload || payload || {};
-      if (!data?.user || data.sessionId === presenceSessionId.current) return;
-      setPartnerPresence({ user: String(data.user), view: String(data.view || "Dashboard"), at: Number(data.at) || Date.now() });
-    };
-
-    const bootRealtime = async () => {
-      try {
-        await insforge.realtime.connect();
-        const sub = await insforge.realtime.subscribe(SYNC_CHANNEL);
-        if (!sub.ok) {
-          console.warn("Realtime subscribe failed", "error" in sub ? sub.error : sub);
-          return;
-        }
-        insforge.realtime.on("db_changed", handleSync);
-        insforge.realtime.on("presence", handlePresence);
-      } catch (e) {
-        console.warn("Realtime connect failed", e);
-      }
-    };
-
-    bootRealtime();
-
     const poll = setInterval(() => {
       if (document.visibilityState !== "visible") return;
       loadAllData();
-    }, 60000);
+    }, 10000);
 
     const onFocus = () => loadAllData();
     window.addEventListener("focus", onFocus);
 
     return () => {
-      active = false;
       clearInterval(poll);
       window.removeEventListener("focus", onFocus);
-      insforge.realtime.off("db_changed", handleSync);
-      insforge.realtime.off("presence", handlePresence);
-      insforge.realtime.unsubscribe(SYNC_CHANNEL);
-      insforge.realtime.disconnect();
     };
   }, [loadAllData]);
 
-  // ── Ambient presence: broadcast which view this partner is in (throttled) ──
-  const lastPresencePublish = useRef(0);
-  useEffect(() => {
-    const now = Date.now();
-    if (now - lastPresencePublish.current < 15000) return;
-    lastPresencePublish.current = now;
-
-    const actor = isPartnerAccount
-      ? "Team"
-      : ((currentUser?.metadata as any)?.name || currentUser?.email || userRole || "Teammate");
-    const viewLabel = TABS.find(t => t.id === tab)?.label || "Dashboard";
-
-    insforge.realtime.publish(SYNC_CHANNEL, "presence", {
-      user: String(actor),
-      view: viewLabel,
-      at: now,
-      sessionId: presenceSessionId.current,
-    }).catch(() => { /* presence is best-effort */ });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
 
   const logActivity = (action: string) => {
     const actor = isPartnerAccount
@@ -3073,7 +3015,6 @@ export default function App() {
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
                   <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, letterSpacing: 1, color: T.subtle, fontWeight: 700, textTransform: "uppercase" }}>{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</span>
-                  <PresenceIndicator presence={partnerPresence} />
                 </div>
                 <button
                   onClick={() => setDebriefOpen(true)}
@@ -4504,7 +4445,6 @@ export default function App() {
                 <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: .8, marginBottom: 12 }}>ACCOUNT SECURITY</div>
                 <div style={{ display: "flex", gap: 10, flexDirection: "column" }}>
                   <Btn onClick={() => setIsChangePinOpen(true)} variant="outline" style={{ width: "100%", justifyContent: "flex-start" }}>Change Security PIN</Btn>
-                  <Btn onClick={() => setIsChangePasswordOpen(true)} variant="outline" style={{ width: "100%", justifyContent: "flex-start" }}>Change Sign-In Password</Btn>
                 </div>
               </div>
 
@@ -4715,28 +4655,6 @@ export default function App() {
         />
       )}
 
-      {isChangePasswordOpen && (
-        <ChangePasswordModal
-          userEmail={currentUserEmail}
-          onSendCode={async () => {
-            const { error } = await insforge.auth.sendResetPasswordEmail({ email: currentUserEmail });
-            if (error) throw new Error(error.message || "Failed to send reset code");
-          }}
-          onConfirm={async (otp: string, newPassword: string) => {
-            // Step 1: exchange the 6-digit code for a reset token
-            const { data: exchangeData, error: exchangeError } = await insforge.auth.exchangeResetPasswordToken({ email: currentUserEmail, code: otp });
-            if (exchangeError || !exchangeData?.token) throw new Error(exchangeError?.message || "Invalid or expired code. Please request a new one.");
-            // Step 2: use the reset token to set the new password
-            const { error } = await insforge.auth.resetPassword({ otp: exchangeData.token, newPassword });
-            if (error) throw new Error(error.message || "Failed to update password. Please try again.");
-            setSettingsMsg("�S& Password updated! Please sign in again.");
-            logActivity("Changed sign-in password");
-            setIsChangePasswordOpen(false);
-            setTimeout(() => logout(), 1500);
-          }}
-          onClose={() => setIsChangePasswordOpen(false)}
-        />
-      )}
     </>
   )}
 </div>

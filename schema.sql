@@ -1,5 +1,5 @@
 -- SQL SCHEMA FOR NEW RESTAURANT
--- Run this script in the InsForge SQL Editor!
+-- Reference schema. To create tables on Neon, run: npm run db:setup
 
 DROP TABLE IF EXISTS task_todos, tasks, menu_items, startup_costs, operating_costs, milestones, notes, vendors, contacts, inventory_items, utility_accounts, permits, marketing_posts, training_modules, daily_checklists, invoices, positions, candidates, decision_logs, activity_logs, digital_assets, shopping_list_items, cost_calculator_overrides CASCADE;
 
