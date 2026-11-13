@@ -11,7 +11,8 @@
     "lint": "tsc --noEmit",
     "db:setup": "tsx scripts/db-setup.ts",
     "db:copy": "tsx scripts/copy-from-insforge.ts",
-    "test": "tsc --noEmit"
+    "test": "tsc --noEmit",
+    "db:schema-sql": "tsx scripts/export-schema-sql.ts"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
