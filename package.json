@@ -10,7 +10,8 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "db:setup": "tsx scripts/db-setup.ts",
-    "db:copy": "tsx scripts/copy-from-insforge.ts"
+    "db:copy": "tsx scripts/copy-from-insforge.ts",
+    "test": "tsc --noEmit"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
