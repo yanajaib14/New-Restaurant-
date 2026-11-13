@@ -9,6 +9,7 @@ import session from "express-session";
 import { Readable } from "stream";
 import { createPool } from "./db/pool.js";
 import { ensureSchema } from "./db/ensureSchema.js";
+import { getTitle, setTitle, listAccessUsers, revokeAccess, restoreAccess } from "./db/appRoutes.js";
 import { GoogleGenAI } from "@google/genai";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -565,114 +566,12 @@ async function startServer() {
     }
   });
 
-  app.get("/api/access/users", async (_req, res) => {
-    if (!pool) {
-      return res.json({ ok: true, users: [], preview: true });
-    }
-
-    try {
-      const result = await pool.query(
-        `
-        SELECT id, email, name, role, is_active, created_at, last_login_at, revoked_at, revoked_by
-        FROM app_access_users
-        ORDER BY role DESC, created_at ASC
-        `
-      );
-      return res.json({ ok: true, users: result.rows });
-    } catch (error: any) {
-      console.error("Access list error:", error);
-      return res.status(500).json({ error: error?.message || "Access list failed" });
-    }
-  });
-
-  app.post("/api/access/revoke", async (req, res) => {
-    const email = String(req.body?.email || "").trim().toLowerCase();
-    const revokedBy = String(req.body?.revokedBy || "Owner").trim();
-    if (!email) return res.status(400).json({ error: "Missing email" });
-
-    if (!pool) {
-      return res.json({ ok: true, preview: true });
-    }
-
-    try {
-      await pool.query(
-        `
-        UPDATE app_access_users
-        SET is_active = false, revoked_at = NOW(), revoked_by = $2
-        WHERE lower(email) = $1
-        `,
-        [email, revokedBy]
-      );
-      return res.json({ ok: true });
-    } catch (error: any) {
-      console.error("Access revoke error:", error);
-      return res.status(500).json({ error: error?.message || "Access revoke failed" });
-    }
-  });
-
-  app.post("/api/access/restore", async (req, res) => {
-    const email = String(req.body?.email || "").trim().toLowerCase();
-    if (!email) return res.status(400).json({ error: "Missing email" });
-
-    if (!pool) {
-      return res.json({ ok: true, preview: true });
-    }
-
-    try {
-      await pool.query(
-        `
-        UPDATE app_access_users
-        SET is_active = true, revoked_at = NULL, revoked_by = NULL
-        WHERE lower(email) = $1
-        `,
-        [email]
-      );
-      return res.json({ ok: true });
-    } catch (error: any) {
-      console.error("Access restore error:", error);
-      return res.status(500).json({ error: error?.message || "Access restore failed" });
-    }
-  });
-
-  app.get("/api/settings/title", async (_req, res) => {
-    if (!pool) {
-      return res.json({ ok: true, title: "ไกลกังวล", preview: true });
-    }
-
-    try {
-      const result = await pool.query(`SELECT value FROM app_settings WHERE key = 'app_title' LIMIT 1`);
-      return res.json({ ok: true, title: result.rows[0]?.value || "ไกลกังวล" });
-    } catch (error: any) {
-      console.error("Settings title get error:", error);
-      return res.status(500).json({ error: error?.message || "Settings read failed" });
-    }
-  });
-
-  app.post("/api/settings/title", async (req, res) => {
-    const title = String(req.body?.title || "").trim();
-    if (!title) return res.status(400).json({ error: "Missing title" });
-
-    if (!pool) {
-      return res.json({ ok: true, title, preview: true });
-    }
-
-    try {
-      await pool.query(
-        `
-        INSERT INTO app_settings (key, value, updated_at)
-        VALUES ('app_title', $1, NOW())
-        ON CONFLICT (key)
-        DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
-        `,
-        [title]
-      );
-      return res.json({ ok: true, title });
-    } catch (error: any) {
-      console.error("Settings title update error:", error);
-      return res.status(500).json({ error: error?.message || "Settings update failed" });
-    }
-  });
-
+  const send = (res: any, r: { status: number; body: unknown }) => res.status(r.status).json(r.body);
+  app.get("/api/access/users", async (_req, res) => send(res, await listAccessUsers(pool)));
+  app.post("/api/access/revoke", async (req, res) => send(res, await revokeAccess(pool, req.body?.email, req.body?.revokedBy)));
+  app.post("/api/access/restore", async (req, res) => send(res, await restoreAccess(pool, req.body?.email)));
+  app.get("/api/settings/title", async (_req, res) => send(res, await getTitle(pool)));
+  app.post("/api/settings/title", async (req, res) => send(res, await setTitle(pool, req.body?.title)));
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
