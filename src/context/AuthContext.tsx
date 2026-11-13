@@ -1,5 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import type { UserSchema } from "@insforge/shared-schemas";
+
+export interface UserSchema {
+  id: string;
+  email: string;
+  name?: string;
+  metadata?: Record<string, unknown>;
+}
 
 interface AuthContextType {
   user: UserSchema | null;

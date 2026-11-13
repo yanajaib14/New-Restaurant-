@@ -22,7 +22,8 @@ This application serves as a central mission control for restaurant launches. It
 -   **Frontend**: React 18, TypeScript, Tailwind CSS
 -   **Icons**: Lucide React
 -   **AI**: Google Gemini API (@google/genai)
--   **Backend**: Node.js (Express) with Vite integration
+-   **Backend**: Node.js (Express) with Vite integration; Vercel functions in `/api`
+-   **Database**: Neon (serverless Postgres), accessed only server-side via `DATABASE_URL`
 -   **Storage**: Google Drive API integration
 
 ## 📦 Getting Started
@@ -43,7 +44,11 @@ This application serves as a central mission control for restaurant launches. It
     ```bash
     cp .env.example .env
     ```
-4.  Launch the development server:
+4.  Create the tables on Neon (safe to re-run):
+    ```bash
+    npm run db:setup
+    ```
+5.  Launch the development server:
     ```bash
     npm run dev
     ```

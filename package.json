@@ -8,11 +8,14 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "db:setup": "tsx scripts/db-setup.ts",
+    "db:copy": "tsx scripts/copy-from-insforge.ts",
+    "test": "tsc --noEmit",
+    "db:schema-sql": "tsx scripts/export-schema-sql.ts"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
-    "@insforge/sdk": "^1.2.5",
     "@tailwindcss/vite": "^4.1.14",
     "@types/cookie-parser": "^1.4.10",
     "@types/express-session": "^1.18.2",
