@@ -2,6 +2,9 @@ import React from 'react';
 import { T, PHASE_COLORS, Milestone } from '../types';
 import { SectionHeader, Btn } from './UI';
 import { PenLine, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Modal, Field, inpStyle, selStyle } from './UI';
+import { useDraftSave, DraftSaveError } from '../hooks/useDraftSave';
 
 export function Timeline({ timeline, onToggle, onEdit, onDelete, onAdd }: { timeline: Milestone[], onToggle: (id: number) => void, onEdit: (m: Milestone) => void, onDelete: (m: Milestone) => void, onAdd: () => void }) {
   return (
@@ -48,25 +51,23 @@ export function Timeline({ timeline, onToggle, onEdit, onDelete, onAdd }: { time
   );
 }
 
-export function TimelineModal({ item, onSave, onClose }: { item: Milestone | null, onSave: (form: any) => void, onClose: () => void }) {
+export function TimelineModal({ item, onSave, onClose }: { item: Milestone | null, onSave: (form: any) => boolean | Promise<boolean>, onClose: () => void }) {
   const blank = { milestone: "", date: "", phase: "Pre-Launch", done: false };
   const [form, setForm] = useState<any>(item ? { ...item } : blank);
+  const draftSave = useDraftSave(onClose);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
   return (
-    <Modal title={item ? "Edit Milestone" : "New Milestone"} onClose={onClose} width={420}>
+    <Modal title={item ? "Edit Milestone" : "New Milestone"} onClose={draftSave.close} width={420}>
       <Field label="MILESTONE NAME"><input value={form.milestone} onChange={e => set("milestone", e.target.value)} placeholder="e.g. Staff Training Complete" style={inpStyle} /></Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="DATE"><input value={form.date} onChange={e => set("date", e.target.value)} placeholder="e.g. May 18" style={inpStyle} /></Field>
         <Field label="PHASE"><select value={form.phase} onChange={e => set("phase", e.target.value)} style={selStyle}>{Object.keys(PHASE_COLORS).map(p => <option key={p}>{p}</option>)}</select></Field>
       </div>
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
-        <Btn onClick={onClose} variant="ghost">Cancel</Btn>
-        <Btn onClick={() => { if (form.milestone.trim()) onSave(form); }} variant="primary">{item ? "Save Changes" : "Add Milestone"}</Btn>
+        <DraftSaveError error={draftSave.error} />
+        <Btn onClick={draftSave.close} variant="ghost" disabled={draftSave.pending}>Cancel</Btn>
+        <Btn onClick={() => { if (form.milestone.trim()) draftSave.save(() => onSave(form)).then(ok => { if (ok) onClose(); }); }} variant="primary" disabled={draftSave.pending}>{draftSave.pending ? "Saving…" : item ? "Save Changes" : "Add Milestone"}</Btn>
       </div>
     </Modal>
   );
 }
-
-import { useState } from 'react';
-import { Modal, Field, inpStyle, selStyle } from './UI';
-

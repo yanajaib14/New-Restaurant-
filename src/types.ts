@@ -42,6 +42,7 @@ export const CAT_COLORS: Record<string, any> = {
 };
 
 export const STATUS_COLORS: Record<string, any> = {
+  "Needs review": { bg: "#fff4df", text: "#9a6700", border: "#f0d49c" },
   "Not Started": { bg: "#F5F5F5",   text: "#888",    border: "#E0E0E0" },
   "In Progress":  { bg: T.blueLight, text: T.blue,   border: T.blueBorder },
   "Complete":     { bg: T.greenLight,text: T.green,  border: T.greenBorder },
@@ -115,7 +116,7 @@ export interface TaskTodoItem {
   id: number;
   title: string;
   category: string;
-  status: "Not Started" | "In Progress" | "Done" | "On Hold";
+  status: "Not Started" | "In Progress" | "Done" | "On Hold" | "Needs review";
   assignedTo?: string;
   linkedTaskId?: number | null;
   linkUrl?: string;
@@ -124,9 +125,10 @@ export interface TaskTodoItem {
   created_at?: string;
 }
 
-export const TODO_STATUSES: TaskTodoItem["status"][] = ["Not Started", "In Progress", "Done", "On Hold"];
+export const TODO_STATUSES: TaskTodoItem["status"][] = ["Not Started", "In Progress", "Needs review", "Done", "On Hold"];
 
 export const TODO_STATUS_COLORS: Record<TaskTodoItem["status"], { bg: string; text: string; border: string }> = {
+  "Needs review": { bg: "#fff4df", text: "#9a6700", border: "#f0d49c" },
   "Not Started": { bg: T.blueLight, text: T.blue, border: T.blueBorder },
   "In Progress": { bg: T.blueLight, text: T.blue, border: T.blueBorder },
   Done: { bg: T.greenLight, text: T.green, border: T.greenBorder },

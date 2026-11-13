@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { T, Task, TaskTodoItem, DecisionLog, Permit, DigitalAsset } from "../types";
 import { Btn, inpStyle } from "./UI";
 import { partnerOf, extractProposedTasks, ParsedQuickTask } from "../lib/nlpParser";
+import { useDraftSave, DraftSaveError } from "../hooks/useDraftSave";
 import { Mic, MicOff, X, RefreshCw, Sparkles, Lightbulb, ExternalLink, Image as ImageIcon, ChevronRight, Phone, Mail, Plus } from "lucide-react";
 
 export type PartnerFilter = string; // "All" or an exact assignee value
@@ -63,17 +64,30 @@ export function HouseLogo({ size = 40, color = "#111111", strokeWidth = 3.2 }: {
 export function ProposedTasks({ content, onCreateTask }: { content: string; onCreateTask?: (t: ParsedQuickTask) => void | Promise<unknown> }) {
   const tasks = useMemo(() => (onCreateTask ? extractProposedTasks(content) : []), [content, onCreateTask]);
   const [added, setAdded] = useState<Record<string, boolean>>({});
+  const [pending, setPending] = useState<Record<string, boolean>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   if (!onCreateTask || tasks.length === 0) return null;
   return (
     <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
       {tasks.map((t, i) => {
         const key = `${t.assignedTo}:${t.title.toLowerCase()}`;
         const done = added[key];
+        const isPending = pending[key];
         return (
+          <React.Fragment key={i}>
           <button
-            key={i}
-            disabled={done}
-            onClick={async () => { setAdded(p => ({ ...p, [key]: true })); await onCreateTask(t); }}
+            disabled={done || isPending}
+            onClick={async () => {
+              if (done || isPending) return;
+              setPending(p => ({ ...p, [key]: true }));
+              setErrors(p => ({ ...p, [key]: "" }));
+              try {
+                if (await onCreateTask(t) === true) setAdded(p => ({ ...p, [key]: true }));
+                else setErrors(p => ({ ...p, [key]: "Could not add task. Try again." }));
+              } catch {
+                setErrors(p => ({ ...p, [key]: "Could not add task. Try again." }));
+              } finally { setPending(p => ({ ...p, [key]: false })); }
+            }}
             style={{
               display: "inline-flex", alignItems: "center", gap: 7, textAlign: "left",
               border: `1px solid ${done ? PASTEL.mint.border : T.borderStrong}`,
@@ -83,13 +97,15 @@ export function ProposedTasks({ content, onCreateTask }: { content: string; onCr
               cursor: done ? "default" : "pointer", lineHeight: 1.3,
             }}
           >
-            {done ? "✓" : <Plus size={13} />}
+              {done ? "✓" : isPending ? "…" : <Plus size={13} />}
             <span>
-              {done ? "Added: " : "Add task: "}
+              {done ? "Added: " : isPending ? "Adding: " : "Add task: "}
               <span style={{ fontFamily: "var(--font-mono)", fontWeight: 800 }}>[{t.assignedTo}]</span> {t.title}
               {t.due ? ` · ${t.due}` : ""}
             </span>
           </button>
+          {errors[key] && <span role="alert" style={{ fontSize: 11, color: T.red }}>{errors[key]}</span>}
+          </React.Fragment>
         );
       })}
     </div>
@@ -840,14 +856,14 @@ export function InspirationPreview({ assets, onOpenGallery, onQuickAdd, isMobile
 
 export function InspirationQuickAddSheet({ open, onClose, onSave, isMobile }: {
   open: boolean; onClose: () => void; isMobile: boolean;
-  onSave: (payload: { name: string; url: string; sourceUrl?: string; tags: string; assetType: "Photo" | "Link" }) => Promise<void> | void;
+  onSave: (payload: { name: string; url: string; sourceUrl?: string; tags: string; assetType: "Photo" | "Link" }) => Promise<boolean>;
 }) {
   const [mode, setMode] = useState<"upload" | "url">("upload");
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [tags, setTags] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const draft = useDraftSave(onClose);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const SUGGESTED_TAGS = ["lighting", "cocktails", "seating", "barfinish", "menu", "decor", "plating", "signage"];
@@ -872,25 +888,23 @@ export function InspirationQuickAddSheet({ open, onClose, onSave, isMobile }: {
     const isUpload = mode === "upload";
     const finalUrl = isUpload ? preview : url.trim();
     if (!finalUrl) { alert(isUpload ? "Choose an image first." : "Paste a link first."); return; }
-    setSaving(true);
     try {
       const looksLikeImage = !isUpload && /\.(png|jpe?g|gif|webp|avif)(\?|$)/i.test(finalUrl);
-      await onSave({
+      const saved = await draft.save(() => onSave({
         name: name.trim() || (isUpload ? "Inspiration photo" : "Inspiration link"),
         url: finalUrl,
         sourceUrl: isUpload ? undefined : url.trim(),
         tags: tags.split(",").map(s => s.trim().replace(/^#/, "")).filter(Boolean).join(","),
         assetType: isUpload || looksLikeImage ? "Photo" : "Link",
-      });
+      }));
+      if (!saved) return;
       reset();
       onClose();
-    } finally {
-      setSaving(false);
-    }
+    } catch (e) { draft.setError(e instanceof Error ? e.message : 'Could not save. Please retry.'); }
   };
 
   return (
-    <BottomSheet open={open} onClose={() => { reset(); onClose(); }} title="💡 Add Inspiration" isMobile={isMobile} maxWidth={460}>
+    <BottomSheet open={open} onClose={draft.close} title="💡 Add Inspiration" isMobile={isMobile} maxWidth={460}>
       <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
         {([["upload", "Upload Screenshot"], ["url", "Paste Link"]] as const).map(([id, label]) => (
           <button key={id} onClick={() => setMode(id)}
@@ -932,8 +946,9 @@ export function InspirationQuickAddSheet({ open, onClose, onSave, isMobile }: {
       </div>
       <input value={tags} onChange={e => setTags(e.target.value)} placeholder="Custom tags, comma separated" style={{ ...inpStyle, width: "100%", height: 40, marginBottom: 16, fontSize: 12 }} />
 
-      <Btn onClick={save} variant="primary" style={{ width: "100%", justifyContent: "center", opacity: saving ? 0.6 : 1 }}>
-        {saving ? "Saving..." : "Save to Inspiration"}
+      <DraftSaveError error={draft.error} />
+      <Btn disabled={draft.pending} onClick={save} variant="primary" style={{ width: "100%", justifyContent: "center", opacity: draft.pending ? 0.6 : 1 }}>
+        {draft.pending ? "Saving..." : "Save to Inspiration"}
       </Btn>
     </BottomSheet>
   );
@@ -1016,10 +1031,11 @@ export function BlockerCard({ text, task, onView }: { text: string; task: Task |
 
 export function TaskDetailSheet({ task, onClose, onMarkInProgress, onMarkComplete, onOpenFull, isMobile }: {
   task: Task | null; onClose: () => void; isMobile: boolean;
-  onMarkInProgress: (t: Task) => void; onMarkComplete: (t: Task) => void; onOpenFull: (t: Task) => void;
+  onMarkInProgress: (t: Task) => Promise<boolean>; onMarkComplete: (t: Task) => Promise<boolean>; onOpenFull: (t: Task) => void;
 }) {
+  const draft = useDraftSave(onClose);
   return (
-    <BottomSheet open={!!task} onClose={onClose} title={task?.task || "Task"} isMobile={isMobile} maxWidth={460}>
+    <BottomSheet open={!!task} onClose={draft.close} title={task?.task || "Task"} isMobile={isMobile} maxWidth={460}>
       {task && (
         <>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
@@ -1043,11 +1059,12 @@ export function TaskDetailSheet({ task, onClose, onMarkInProgress, onMarkComplet
             </div>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <DraftSaveError error={draft.error} />
             {task.status !== "In Progress" && task.status !== "Complete" && (
-              <Btn onClick={() => { onMarkInProgress(task); onClose(); }} variant="primary" style={{ width: "100%", justifyContent: "center" }}>Start — Mark In Progress</Btn>
+              <Btn disabled={draft.pending} onClick={async () => { if (await draft.save(() => onMarkInProgress(task))) onClose(); }} variant="primary" style={{ width: "100%", justifyContent: "center" }}>{draft.pending ? 'Saving…' : 'Start — Mark In Progress'}</Btn>
             )}
             {task.status !== "Complete" && (
-              <Btn onClick={() => { onMarkComplete(task); onClose(); }} variant="outline" style={{ width: "100%", justifyContent: "center" }}>✓ Mark Complete</Btn>
+              <Btn disabled={draft.pending} onClick={async () => { if (await draft.save(() => onMarkComplete(task))) onClose(); }} variant="outline" style={{ width: "100%", justifyContent: "center" }}>{draft.pending ? 'Saving…' : '✓ Mark Complete'}</Btn>
             )}
             <Btn onClick={() => { onOpenFull(task); onClose(); }} variant="ghost" style={{ width: "100%", justifyContent: "center" }}>
               <ExternalLink size={13} style={{ marginRight: 6 }} /> Open Full Editor

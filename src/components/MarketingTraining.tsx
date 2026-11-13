@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, PenLine, Trash2, ExternalLink, Link2, Image, Film, Instagram } from 'lucide-react';
+import { PenLine, Trash2, ExternalLink, Link2, Image, Film, Instagram } from 'lucide-react';
 import { T, MarketingPost, TrainingModule, DailyChecklist, DigitalAsset } from '../types';
 import { SectionHeader, Btn, Modal, Field, inpStyle, Pill } from './UI';
+import { useDraftSave, DraftSaveError } from '../hooks/useDraftSave';
 
 // ������ MARKETING ������
 export function MarketingCalendar({ posts, onAdd, onEdit, onDelete }: { posts: MarketingPost[], onAdd: () => void, onEdit: (p: MarketingPost) => void, onDelete: (id: number) => void }) {
@@ -41,13 +42,14 @@ export function MarketingCalendar({ posts, onAdd, onEdit, onDelete }: { posts: M
   );
 }
 
-export function MarketingModal({ post, onSave, onClose }: { post: MarketingPost | null, onSave: (form: any) => void, onClose: () => void }) {
+export function MarketingModal({ post, onSave, onClose }: { post: MarketingPost | null, onSave: (form: any) => Promise<boolean>, onClose: () => void }) {
   const blank = { platform: "Instagram", title: "", date: "", status: "Draft", notes: "" };
   const [form, setForm] = useState<any>(post ? { ...post } : blank);
+  const draft = useDraftSave(onClose);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
   return (
-    <Modal title={post ? "Edit Post" : "New Marketing Post"} onClose={onClose} width={420}>
+    <Modal title={post ? "Edit Post" : "New Marketing Post"} onClose={draft.close} width={420}>
       <Field label="TITLE / CONTENT"><input value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. Grand Opening Teaser" style={inpStyle} /></Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="PLATFORM"><input value={form.platform} onChange={e => set("platform", e.target.value)} placeholder="e.g. Instagram" style={inpStyle} /></Field>
@@ -58,14 +60,16 @@ export function MarketingModal({ post, onSave, onClose }: { post: MarketingPost 
         </Field>
       </div>
       <Field label="POST DATE"><input type="date" value={form.date} onChange={e => set("date", e.target.value)} style={inpStyle} /></Field>
+      <Field label="NOTES / CAPTION"><textarea value={form.notes || ""} onChange={e => set("notes", e.target.value)} placeholder="Caption, hashtags, or publishing notes" style={{ ...inpStyle, height: 76, resize: "vertical", padding: 10 }} /></Field>
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
         {post && (
           <div style={{ marginRight: "auto" }}>
-            <Btn onClick={() => onSave({ ...form, _delete: true })} variant="outline" style={{ color: T.red, borderColor: T.redBorder }} title="Delete post"><Trash2 size={13} /></Btn>
+            <Btn disabled={draft.pending} onClick={async () => { if (await draft.save(() => onSave({ ...form, _delete: true }))) onClose(); }} variant="outline" style={{ color: T.red, borderColor: T.redBorder }} title="Delete post"><Trash2 size={13} /></Btn>
           </div>
         )}
-        <Btn onClick={onClose} variant="ghost">Cancel</Btn>
-        <Btn onClick={() => { if (form.title.trim()) onSave(form); }} variant="primary">{post ? "Save Changes" : "Add Post"}</Btn>
+        <DraftSaveError error={draft.error} />
+        <Btn onClick={draft.close} variant="ghost">Cancel</Btn>
+        <Btn disabled={draft.pending} onClick={async () => { if (form.title.trim() && await draft.save(() => onSave(form))) onClose(); }} variant="primary">{draft.pending ? 'Saving…' : post ? "Save Changes" : "Add Post"}</Btn>
       </div>
     </Modal>
   );
@@ -127,15 +131,16 @@ export function TrainingPortal({ modules, onToggleStep, onAdd, onEdit, onDelete 
   );
 }
 
-export function TrainingModal({ module, onSave, onClose }: { module: TrainingModule | null, onSave: (form: any) => void, onClose: () => void }) {
-  const blank = { title: "", category: "General", steps: [], videoUrl: "" };
+export function TrainingModal({ module, onSave, onClose }: { module: TrainingModule | null, onSave: (form: any) => Promise<boolean>, onClose: () => void }) {
+  const blank = { title: "", category: "General", completed: false, date: "", steps: [], videoUrl: "" };
   const [form, setForm] = useState<any>(module ? { ...module } : blank);
+  const draft = useDraftSave(onClose);
   const [newStep, setNewStep] = useState("");
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
   const addStep = () => { if (!newStep.trim()) return; setForm((f: any) => ({ ...f, steps: [...f.steps, { id: Date.now(), text: newStep.trim(), done: false }] })); setNewStep(""); };
 
   return (
-    <Modal title={module ? "Edit Module" : "New Training Module"} onClose={onClose} width={480}>
+    <Modal title={module ? "Edit Module" : "New Training Module"} onClose={draft.close} width={480}>
       <Field label="MODULE TITLE"><input value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. Espresso Machine Basics" style={inpStyle} /></Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="CATEGORY">
@@ -144,6 +149,10 @@ export function TrainingModal({ module, onSave, onClose }: { module: TrainingMod
           </select>
         </Field>
         <Field label="VIDEO URL (OPTIONAL)"><input value={form.videoUrl} onChange={e => set("videoUrl", e.target.value)} placeholder="https://..." style={inpStyle} /></Field>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <Field label="REVIEW DATE (OPTIONAL)"><input type="date" value={form.date || ""} onChange={e => set("date", e.target.value)} style={inpStyle} /></Field>
+        <Field label="COMPLETED"><select value={String(!!form.completed)} onChange={e => set("completed", e.target.value === "true")} style={{ ...inpStyle, height: 42 }}><option value="false">In progress</option><option value="true">Completed</option></select></Field>
       </div>
       <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 18, marginTop: 4 }}>
         <label style={{ fontSize: 11, fontFamily: "'IBM Plex Mono',monospace", color: T.muted, letterSpacing: .8, display: "block", marginBottom: 12 }}>TRAINING STEPS</label>
@@ -161,11 +170,12 @@ export function TrainingModal({ module, onSave, onClose }: { module: TrainingMod
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
         {module && (
           <div style={{ marginRight: "auto" }}>
-            <Btn onClick={() => onSave({ ...form, _delete: true })} variant="outline" style={{ color: T.red, borderColor: T.redBorder }} title="Delete module"><Trash2 size={13} /></Btn>
+            <Btn disabled={draft.pending} onClick={async () => { if (await draft.save(() => onSave({ ...form, _delete: true }))) onClose(); }} variant="outline" style={{ color: T.red, borderColor: T.redBorder }} title="Delete module"><Trash2 size={13} /></Btn>
           </div>
         )}
-        <Btn onClick={onClose} variant="ghost">Cancel</Btn>
-        <Btn onClick={() => { if (form.title.trim()) onSave(form); }} variant="primary">{module ? "Save Changes" : "Create Module"}</Btn>
+        <DraftSaveError error={draft.error} />
+        <Btn onClick={draft.close} variant="ghost">Cancel</Btn>
+        <Btn disabled={draft.pending} onClick={async () => { if (form.title.trim() && await draft.save(() => onSave(form))) onClose(); }} variant="primary">{draft.pending ? 'Saving…' : module ? "Save Changes" : "Create Module"}</Btn>
       </div>
     </Modal>
   );
@@ -453,38 +463,23 @@ export function DigitalAssetManager({ assets, onAdd, onEdit, onDelete }: { asset
 }
 
 function AssetLogin({ info }: { info: string }) {
-  const [show, setShow] = useState(false);
-  const masked = info.split('\n').map(line => {
-    if (line.toLowerCase().includes('pass')) {
-      const parts = line.split(':');
-      if (parts.length > 1) {
-        return `${parts[0]}: ${'⬢'.repeat(parts[1].trim().length || 8)}`;
-      }
-    }
-    return line;
-  }).join('\n');
-
+  void info;
   return (
     <div style={{ background: T.bg, padding: "8px 12px", borderRadius: 8, border: `1px solid ${T.border}`, position: "relative" }}>
-      <div style={{ fontSize: 9, color: T.subtle, fontFamily: "'IBM Plex Mono',monospace", marginBottom: 4 }}>LOGIN INFO</div>
-      <div style={{ fontSize: 12, color: T.text, whiteSpace: "pre-wrap", paddingRight: 30 }}>{show ? info : masked}</div>
-      <button 
-        onClick={() => setShow(!show)} 
-        style={{ position: "absolute", top: 8, right: 8, background: "none", border: "none", color: T.muted, cursor: "pointer", padding: 4 }}
-      >
-        {show ? <EyeOff size={14} /> : <Eye size={14} />}
-      </button>
+      <div style={{ fontSize: 9, color: T.subtle, fontFamily: "'IBM Plex Mono',monospace" }}>Legacy login details hidden. Use a password manager.</div>
     </div>
   );
 }
 
-export function DigitalAssetModal({ asset, onSave, onClose }: { asset: DigitalAsset | null, onSave: (form: any) => void, onClose: () => void }) {
+export function DigitalAssetModal({ asset, onSave, onClose }: { asset: DigitalAsset | null, onSave: (form: any) => Promise<boolean>, onClose: () => void }) {
   const blank: Partial<DigitalAsset> = { name: "", category: "Inspiration", folder: "Inbox", assetType: "Link", url: "", loginInfo: "", notes: "", tags: "" };
-  const [form, setForm] = useState<any>(asset ? { ...asset } : blank);
+  // Existing loginInfo values may contain legacy plaintext passwords. Never prefill or display them.
+  const [form, setForm] = useState<any>(asset ? { ...asset, loginInfo: "" } : blank);
+  const draft = useDraftSave(onClose);
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
   return (
-    <Modal title={asset ? "Edit Asset" : "New Inspiration Asset"} onClose={onClose} width={460}>
+    <Modal title={asset ? "Edit Asset" : "New Inspiration Asset"} onClose={draft.close} width={460}>
       <Field label="TITLE"><input value={form.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Cozy bar moodboard" style={inpStyle} /></Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="FOLDER"><input value={form.folder || ""} onChange={e => set("folder", e.target.value)} placeholder="e.g. Interiors" style={inpStyle} /></Field>
@@ -506,17 +501,18 @@ export function DigitalAssetModal({ asset, onSave, onClose }: { asset: DigitalAs
         </div>
       )}
       <Field label="TAGS (OPTIONAL)"><input value={form.tags || ""} onChange={e => set("tags", e.target.value)} placeholder="e.g. moody, warm, greens, wood" style={inpStyle} /></Field>
-      <Field label="LOGIN INFO (OPTIONAL)"><textarea value={form.loginInfo || ""} onChange={e => set("loginInfo", e.target.value)} placeholder="Username: admin&#10;Password: ..." style={{ ...inpStyle, height: 76, resize: "none", padding: "10px" }} /></Field>
+      <Field label="PASSWORD MANAGER REFERENCE (OPTIONAL)"><input value={form.loginInfo || ""} onChange={e => set("loginInfo", e.target.value)} placeholder="Vault item name or password manager link (no passwords)" style={inpStyle} /></Field>
       <Field label="NOTES (OPTIONAL)"><input value={form.notes || ""} onChange={e => set("notes", e.target.value)} placeholder="Why this is useful" style={inpStyle} /></Field>
       
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
         {asset && (
           <div style={{ marginRight: "auto" }}>
-            <Btn onClick={() => onSave({ ...form, _delete: true })} variant="outline" style={{ color: T.red, borderColor: T.redBorder }} title="Delete asset"><Trash2 size={13} /></Btn>
+            <Btn disabled={draft.pending} onClick={async () => { if (await draft.save(() => onSave({ ...form, _delete: true }))) onClose(); }} variant="outline" style={{ color: T.red, borderColor: T.redBorder }} title="Delete asset"><Trash2 size={13} /></Btn>
           </div>
         )}
-        <Btn onClick={onClose} variant="ghost">Cancel</Btn>
-        <Btn onClick={() => { if (String(form.name || "").trim()) onSave(form); }} variant="primary">{asset ? "Save Changes" : "Add Asset"}</Btn>
+        <DraftSaveError error={draft.error} />
+        <Btn onClick={draft.close} variant="ghost">Cancel</Btn>
+        <Btn disabled={draft.pending} onClick={async () => { if (String(form.name || "").trim() && await draft.save(() => onSave(form))) onClose(); }} variant="primary">{draft.pending ? 'Saving…' : asset ? "Save Changes" : "Add Asset"}</Btn>
       </div>
     </Modal>
   );
@@ -560,15 +556,16 @@ export function DailyChecklistManager({ checklists, onToggleItem, onAdd, onEdit,
   );
 }
 
-export function ChecklistModal({ checklist, onSave, onClose }: { checklist: DailyChecklist | null, onSave: (form: any) => void, onClose: () => void }) {
+export function ChecklistModal({ checklist, onSave, onClose }: { checklist: DailyChecklist | null, onSave: (form: any) => Promise<boolean>, onClose: () => void }) {
   const blank = { title: "", shift: "AM", assignedTo: "", items: [] };
   const [form, setForm] = useState<any>(checklist ? { ...checklist } : blank);
+  const draft = useDraftSave(onClose);
   const [newItem, setNewItem] = useState("");
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
   const addItem = () => { if (!newItem.trim()) return; setForm((f: any) => ({ ...f, items: [...f.items, { id: Date.now(), text: newItem.trim(), done: false, assignedTo: "" }] })); setNewItem(""); };
 
   return (
-    <Modal title={checklist ? "Edit Checklist" : "New Daily Checklist"} onClose={onClose} width={420}>
+    <Modal title={checklist ? "Edit Checklist" : "New Daily Checklist"} onClose={draft.close} width={420}>
       <Field label="CHECKLIST TITLE"><input value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. Front of House Opening" style={inpStyle} /></Field>
       <Field label="SHIFT">
         <select value={form.shift} onChange={e => set("shift", e.target.value)} style={{ ...inpStyle, height: 42 }}>
@@ -591,8 +588,9 @@ export function ChecklistModal({ checklist, onSave, onClose }: { checklist: Dail
         </div>
       </div>
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
-        <Btn onClick={onClose} variant="ghost">Cancel</Btn>
-        <Btn onClick={() => { if (form.title.trim()) onSave(form); }} variant="primary">{checklist ? "Save Changes" : "Create Checklist"}</Btn>
+        <DraftSaveError error={draft.error} />
+        <Btn onClick={draft.close} variant="ghost">Cancel</Btn>
+        <Btn disabled={draft.pending} onClick={async () => { if (form.title.trim() && await draft.save(() => onSave(form))) onClose(); }} variant="primary">{draft.pending ? 'Saving…' : checklist ? "Save Changes" : "Create Checklist"}</Btn>
       </div>
     </Modal>
   );

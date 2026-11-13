@@ -1,13 +1,12 @@
-import pg from "pg";
+import { getDatabasePool } from "../../server/database";
 
-const { Pool } = pg;
 
 const DB_READ_TABLES = new Set([
   "tasks", "task_todos", "menu_items", "startup_costs", "operating_costs", "milestones", "notes",
   "vendors", "contacts", "inventory_items", "utility_accounts", "permits", "marketing_posts",
   "training_modules", "daily_checklists", "invoices", "positions", "candidates", "decision_logs",
   "digital_assets", "activity_logs", "shopping_list_items", "cost_calculator_overrides",
-  "calendar_events"
+  "calendar_events", "team_onboarding"
 ]);
 
 const DB_CONNECTION = process.env.DATABASE_URL?.trim();
@@ -15,7 +14,7 @@ const DB_SELECT_DEBUG_LOGS = String(process.env.DB_SELECT_DEBUG_LOGS || "").trim
 const DB_ROUTE_KEY = String(process.env.DB_ROUTE_KEY || "").trim();
 const DB_ROUTE_REQUIRE_TRUSTED = String(process.env.DB_ROUTE_REQUIRE_TRUSTED || "1").trim() !== "0";
 
-const pool = DB_CONNECTION ? new Pool({ connectionString: DB_CONNECTION }) : null;
+const pool = getDatabasePool();
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_PER_WINDOW = Number(process.env.DB_SELECT_RATE_LIMIT_PER_MIN || 120);
 const blockedIps = new Set(

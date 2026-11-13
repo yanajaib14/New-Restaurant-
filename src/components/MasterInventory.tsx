@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { T, InventoryItem, Vendor, InventoryCategory, InventoryDepartment, ProcurementStatus, INV_CATEGORIES, DEPARTMENTS } from '../types';
-import { SectionHeader, Btn, Pill } from './UI';
+import { SectionHeader, Btn, Pill, inpStyle } from './UI';
+import { PenLine, Trash2, Eye } from 'lucide-react';
 import { exportToCSV } from '../lib/exportUtils';
 
 export function MasterInventory({ items, vendors, onEdit, onDelete, onAdd, onView }: { 
@@ -14,6 +15,7 @@ export function MasterInventory({ items, vendors, onEdit, onDelete, onAdd, onVie
   const isMobile = window.innerWidth < 1024;
   const [catFilter, setCatFilter] = useState<string>("All");
   const [deptFilter, setDeptFilter] = useState<string>("All");
+  const [search, setSearch] = useState("");
 
   const categories = INV_CATEGORIES;
   const departments = DEPARTMENTS;
@@ -22,9 +24,11 @@ export function MasterInventory({ items, vendors, onEdit, onDelete, onAdd, onVie
     return items.filter(item => {
       const matchCat = catFilter === "All" || item.category === catFilter;
       const matchDept = deptFilter === "All" || item.department === deptFilter;
-      return matchCat && matchDept;
+      const query = search.trim().toLowerCase();
+      const matchSearch = !query || [item.name, item.category, item.department, item.unit, getVendorName(item.vendorId)].some(value => String(value || "").toLowerCase().includes(query));
+      return matchCat && matchDept && matchSearch;
     });
-  }, [items, catFilter, deptFilter]);
+  }, [items, catFilter, deptFilter, search, vendors]);
 
   const stats = useMemo(() => {
     const totalStartupSpend = items
@@ -95,7 +99,36 @@ export function MasterInventory({ items, vendors, onEdit, onDelete, onAdd, onVie
         </div>
       </div>
 
-      {/* Filters and content continues... */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+        <input aria-label="Search inventory" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search items, vendors, or units" style={{ ...inpStyle, flex: "1 1 220px" }} />
+        <select aria-label="Filter by category" value={catFilter} onChange={e => setCatFilter(e.target.value)} style={{ ...inpStyle, flex: "0 1 190px" }}>
+          <option value="All">All categories</option>{categories.map(category => <option key={category}>{category}</option>)}
+        </select>
+        <select aria-label="Filter by department" value={deptFilter} onChange={e => setDeptFilter(e.target.value)} style={{ ...inpStyle, flex: "0 1 170px" }}>
+          <option value="All">All departments</option>{departments.map(department => <option key={department}>{department}</option>)}
+        </select>
+      </div>
+      <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 12, overflowX: "auto" }}>
+        <table style={{ width: "100%", minWidth: 850, borderCollapse: "collapse", textAlign: "left" }}>
+          <thead><tr style={{ background: T.bg }}>{["ITEM", "CATEGORY", "DEPARTMENT", "STATUS", "VENDOR", "STOCK / PAR", "COST", "ACTIONS"].map(label => <th key={label} style={{ padding: "11px 14px", borderBottom: `1px solid ${T.border}`, fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, color: T.subtle, letterSpacing: .8 }}>{label}</th>)}</tr></thead>
+          <tbody>{filteredItems.map(item => {
+            const colors = statusColors[item.procurementStatus] || statusColors["Not Ordered"];
+            return <tr key={item.id} style={{ borderBottom: `1px solid ${T.border}` }}>
+              <td style={{ padding: "12px 14px" }}><div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{item.name}</div><div style={{ fontSize: 11, color: T.muted }}>{item.unit} · Par {item.parLevel}</div></td>
+              <td style={{ padding: "12px 14px", fontSize: 12 }}>{item.category}</td><td style={{ padding: "12px 14px", fontSize: 12 }}>{item.department}</td>
+              <td style={{ padding: "12px 14px" }}><Pill label={item.procurementStatus} color={colors.text} bg={colors.bg} border={colors.border} /></td>
+              <td style={{ padding: "12px 14px", fontSize: 12 }}>{getVendorName(item.vendorId)}</td>
+              <td style={{ padding: "12px 14px", fontSize: 12, color: item.currentStock <= item.parLevel ? T.red : T.text }}>{item.currentStock} / {item.parLevel}</td>
+              <td style={{ padding: "12px 14px", fontSize: 12 }}>${(Number(item.price) || 0).toLocaleString()}</td>
+              <td style={{ padding: "12px 14px" }}><div style={{ display: "flex", gap: 5 }}>
+                <button onClick={() => onView(item)} aria-label={`View ${item.name}`} title="View" style={{ border: `1px solid ${T.border}`, borderRadius: 6, padding: 5, background: "white", cursor: "pointer", color: T.muted }}><Eye size={14} /></button>
+                <button onClick={() => onEdit(item)} aria-label={`Edit ${item.name}`} title="Edit" style={{ border: `1px solid ${T.border}`, borderRadius: 6, padding: 5, background: "white", cursor: "pointer", color: T.muted }}><PenLine size={14} /></button>
+                <button onClick={() => onDelete(item.id)} aria-label={`Delete ${item.name}`} title="Delete" style={{ border: `1px solid ${T.redBorder}`, borderRadius: 6, padding: 5, background: "white", cursor: "pointer", color: T.red }}><Trash2 size={14} /></button>
+              </div></td>
+            </tr>;
+          })}{filteredItems.length === 0 && <tr><td colSpan={8} style={{ textAlign: "center", padding: 24, color: T.muted }}>No inventory items match these filters.</td></tr>}</tbody>
+        </table>
+      </div>
     </div>
   );
 }

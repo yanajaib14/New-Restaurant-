@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import type { UserSchema } from "@insforge/shared-schemas";
+type UserSchema = { id: string; email?: string; name?: string; metadata?: Record<string, any> };
 
 interface AuthContextType {
   user: UserSchema | null;
@@ -29,7 +29,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const bootstrapOpenAccess = async () => {
       // Open access mode: any user with the URL can use the app.
-      // Sensitive sections are still protected by the app PIN gate.
+      // The device PIN only hides views; it is not account authorization.
       setUser({
         id: "guest-open-access",
         email: "guest@open-access.local",

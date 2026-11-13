@@ -1,3 +1,11 @@
+# Current database provider: Neon
+
+The user explicitly migrated database work to Neon. Use `neon.ts` and the installed
+`.agents/skills/neon` and `.agents/skills/neon-postgres` instructions. Browser data
+access goes through `/api/records/:table`; server code uses the pooled DATABASE_URL.
+Migrations use DATABASE_URL_UNPOOLED and `npm run db:migrate`. Do not run schema.sql.
+The InsForge guidance below is historical and does not override this migration.
+
 ---
 description: Instructions building apps with MCP
 globs: *

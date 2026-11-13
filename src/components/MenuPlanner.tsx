@@ -2,13 +2,15 @@ import React, { useState, useMemo } from 'react';
 import { T, MENU_SECTIONS, MenuItem, Ingredient } from '../types';
 import { Modal, Field, inpStyle, selStyle, Btn } from './UI';
 import { PenLine } from 'lucide-react';
+import { useDraftSave, DraftSaveError } from '../hooks/useDraftSave';
 
-export function MenuModal({ item, onSave, onClose }: { item: MenuItem | null, onSave: (form: any) => void, onClose: () => void }) {
+export function MenuModal({ item, onSave, onClose }: { item: MenuItem | null, onSave: (form: any) => boolean | Promise<boolean>, onClose: () => void }) {
   const isMobile = window.innerWidth < 1024;
   const blank = { name: "", section: "Small Plates", desc: "", price: "", foodCost: 30, hero: false, notes: "", imageUrl: "", ingredients: [], costPerBottle: "", sellPriceBottle: "", sellPriceGlass: "" };
   const [form, setForm] = useState<any>(item ? { ...item } : blank);
   const [newIng, setNewIng] = useState({ name: "", quantity: "", unit: "oz", cost: "" });
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const draftSave = useDraftSave(onClose);
 
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
@@ -55,7 +57,7 @@ export function MenuModal({ item, onSave, onClose }: { item: MenuItem | null, on
   };
 
   return (
-    <Modal title={item ? "Edit Menu Item" : "New Menu Item"} onClose={onClose} width={540}>
+    <Modal title={item ? "Edit Menu Item" : "New Menu Item"} onClose={draftSave.close} width={540}>
       <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 12, marginBottom: 16 }}>
         <div 
           onClick={() => fileInputRef.current?.click()}
@@ -135,13 +137,14 @@ export function MenuModal({ item, onSave, onClose }: { item: MenuItem | null, on
       <Field label="INTERNAL NOTES"><input value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Internal notes⬦" style={inpStyle} /></Field>
 
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap", marginTop: 20 }}>
-        <Btn onClick={onClose} variant="ghost">Cancel</Btn>
+        <DraftSaveError error={draftSave.error} />
+        <Btn onClick={draftSave.close} variant="ghost" disabled={draftSave.pending}>Cancel</Btn>
         <Btn onClick={() => { 
           if (form.name.trim()) {
             const finalCost = form.section === "Wine" ? calculatedWineCostPct : calculatedFoodCostPct;
-            onSave({ ...form, foodCost: finalCost }); 
+            draftSave.save(() => onSave({ ...form, foodCost: finalCost })).then(ok => { if (ok) onClose(); });
           }
-        }} variant="primary">{item ? "Save Changes" : "Add Item"}</Btn>
+        }} variant="primary" disabled={draftSave.pending}>{draftSave.pending ? "Saving…" : item ? "Save Changes" : "Add Item"}</Btn>
       </div>
     </Modal>
   );

@@ -30,10 +30,10 @@ export function Modal({ title, onClose, children, width = 520 }: { title: string
   const isMobile = window.innerWidth < 1024;
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(44, 54, 57, 0.32)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
-      <div style={{ background: "#FFF", borderRadius: isMobile ? 14 : 18, padding: isMobile ? "1.125rem 1rem 1rem" : "2.5rem", width: isMobile ? "calc(100vw - 20px)" : width, maxWidth: isMobile ? "calc(100vw - 20px)" : width, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 14px 42px rgba(15, 28, 42, 0.16)", border: `1px solid ${T.border}` }} onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-label={title} style={{ background: "#FFF", borderRadius: isMobile ? 14 : 18, padding: isMobile ? "1.125rem 1rem 1rem" : "2.5rem", width: isMobile ? "calc(100vw - 20px)" : width, maxWidth: isMobile ? "calc(100vw - 20px)" : width, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 14px 42px rgba(15, 28, 42, 0.16)", border: `1px solid ${T.border}` }} onClick={e => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: isMobile ? 14 : 24 }}>
           <span style={{ fontFamily: "var(--font-sans)", fontSize: isMobile ? 20 : 22, fontWeight: 800, color: T.text, letterSpacing: -0.3 }}>{title}</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: T.text, cursor: "pointer", fontSize: 24, lineHeight: 1 }}>x</button>
+          <button aria-label={`Close ${title}`} onClick={onClose} style={{ background: "none", border: "none", color: T.text, cursor: "pointer", fontSize: 24, lineHeight: 1 }}>x</button>
         </div>
         {children}
       </div>
@@ -42,11 +42,13 @@ export function Modal({ title, onClose, children, width = 520 }: { title: string
 }
 
 export const Field = ({ label, children }: { label: string, children: React.ReactNode }) => {
+  const id = React.useId();
+  const field = React.isValidElement(children) && ["input", "select", "textarea"].includes(String(children.type)) ? React.cloneElement(children as React.ReactElement<{id?: string}>, { id }) : children;
   const isMobile = window.innerWidth < 1024;
   return (
   <div style={{ marginBottom: isMobile ? 14 : 14 }}>
-    <label style={{ display: "block", fontSize: isMobile ? 11 : 12, fontFamily: "'IBM Plex Mono', monospace", color: T.muted, letterSpacing: 1.1, marginBottom: 8, fontWeight: 700 }}>{label}</label>
-    {children}
+    <label htmlFor={id} style={{ display: "block", fontSize: isMobile ? 11 : 12, fontFamily: "'IBM Plex Mono', monospace", color: T.muted, letterSpacing: 1.1, marginBottom: 8, fontWeight: 700 }}>{label}</label>
+    {field}
   </div>
   );
 };

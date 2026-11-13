@@ -1,13 +1,12 @@
-import pg from "pg";
+import { getDatabasePool } from "../../server/database";
 
-const { Pool } = pg;
 
 const DB_WRITE_TABLES = new Set([
   "tasks", "menu_items", "startup_costs", "operating_costs", "milestones", "notes",
   "vendors", "contacts", "inventory_items", "utility_accounts", "permits", "marketing_posts",
   "training_modules", "daily_checklists", "invoices", "positions", "candidates", "decision_logs",
   "digital_assets", "activity_logs", "task_todos", "shopping_list_items", "cost_calculator_overrides",
-  "calendar_events"
+  "calendar_events", "team_onboarding"
 ]);
 
 const DB_CONNECTION = process.env.DATABASE_URL?.trim();
@@ -40,7 +39,7 @@ addAllowedHost(String(process.env.APP_URL || ""));
 addAllowedHost(String(process.env.VERCEL_PROJECT_PRODUCTION_URL || ""));
 addAllowedHost(String(process.env.VERCEL_URL || ""));
 
-const pool = DB_CONNECTION ? new Pool({ connectionString: DB_CONNECTION }) : null;
+const pool = getDatabasePool();
 
 const toDbValue = (value: unknown) => {
   if (value === undefined) return null;
