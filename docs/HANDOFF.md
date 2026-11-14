@@ -21,7 +21,13 @@ Review [the before/after gallery](design/README.md), [measurements and validatio
 
 Separate pushed branches: `remove-google-drive` (`42c0e6f`) and `ci-test-build` (`b295537`). They are not included in this branch. GitHub API requests are forbidden by the environment, so automatic PR creation is blocked; compare links and PR bodies are prepared. Do not merge or deploy; the owner reviews previews and merges. No live Neon query or production write was performed. Production schema readiness and editing remain owner checks; do not re-link Neon or run SQL.
 
-Opening-day must-haves were requested from the owners; await their list before reprioritizing functional work. The overdue-count disagreement, implicit dependencies, guest identity and confidential hiring records loading before PIN unlock remain open. This visual pass does not fix authorization or complete the audit.
+Open the three independent PRs against `main` using these compare links and prepared descriptions:
+
+- [Remove Google Drive](https://github.com/yanajaib14/New-Restaurant-/compare/main...remove-google-drive?expand=1) · [description](pr-drafts/remove-google-drive.md)
+- [Add CI](https://github.com/yanajaib14/New-Restaurant-/compare/main...ci-test-build?expand=1) · [description](pr-drafts/ci-test-build.md)
+- [Approved design polish](https://github.com/yanajaib14/New-Restaurant-/compare/main...mobile-design-plan?expand=1) · [description](pr-drafts/mobile-design-plan.md)
+
+The design source/screenshot commit is `11af502`. These branches were pushed, not merged. Opening-day must-haves were requested from the owners; await their list before reprioritizing functional work. The overdue-count disagreement, implicit dependencies, guest identity and confidential hiring records loading before PIN unlock remain open. This visual pass does not fix authorization or complete the audit.
 
 ## Validation evidence
 
