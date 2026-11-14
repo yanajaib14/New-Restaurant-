@@ -14,6 +14,17 @@
   --font-thai-display: "TH Charm of AU", "Charm", "Noto Sans Thai", serif;
 }
 
+:root {
+  --workspace-safe-top: env(safe-area-inset-top, 0px);
+  --workspace-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+}
+
 @layer base {
   html, body, #root {
     min-height: 100%;
@@ -23,11 +34,10 @@
     margin: 0;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
-    overflow-x: hidden;
     touch-action: manipulation;
     color: #111111;
     font-family: var(--font-sans);
-    font-size: 16px;
+    font-size: 15px;
     line-height: 1.55;
     background: #ffffff;
   }
@@ -60,6 +70,7 @@
 
   @media (max-width: 1024px) {
     body {
+      font-size: 16px;
       line-height: 1.5;
     }
 
@@ -68,10 +79,10 @@
       touch-action: manipulation;
     }
 
-    input,
+    input:not([type="tel"]),
     select,
     textarea {
-      font-size: 16px;
+      font-size: 16px !important;
     }
   }
 
@@ -95,6 +106,18 @@
   * {
     -webkit-tap-highlight-color: transparent;
     box-sizing: border-box;
+  }
+
+  :focus-visible {
+    outline: 3px solid #52525B !important;
+    outline-offset: 2px;
+  }
+
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    border-color: #52525B !important;
+    box-shadow: 0 0 0 3px rgba(82, 82, 91, 0.16) !important;
   }
 
   /* Smooth momentum scroll on iOS */
@@ -166,12 +189,6 @@
     justify-content: center;
   }
 
-  /* Buttons with text should allow auto width */
-  button:not([style*="width"]) {
-    min-width: unset;
-    width: auto;
-  }
-
   /* Cards lift on tap feedback */
   .mobile-card {
     transition: transform 0.12s ease, box-shadow 0.12s ease;
@@ -180,12 +197,6 @@
   .mobile-card:active {
     transform: scale(0.985);
     box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
-  }
-
-  /* Prevent horizontal scroll on page */
-  #root, main, [data-main] {
-    overflow-x: hidden;
-    max-width: 100vw;
   }
 
   /* Bottom nav bar on mobile */
@@ -241,6 +252,8 @@
 
 /* Clickable card lift effect */
 .card-clickable {
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(17, 17, 17, 0.05);
   transition: box-shadow 0.15s ease, transform 0.12s ease;
   cursor: pointer;
 }
@@ -357,4 +370,135 @@ button[title^="Remove"] {
   align-items: center !important;
   justify-content: center !important;
   line-height: 1 !important;
+}
+
+@media (max-width: 1024px) {
+  button[title="Edit"],
+  button[title^="Edit "],
+  button[title="Delete"],
+  button[title^="Delete"],
+  button[title="Remove"],
+  button[title^="Remove"] {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    flex-basis: 44px !important;
+  }
+}
+
+/* Shared desktop navigation and mobile sync status. */
+.desktop-workspace .workspace-header {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: #E4E4E7 !important;
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+.desktop-workspace .workspace-primary-nav > button,
+.desktop-workspace .workspace-secondary-nav > button {
+  min-height: 44px;
+  border-radius: 8px 8px 0 0;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.desktop-workspace .workspace-primary-nav > button:hover,
+.desktop-workspace .workspace-secondary-nav > button:hover {
+  background-color: #F4F4F5 !important;
+}
+
+.desktop-workspace .workspace-quick-icon {
+  background: #F4F4F5 !important;
+  border-color: #E4E4E7 !important;
+  color: #3F3F46 !important;
+}
+
+.desktop-workspace .workspace-quick-icon svg {
+  color: #3F3F46 !important;
+}
+
+.desktop-workspace .workspace-quick-link > span:last-child {
+  font-size: 12px !important;
+  color: #3F3F46 !important;
+}
+
+.workspace-content {
+  min-width: 0;
+}
+
+.workspace-load-error {
+  color: #5B3A13;
+  line-height: 1.5;
+}
+
+.workspace-load-error button {
+  min-height: 44px;
+  padding: 8px 12px;
+}
+
+.workspace-sync-banner,
+.workspace-sync-banner .shared-sync {
+  color: #3F3F46;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.workspace-sync-banner .shared-sync small {
+  color: #3F3F46;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.workspace-sync-banner .shared-sync {
+  border-color: #D4D4D8;
+  border-radius: 12px;
+}
+
+.workspace-sync-banner .shared-sync button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+}
+
+@media (max-width: 1024px) {
+  .workspace-sync-banner {
+    padding: 0 12px !important;
+  }
+
+  .workspace-sync-banner .shared-sync {
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 12px 0;
+    padding: 12px;
+  }
+
+  .workspace-sync-banner .shared-sync button {
+    min-width: 44px;
+    width: 100%;
+  }
+
+  .workspace-load-error button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .mobile-workspace-shell [role="dialog"] [role="alert"] {
+    font-size: 16px !important;
+    line-height: 1.5;
+  }
 }

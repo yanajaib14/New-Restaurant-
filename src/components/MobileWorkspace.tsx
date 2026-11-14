@@ -143,7 +143,7 @@ export function MobileWorkspace({ tasks, todos, events, updates, appTitle, pendi
   };
 
   const renderToday = () => <>
-    <header className="mw-page-heading"><div>{appTitle && <p className="mw-brand">{appTitle}</p>}<p className="mw-eyebrow">TODAY</p><h1>{formatDate(today, { weekday: 'long', month: 'long', day: 'numeric' })}</h1></div><button className="mw-primary" onClick={onNewTask}>New task</button></header>
+    <header className="mw-page-heading"><div>{appTitle && <p className="mw-brand">{appTitle}</p>}<p className="mw-eyebrow">TODAY</p><h1>{formatDate(today, { weekday: 'long', month: 'long', day: 'numeric' })}</h1></div></header>
     {overdueTasks.length > 0 && <section className="mw-section"><div className="mw-section-title"><h2>Overdue · {overdueTasks.length}</h2><button onClick={() => setTab('Tasks')}>See all</button></div><div className="mw-list">{overdueTasks.slice(0, 3).map(renderTask)}</div></section>}
     <section className="mw-section"><h2>Today</h2>
       {todayEvents.length === 0 && todayTasks.length === 0 ? <p className="mw-empty">Nothing scheduled for today.</p> : <div className="mw-list">
@@ -161,7 +161,7 @@ export function MobileWorkspace({ tasks, todos, events, updates, appTitle, pendi
       { key: 'todo', title: 'To do' }, { key: 'review', title: 'Needs review' }, { key: 'done', title: 'Done' },
     ];
     return <>
-      <header className="mw-page-heading"><div>{appTitle && <p className="mw-brand">{appTitle}</p>}<p className="mw-eyebrow">WORK</p><h1>Tasks</h1></div><button className="mw-primary" onClick={onNewTask}>New task</button></header>
+      <header className="mw-page-heading"><div>{appTitle && <p className="mw-brand">{appTitle}</p>}<p className="mw-eyebrow">WORK</p><h1>Tasks</h1></div></header>
       {groups.map(group => {
         const taskRows = tasks.filter(task => taskGroup(task) === group.key);
         const todoRows = todos.filter(todo => todoGroup(todo) === group.key);
@@ -174,7 +174,7 @@ export function MobileWorkspace({ tasks, todos, events, updates, appTitle, pendi
   };
 
   const renderCalendar = () => <>
-      <header className="mw-page-heading"><div>{appTitle && <p className="mw-brand">{appTitle}</p>}<p className="mw-eyebrow">SCHEDULE</p><h1>Calendar</h1></div><button className="mw-primary" onClick={() => onNewEvent(selectedDate)}>Add event</button></header>
+      <header className="mw-page-heading"><div>{appTitle && <p className="mw-brand">{appTitle}</p>}<p className="mw-eyebrow">SCHEDULE</p><h1>Calendar</h1></div></header>
     <section className="mw-calendar">
       <div className="mw-month-nav"><button aria-label="Previous month" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}>‹</button><h2>{monthTitle}</h2><button aria-label="Next month" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}>›</button></div>
       <div className="mw-calendar-grid" role="grid" aria-label={monthTitle}>
@@ -189,19 +189,28 @@ export function MobileWorkspace({ tasks, todos, events, updates, appTitle, pendi
         })}
       </div>
     </section>
-    <section className="mw-section"><div className="mw-section-title"><h2>{formatDate(selectedDate, { weekday: 'long', month: 'long', day: 'numeric' })}</h2><button onClick={() => onNewEvent(selectedDate)}>Add event</button></div>
+    <section className="mw-section"><div className="mw-section-title"><h2>{formatDate(selectedDate, { weekday: 'long', month: 'long', day: 'numeric' })}</h2></div>
       {dayEvents.length === 0 && dayTasks.length === 0 ? <p className="mw-empty">Nothing scheduled for this day.</p> : <div className="mw-list">{dayEvents.map(renderEvent)}{dayTasks.map(renderTask)}</div>}
     </section>
   </>;
 
   const renderUpdates = () => <>
-      <header className="mw-page-heading"><div>{appTitle && <p className="mw-brand">{appTitle}</p>}<p className="mw-eyebrow">NOTES</p><h1>Updates</h1></div><button className="mw-primary" onClick={onNewUpdate}>New update</button></header>
+      <header className="mw-page-heading"><div>{appTitle && <p className="mw-brand">{appTitle}</p>}<p className="mw-eyebrow">NOTES</p><h1>Updates</h1></div></header>
     <p className="mw-capability-note">Phone push is not configured.</p>
     {updates.length === 0 ? <p className="mw-empty mw-empty-panel">No updates yet.</p> : <div className="mw-list">{updates.map(note => <article className="mw-card mw-note-card" key={note.id}><div className="mw-note-top"><span className="mw-note-tag">{note.tag}</span><time>{note.date}</time></div><button className="mw-note-edit" onClick={() => onEditUpdate(note)}><h2 className="mw-card-title">{note.title}</h2><p className="mw-note-body">{note.body}</p></button></article>)}</div>}
   </>;
 
+  const mainAction = tab === 'Today' || tab === 'Tasks'
+    ? { label: 'New task', run: onNewTask }
+    : tab === 'Calendar'
+      ? { label: 'Add event', run: () => onNewEvent(selectedDate) }
+      : { label: 'New update', run: onNewUpdate };
+
   return <div className="mobile-workspace">
-    <main className="mw-content">{tab === 'Today' ? renderToday() : tab === 'Tasks' ? renderTasks() : tab === 'Calendar' ? renderCalendar() : renderUpdates()}</main>
+    <main className="mw-content">
+      {tab === 'Today' ? renderToday() : tab === 'Tasks' ? renderTasks() : tab === 'Calendar' ? renderCalendar() : renderUpdates()}
+      <button className="mw-primary mw-primary-action" onClick={mainAction.run}>{mainAction.label}</button>
+    </main>
     <nav className="mw-bottom-nav" aria-label="Main navigation">
       {(['Today', 'Tasks', 'Calendar', 'Updates'] as Tab[]).map(item => <button key={item} className={tab === item ? 'is-active' : ''} aria-current={tab === item ? 'page' : undefined} onClick={() => setTab(item)}><span className="mw-nav-icon" aria-hidden="true">{item === 'Today' ? '◷' : item === 'Tasks' ? '☷' : item === 'Calendar' ? '▦' : '▤'}</span><span>{item}</span></button>)}
     </nav>

@@ -1,0 +1,4035 @@
+{
+  "kind": "UI baseline capture; no implementation changes",
+  "sourceCommit": "bb951fa2c8100016ef7a486dee29c9a969c15683",
+  "captureWorkflowCommit": "b295537",
+  "sourceFilesIdenticalToBaseline": true,
+  "commit": "b295537",
+  "capturedAt": "2026-11-13T21:47:39.108Z",
+  "source": "Application served by the local Vite development server; every business records endpoint served deterministic isolated GET fixtures; no production data or writes. Capture workflow commit advanced during the run, but `git diff bb951fa -- src` was empty; source files match the requested baseline commit.",
+  "fixtureNotes": {
+    "longTask": "Review the complete seasonal menu costing and confirm supplier substitutions before the soft opening",
+    "longUpdate": "Kitchen and floor leads completed the service walkthrough; review the opening sequence and verify the updated preparation notes before the next rehearsal.",
+    "taskCount": 2,
+    "todoCount": 1,
+    "menuItemCount": 2,
+    "noteCount": 2,
+    "candidateCount": 1,
+    "eventCount": 1
+  },
+  "safeAreaSimulation": {
+    "attempted": true,
+    "supported": false,
+    "note": "CDP simulation unavailable: cdpSession.send: Protocol error (Emulation.setSafeAreaInsets): 'Emulation.setSafeAreaInsets' wasn't found"
+  },
+  "scenarios": [
+    {
+      "label": "Dashboard / Overview",
+      "viewport": {
+        "width": 1440,
+        "height": 1000,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/desktop/dashboard-overview.png",
+      "document": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 39,
+      "controlsBelow44px": 19,
+      "below44Examples": [
+        {
+          "label": "Lock Sensitive Views",
+          "tag": "button",
+          "width": 165,
+          "height": 38,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Ask assistant...",
+          "tag": "input",
+          "width": 305,
+          "height": 23,
+          "fontSizePx": 15
+        },
+        {
+          "label": "Overview",
+          "tag": "button",
+          "width": 116,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "AI Assistant",
+          "tag": "button",
+          "width": 133,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Settings",
+          "tag": "button",
+          "width": 109,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "\ud83d\udccb Daily Debrief",
+          "tag": "button",
+          "width": 135,
+          "height": 40,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Dismiss reminders",
+          "tag": "button",
+          "width": 19,
+          "height": 19,
+          "fontSizePx": 16
+        },
+        {
+          "label": "View",
+          "tag": "button",
+          "width": 45,
+          "height": 26,
+          "fontSizePx": 10
+        },
+        {
+          "label": "View",
+          "tag": "button",
+          "width": 45,
+          "height": 26,
+          "fontSizePx": 10
+        },
+        {
+          "label": "Open Dropbox Album",
+          "tag": "a",
+          "width": 187,
+          "height": 40,
+          "fontSizePx": 13
+        },
+        {
+          "label": "+ Add Idea",
+          "tag": "button",
+          "width": 91,
+          "height": 35,
+          "fontSizePx": 12
+        },
+        {
+          "label": "Open Library",
+          "tag": "button",
+          "width": 105,
+          "height": 35,
+          "fontSizePx": 12
+        },
+        {
+          "label": "All Notes",
+          "tag": "button",
+          "width": 82,
+          "height": 35,
+          "fontSizePx": 12
+        },
+        {
+          "label": "e.g. Spoke to contractor about timeline...",
+          "tag": "input",
+          "width": 1224,
+          "height": 42,
+          "fontSizePx": 14
+        },
+        {
+          "label": "Voice input",
+          "tag": "button",
+          "width": 42,
+          "height": 42,
+          "fontSizePx": 16
+        }
+      ],
+      "controlsBelow16px": 23,
+      "below16Examples": [
+        {
+          "label": "Lock Sensitive Views",
+          "tag": "button",
+          "width": 165,
+          "height": 38,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Ask assistant...",
+          "tag": "input",
+          "width": 305,
+          "height": 23,
+          "fontSizePx": 15
+        },
+        {
+          "label": "DASHBOARD",
+          "tag": "button",
+          "width": 102,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "PLANNING",
+          "tag": "button",
+          "width": 82,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "KITCHEN",
+          "tag": "button",
+          "width": 70,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "OPERATIONS",
+          "tag": "button",
+          "width": 103,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "FINANCIALS",
+          "tag": "button",
+          "width": 96,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "TEAM",
+          "tag": "button",
+          "width": 45,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "Overview",
+          "tag": "button",
+          "width": 116,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "AI Assistant",
+          "tag": "button",
+          "width": 133,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Settings",
+          "tag": "button",
+          "width": 109,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "\ud83d\udccb Daily Debrief",
+          "tag": "button",
+          "width": 135,
+          "height": 40,
+          "fontSizePx": 13
+        },
+        {
+          "label": "View",
+          "tag": "button",
+          "width": 45,
+          "height": 26,
+          "fontSizePx": 10
+        },
+        {
+          "label": "View",
+          "tag": "button",
+          "width": 45,
+          "height": 26,
+          "fontSizePx": 10
+        },
+        {
+          "label": "Open Dropbox Album",
+          "tag": "a",
+          "width": 187,
+          "height": 40,
+          "fontSizePx": 13
+        }
+      ],
+      "editorFieldCount": 2,
+      "bottomNavigation": null
+    },
+    {
+      "label": "Planning / Tasks",
+      "viewport": {
+        "width": 1440,
+        "height": 1000,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/desktop/planning-tasks.png",
+      "document": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 64,
+      "controlsBelow44px": 54,
+      "below44Examples": [
+        {
+          "label": "Lock Sensitive Views",
+          "tag": "button",
+          "width": 165,
+          "height": 38,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Ask assistant...",
+          "tag": "input",
+          "width": 305,
+          "height": 23,
+          "fontSizePx": 15
+        },
+        {
+          "label": "Calendar",
+          "tag": "button",
+          "width": 114,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Timeline",
+          "tag": "button",
+          "width": 111,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Tasks",
+          "tag": "button",
+          "width": 94,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Notes",
+          "tag": "button",
+          "width": 94,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Inspiration Library",
+          "tag": "button",
+          "width": 172,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Marketing",
+          "tag": "button",
+          "width": 119,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Decision Log",
+          "tag": "button",
+          "width": 140,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "+ Full Todo Form",
+          "tag": "button",
+          "width": 127,
+          "height": 42,
+          "fontSizePx": 12
+        },
+        {
+          "label": "+ New Master Task",
+          "tag": "button",
+          "width": 154,
+          "height": 42,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Quick-add todo...",
+          "tag": "input",
+          "width": 319,
+          "height": 40,
+          "fontSizePx": 14
+        },
+        {
+          "label": "Lease & TI Menu & Bar Staffing Permits Marketing Financials Operations IT & Systems",
+          "tag": "select",
+          "width": 220,
+          "height": 40,
+          "fontSizePx": 12
+        },
+        {
+          "label": "+ Add",
+          "tag": "button",
+          "width": 63,
+          "height": 40,
+          "fontSizePx": 12
+        },
+        {
+          "label": "All Tasks",
+          "tag": "button",
+          "width": 78,
+          "height": 31,
+          "fontSizePx": 11
+        }
+      ],
+      "controlsBelow16px": 51,
+      "below16Examples": [
+        {
+          "label": "Lock Sensitive Views",
+          "tag": "button",
+          "width": 165,
+          "height": 38,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Ask assistant...",
+          "tag": "input",
+          "width": 305,
+          "height": 23,
+          "fontSizePx": 15
+        },
+        {
+          "label": "DASHBOARD",
+          "tag": "button",
+          "width": 102,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "PLANNING",
+          "tag": "button",
+          "width": 82,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "KITCHEN",
+          "tag": "button",
+          "width": 70,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "OPERATIONS",
+          "tag": "button",
+          "width": 103,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "FINANCIALS",
+          "tag": "button",
+          "width": 96,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "TEAM",
+          "tag": "button",
+          "width": 45,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "Calendar",
+          "tag": "button",
+          "width": 114,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Timeline",
+          "tag": "button",
+          "width": 111,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Tasks",
+          "tag": "button",
+          "width": 94,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Notes",
+          "tag": "button",
+          "width": 94,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Inspiration Library",
+          "tag": "button",
+          "width": 172,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Marketing",
+          "tag": "button",
+          "width": 119,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Decision Log",
+          "tag": "button",
+          "width": 140,
+          "height": 43,
+          "fontSizePx": 13
+        }
+      ],
+      "editorFieldCount": 6,
+      "bottomNavigation": null
+    },
+    {
+      "label": "Kitchen / Menu & Bar",
+      "viewport": {
+        "width": 1440,
+        "height": 1000,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/desktop/kitchen-menu-bar.png",
+      "document": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 26,
+      "controlsBelow44px": 18,
+      "below44Examples": [
+        {
+          "label": "Lock Sensitive Views",
+          "tag": "button",
+          "width": 165,
+          "height": 38,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Ask assistant...",
+          "tag": "input",
+          "width": 305,
+          "height": 23,
+          "fontSizePx": 15
+        },
+        {
+          "label": "Menu & Bar",
+          "tag": "button",
+          "width": 130,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Cost Calculator",
+          "tag": "button",
+          "width": 154,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "+ Add Item",
+          "tag": "button",
+          "width": 104,
+          "height": 42,
+          "fontSizePx": 13
+        },
+        {
+          "label": "All",
+          "tag": "button",
+          "width": 48,
+          "height": 31,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Small Plates",
+          "tag": "button",
+          "width": 95,
+          "height": 31,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Shared Plates",
+          "tag": "button",
+          "width": 103,
+          "height": 31,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Catering",
+          "tag": "button",
+          "width": 76,
+          "height": 31,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Main Plates",
+          "tag": "button",
+          "width": 91,
+          "height": 31,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Desserts",
+          "tag": "button",
+          "width": 77,
+          "height": 31,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Drinks",
+          "tag": "button",
+          "width": 65,
+          "height": 31,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Wine",
+          "tag": "button",
+          "width": 59,
+          "height": 31,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Specials",
+          "tag": "button",
+          "width": 76,
+          "height": 31,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Edit",
+          "tag": "button",
+          "width": 30,
+          "height": 30,
+          "fontSizePx": 11
+        }
+      ],
+      "controlsBelow16px": 24,
+      "below16Examples": [
+        {
+          "label": "Lock Sensitive Views",
+          "tag": "button",
+          "width": 165,
+          "height": 38,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Ask assistant...",
+          "tag": "input",
+          "width": 305,
+          "height": 23,
+          "fontSizePx": 15
+        },
+        {
+          "label": "DASHBOARD",
+          "tag": "button",
+          "width": 102,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "PLANNING",
+          "tag": "button",
+          "width": 82,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "KITCHEN",
+          "tag": "button",
+          "width": 70,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "OPERATIONS",
+          "tag": "button",
+          "width": 103,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "FINANCIALS",
+          "tag": "button",
+          "width": 96,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "TEAM",
+          "tag": "button",
+          "width": 45,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "Menu & Bar",
+          "tag": "button",
+          "width": 130,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Cost Calculator",
+          "tag": "button",
+          "width": 154,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "+ Add Item",
+          "tag": "button",
+          "width": 104,
+          "height": 42,
+          "fontSizePx": 13
+        },
+        {
+          "label": "All",
+          "tag": "button",
+          "width": 48,
+          "height": 31,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Small Plates",
+          "tag": "button",
+          "width": 95,
+          "height": 31,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Shared Plates",
+          "tag": "button",
+          "width": 103,
+          "height": 31,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Catering",
+          "tag": "button",
+          "width": 76,
+          "height": 31,
+          "fontSizePx": 11
+        }
+      ],
+      "editorFieldCount": 1,
+      "bottomNavigation": null
+    },
+    {
+      "label": "Operations / Shopping List",
+      "viewport": {
+        "width": 1440,
+        "height": 1000,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/desktop/operations-shopping-list.png",
+      "document": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 45,
+      "controlsBelow44px": 37,
+      "below44Examples": [
+        {
+          "label": "Lock Sensitive Views",
+          "tag": "button",
+          "width": 165,
+          "height": 38,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Ask assistant...",
+          "tag": "input",
+          "width": 305,
+          "height": 23,
+          "fontSizePx": 15
+        },
+        {
+          "label": "Shopping List",
+          "tag": "button",
+          "width": 145,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Master Inventory",
+          "tag": "button",
+          "width": 162,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Inventory",
+          "tag": "button",
+          "width": 117,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Vendors & Contacts",
+          "tag": "button",
+          "width": 182,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Permits",
+          "tag": "button",
+          "width": 106,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Checklists",
+          "tag": "button",
+          "width": 123,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Template",
+          "tag": "button",
+          "width": 107,
+          "height": 35,
+          "fontSizePx": 12
+        },
+        {
+          "label": "Import CSV",
+          "tag": "button",
+          "width": 120,
+          "height": 35,
+          "fontSizePx": 12
+        },
+        {
+          "label": "Print",
+          "tag": "button",
+          "width": 82,
+          "height": 35,
+          "fontSizePx": 12
+        },
+        {
+          "label": "+ Add Item",
+          "tag": "button",
+          "width": 104,
+          "height": 42,
+          "fontSizePx": 13
+        },
+        {
+          "label": "All",
+          "tag": "button",
+          "width": 40,
+          "height": 27,
+          "fontSizePx": 11
+        },
+        {
+          "label": "One-Time Deco",
+          "tag": "button",
+          "width": 103,
+          "height": 27,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Furniture",
+          "tag": "button",
+          "width": 70,
+          "height": 27,
+          "fontSizePx": 11
+        }
+      ],
+      "controlsBelow16px": 43,
+      "below16Examples": [
+        {
+          "label": "Lock Sensitive Views",
+          "tag": "button",
+          "width": 165,
+          "height": 38,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Ask assistant...",
+          "tag": "input",
+          "width": 305,
+          "height": 23,
+          "fontSizePx": 15
+        },
+        {
+          "label": "DASHBOARD",
+          "tag": "button",
+          "width": 102,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "PLANNING",
+          "tag": "button",
+          "width": 82,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "KITCHEN",
+          "tag": "button",
+          "width": 70,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "OPERATIONS",
+          "tag": "button",
+          "width": 103,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "FINANCIALS",
+          "tag": "button",
+          "width": 96,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "TEAM",
+          "tag": "button",
+          "width": 45,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "Shopping List",
+          "tag": "button",
+          "width": 145,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Master Inventory",
+          "tag": "button",
+          "width": 162,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Inventory",
+          "tag": "button",
+          "width": 117,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Vendors & Contacts",
+          "tag": "button",
+          "width": 182,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Permits",
+          "tag": "button",
+          "width": 106,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Checklists",
+          "tag": "button",
+          "width": 123,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Template",
+          "tag": "button",
+          "width": 107,
+          "height": 35,
+          "fontSizePx": 12
+        }
+      ],
+      "editorFieldCount": 3,
+      "bottomNavigation": null
+    },
+    {
+      "label": "Financials / QuickBooks",
+      "viewport": {
+        "width": 1440,
+        "height": 1000,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/desktop/financials-quickbooks.png",
+      "document": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 11,
+      "controlsBelow44px": 3,
+      "below44Examples": [
+        {
+          "label": "Lock Sensitive Views",
+          "tag": "button",
+          "width": 165,
+          "height": 38,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Ask assistant...",
+          "tag": "input",
+          "width": 305,
+          "height": 23,
+          "fontSizePx": 15
+        },
+        {
+          "label": "QuickBooks",
+          "tag": "button",
+          "width": 134,
+          "height": 43,
+          "fontSizePx": 13
+        }
+      ],
+      "controlsBelow16px": 9,
+      "below16Examples": [
+        {
+          "label": "Lock Sensitive Views",
+          "tag": "button",
+          "width": 165,
+          "height": 38,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Ask assistant...",
+          "tag": "input",
+          "width": 305,
+          "height": 23,
+          "fontSizePx": 15
+        },
+        {
+          "label": "DASHBOARD",
+          "tag": "button",
+          "width": 102,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "PLANNING",
+          "tag": "button",
+          "width": 82,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "KITCHEN",
+          "tag": "button",
+          "width": 70,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "OPERATIONS",
+          "tag": "button",
+          "width": 103,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "FINANCIALS",
+          "tag": "button",
+          "width": 96,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "TEAM",
+          "tag": "button",
+          "width": 45,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "QuickBooks",
+          "tag": "button",
+          "width": 134,
+          "height": 43,
+          "fontSizePx": 13
+        }
+      ],
+      "editorFieldCount": 1,
+      "bottomNavigation": null
+    },
+    {
+      "label": "Team / Talent & Hiring",
+      "viewport": {
+        "width": 1440,
+        "height": 1000,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/desktop/team-talent-hiring.png",
+      "document": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 21,
+      "controlsBelow44px": 13,
+      "below44Examples": [
+        {
+          "label": "Lock sensitive data",
+          "tag": "button",
+          "width": 80,
+          "height": 33,
+          "fontSizePx": 16
+        },
+        {
+          "label": "Lock Sensitive Views",
+          "tag": "button",
+          "width": 165,
+          "height": 38,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Ask assistant...",
+          "tag": "input",
+          "width": 305,
+          "height": 23,
+          "fontSizePx": 15
+        },
+        {
+          "label": "Talent & Hiring",
+          "tag": "button",
+          "width": 149,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Training",
+          "tag": "button",
+          "width": 109,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Team Onboarding",
+          "tag": "button",
+          "width": 168,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Team Map",
+          "tag": "button",
+          "width": 121,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "+ New Position",
+          "tag": "button",
+          "width": 131,
+          "height": 42,
+          "fontSizePx": 13
+        },
+        {
+          "label": "+ New Applicant",
+          "tag": "button",
+          "width": 138,
+          "height": 42,
+          "fontSizePx": 13
+        },
+        {
+          "label": "BUTTON",
+          "tag": "button",
+          "width": 14,
+          "height": 14,
+          "fontSizePx": 16
+        },
+        {
+          "label": "BUTTON",
+          "tag": "button",
+          "width": 14,
+          "height": 14,
+          "fontSizePx": 16
+        },
+        {
+          "label": "BUTTON",
+          "tag": "button",
+          "width": 14,
+          "height": 14,
+          "fontSizePx": 16
+        },
+        {
+          "label": "BUTTON",
+          "tag": "button",
+          "width": 14,
+          "height": 14,
+          "fontSizePx": 16
+        }
+      ],
+      "controlsBelow16px": 14,
+      "below16Examples": [
+        {
+          "label": "Lock Sensitive Views",
+          "tag": "button",
+          "width": 165,
+          "height": 38,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Ask assistant...",
+          "tag": "input",
+          "width": 305,
+          "height": 23,
+          "fontSizePx": 15
+        },
+        {
+          "label": "DASHBOARD",
+          "tag": "button",
+          "width": 102,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "PLANNING",
+          "tag": "button",
+          "width": 82,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "KITCHEN",
+          "tag": "button",
+          "width": 70,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "OPERATIONS",
+          "tag": "button",
+          "width": 103,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "FINANCIALS",
+          "tag": "button",
+          "width": 96,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "TEAM",
+          "tag": "button",
+          "width": 45,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "Talent & Hiring",
+          "tag": "button",
+          "width": 149,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Training",
+          "tag": "button",
+          "width": 109,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Team Onboarding",
+          "tag": "button",
+          "width": 168,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Team Map",
+          "tag": "button",
+          "width": 121,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "+ New Position",
+          "tag": "button",
+          "width": 131,
+          "height": 42,
+          "fontSizePx": 13
+        },
+        {
+          "label": "+ New Applicant",
+          "tag": "button",
+          "width": 138,
+          "height": 42,
+          "fontSizePx": 13
+        }
+      ],
+      "editorFieldCount": 1,
+      "bottomNavigation": null
+    },
+    {
+      "label": "Dashboard / Settings",
+      "viewport": {
+        "width": 1440,
+        "height": 1000,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/desktop/settings.png",
+      "document": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 19,
+      "controlsBelow44px": 10,
+      "below44Examples": [
+        {
+          "label": "Lock sensitive data",
+          "tag": "button",
+          "width": 80,
+          "height": 33,
+          "fontSizePx": 16
+        },
+        {
+          "label": "Lock Sensitive Views",
+          "tag": "button",
+          "width": 165,
+          "height": 38,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Ask assistant...",
+          "tag": "input",
+          "width": 305,
+          "height": 23,
+          "fontSizePx": 15
+        },
+        {
+          "label": "Overview",
+          "tag": "button",
+          "width": 116,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "AI Assistant",
+          "tag": "button",
+          "width": 133,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Settings",
+          "tag": "button",
+          "width": 109,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Save Title",
+          "tag": "button",
+          "width": 98,
+          "height": 42,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Change Device PIN",
+          "tag": "button",
+          "width": 1270,
+          "height": 42,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Change Sign-In Password",
+          "tag": "button",
+          "width": 1270,
+          "height": 42,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Refresh",
+          "tag": "button",
+          "width": 75,
+          "height": 35,
+          "fontSizePx": 12
+        }
+      ],
+      "controlsBelow16px": 16,
+      "below16Examples": [
+        {
+          "label": "Lock Sensitive Views",
+          "tag": "button",
+          "width": 165,
+          "height": 38,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Ask assistant...",
+          "tag": "input",
+          "width": 305,
+          "height": 23,
+          "fontSizePx": 15
+        },
+        {
+          "label": "DASHBOARD",
+          "tag": "button",
+          "width": 102,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "PLANNING",
+          "tag": "button",
+          "width": 82,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "KITCHEN",
+          "tag": "button",
+          "width": 70,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "OPERATIONS",
+          "tag": "button",
+          "width": 103,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "FINANCIALS",
+          "tag": "button",
+          "width": 96,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "TEAM",
+          "tag": "button",
+          "width": 45,
+          "height": 57,
+          "fontSizePx": 15
+        },
+        {
+          "label": "Overview",
+          "tag": "button",
+          "width": 116,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "AI Assistant",
+          "tag": "button",
+          "width": 133,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Settings",
+          "tag": "button",
+          "width": 109,
+          "height": 43,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Restaurant name",
+          "tag": "input",
+          "width": 1162,
+          "height": 44,
+          "fontSizePx": 14
+        },
+        {
+          "label": "Save Title",
+          "tag": "button",
+          "width": 98,
+          "height": 42,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Change Device PIN",
+          "tag": "button",
+          "width": 1270,
+          "height": 42,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Change Sign-In Password",
+          "tag": "button",
+          "width": 1270,
+          "height": 42,
+          "fontSizePx": 13
+        }
+      ],
+      "editorFieldCount": 2,
+      "bottomNavigation": null
+    },
+    {
+      "label": "Mobile / Today",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/mobile/390x844/today.png",
+      "document": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 19,
+      "controlsBelow44px": 9,
+      "below44Examples": [
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        }
+      ],
+      "controlsBelow16px": 15,
+      "below16Examples": [
+        {
+          "label": "New task",
+          "tag": "button",
+          "width": 82,
+          "height": 61,
+          "fontSizePx": 13
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "See all",
+          "tag": "button",
+          "width": 51,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "\u25f7 Today",
+          "tag": "button",
+          "width": 94,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u2637 Tasks",
+          "tag": "button",
+          "width": 94,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u25a6 Calendar",
+          "tag": "button",
+          "width": 94,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u25a4 Updates",
+          "tag": "button",
+          "width": 94,
+          "height": 51,
+          "fontSizePx": 10
+        }
+      ],
+      "editorFieldCount": 0,
+      "bottomNavigation": {
+        "top": 778,
+        "bottom": 844,
+        "height": 66,
+        "computedPaddingBottom": "7px",
+        "bottomGapPx": 0
+      }
+    },
+    {
+      "label": "Mobile / Tasks",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/mobile/390x844/tasks.png",
+      "document": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 17,
+      "controlsBelow44px": 9,
+      "below44Examples": [
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        }
+      ],
+      "controlsBelow16px": 14,
+      "below16Examples": [
+        {
+          "label": "New task",
+          "tag": "button",
+          "width": 84,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "\u25f7 Today",
+          "tag": "button",
+          "width": 94,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u2637 Tasks",
+          "tag": "button",
+          "width": 94,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u25a6 Calendar",
+          "tag": "button",
+          "width": 94,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u25a4 Updates",
+          "tag": "button",
+          "width": 94,
+          "height": 51,
+          "fontSizePx": 10
+        }
+      ],
+      "editorFieldCount": 0,
+      "bottomNavigation": {
+        "top": 778,
+        "bottom": 844,
+        "height": 66,
+        "computedPaddingBottom": "7px",
+        "bottomGapPx": 0
+      }
+    },
+    {
+      "label": "Mobile / Calendar",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/mobile/390x844/calendar.png",
+      "document": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 47,
+      "controlsBelow44px": 38,
+      "below44Examples": [
+        {
+          "label": "Previous month",
+          "tag": "button",
+          "width": 10,
+          "height": 44,
+          "fontSizePx": 23
+        },
+        {
+          "label": "Next month",
+          "tag": "button",
+          "width": 10,
+          "height": 44,
+          "fontSizePx": 23
+        },
+        {
+          "label": "2026-11-01",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-02",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-03",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-04",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-05",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-06",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-07",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-08",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-09",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-10",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-11",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-12",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-13",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        }
+      ],
+      "controlsBelow16px": 42,
+      "below16Examples": [
+        {
+          "label": "Add event",
+          "tag": "button",
+          "width": 91,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-01",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-02",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-03",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-04",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-05",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-06",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-07",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-08",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-09",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-10",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-11",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-12",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-13",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-14",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        }
+      ],
+      "editorFieldCount": 0,
+      "bottomNavigation": {
+        "top": 778,
+        "bottom": 844,
+        "height": 66,
+        "computedPaddingBottom": "7px",
+        "bottomGapPx": 0
+      }
+    },
+    {
+      "label": "Mobile / Updates",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/mobile/390x844/updates.png",
+      "document": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 6,
+      "controlsBelow44px": 0,
+      "below44Examples": [],
+      "controlsBelow16px": 5,
+      "below16Examples": [
+        {
+          "label": "New update",
+          "tag": "button",
+          "width": 101,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "\u25f7 Today",
+          "tag": "button",
+          "width": 94,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u2637 Tasks",
+          "tag": "button",
+          "width": 94,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u25a6 Calendar",
+          "tag": "button",
+          "width": 94,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u25a4 Updates",
+          "tag": "button",
+          "width": 94,
+          "height": 51,
+          "fontSizePx": 10
+        }
+      ],
+      "editorFieldCount": 0,
+      "bottomNavigation": {
+        "top": 778,
+        "bottom": 844,
+        "height": 66,
+        "computedPaddingBottom": "7px",
+        "bottomGapPx": 0
+      }
+    },
+    {
+      "label": "Mobile / Task editor",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/mobile/390x844/task-editor.png",
+      "document": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 32,
+      "controlsBelow44px": 12,
+      "below44Examples": [
+        {
+          "label": "INPUT",
+          "tag": "input",
+          "width": 16,
+          "height": 16,
+          "fontSizePx": 16
+        },
+        {
+          "label": "Add subtask...",
+          "tag": "input",
+          "width": 262,
+          "height": 40,
+          "fontSizePx": 12
+        },
+        {
+          "label": "+ Add",
+          "tag": "button",
+          "width": 66,
+          "height": 40,
+          "fontSizePx": 13
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        }
+      ],
+      "controlsBelow16px": 26,
+      "below16Examples": [
+        {
+          "label": "e.g. Apply for Health Permit",
+          "tag": "input",
+          "width": 336,
+          "height": 44,
+          "fontSizePx": 14
+        },
+        {
+          "label": "Lease & TI Menu & Bar Staffing Permits Marketing Financials Operations IT & Systems",
+          "tag": "select",
+          "width": 336,
+          "height": 44,
+          "fontSizePx": 14
+        },
+        {
+          "label": "Low Medium High Critical",
+          "tag": "select",
+          "width": 336,
+          "height": 44,
+          "fontSizePx": 14
+        },
+        {
+          "label": "INPUT",
+          "tag": "input",
+          "width": 336,
+          "height": 44,
+          "fontSizePx": 14
+        },
+        {
+          "label": "Not Started In Progress Needs review Complete Overdue",
+          "tag": "select",
+          "width": 336,
+          "height": 44,
+          "fontSizePx": 14
+        },
+        {
+          "label": "Anyone \u2014 e.g. B, C, Alex, Manager",
+          "tag": "input",
+          "width": 336,
+          "height": 44,
+          "fontSizePx": 14
+        },
+        {
+          "label": "None Update - fixture service walkthrough Fixture menu notes",
+          "tag": "select",
+          "width": 336,
+          "height": 44,
+          "fontSizePx": 14
+        },
+        {
+          "label": "Add subtask...",
+          "tag": "input",
+          "width": 262,
+          "height": 40,
+          "fontSizePx": 12
+        },
+        {
+          "label": "+ Add",
+          "tag": "button",
+          "width": 66,
+          "height": 40,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Cancel",
+          "tag": "button",
+          "width": 96,
+          "height": 47,
+          "fontSizePx": 14
+        },
+        {
+          "label": "Create Task",
+          "tag": "button",
+          "width": 128,
+          "height": 47,
+          "fontSizePx": 14
+        },
+        {
+          "label": "New task",
+          "tag": "button",
+          "width": 82,
+          "height": 61,
+          "fontSizePx": 13
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 104,
+          "height": 33,
+          "fontSizePx": 11
+        }
+      ],
+      "editorFieldCount": 9,
+      "bottomNavigation": {
+        "top": 778,
+        "bottom": 844,
+        "height": 66,
+        "computedPaddingBottom": "7px",
+        "bottomGapPx": 0
+      }
+    },
+    {
+      "label": "Mobile / Event editor",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/mobile/390x844/event-editor.png",
+      "document": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 58,
+      "controlsBelow44px": 38,
+      "below44Examples": [
+        {
+          "label": "Previous month",
+          "tag": "button",
+          "width": 10,
+          "height": 44,
+          "fontSizePx": 23
+        },
+        {
+          "label": "Next month",
+          "tag": "button",
+          "width": 10,
+          "height": 44,
+          "fontSizePx": 23
+        },
+        {
+          "label": "2026-11-01",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-02",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-03",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-04",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-05",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-06",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-07",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-08",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-09",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-10",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-11",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-12",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-13",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        }
+      ],
+      "controlsBelow16px": 52,
+      "below16Examples": [
+        {
+          "label": "Add event",
+          "tag": "button",
+          "width": 91,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-01",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-02",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-03",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-04",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-05",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-06",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-07",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-08",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-09",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-10",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-11",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-12",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-13",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-14",
+          "tag": "button",
+          "width": 43,
+          "height": 44,
+          "fontSizePx": 13
+        }
+      ],
+      "editorFieldCount": 4,
+      "bottomNavigation": {
+        "top": 778,
+        "bottom": 844,
+        "height": 66,
+        "computedPaddingBottom": "7px",
+        "bottomGapPx": 0
+      }
+    },
+    {
+      "label": "Mobile / Update editor",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/mobile/390x844/update-editor.png",
+      "document": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 9,
+      "controlsBelow44px": 0,
+      "below44Examples": [],
+      "controlsBelow16px": 7,
+      "below16Examples": [
+        {
+          "label": "New update",
+          "tag": "button",
+          "width": 101,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "\u25f7 Today",
+          "tag": "button",
+          "width": 94,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u2637 Tasks",
+          "tag": "button",
+          "width": 94,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u25a6 Calendar",
+          "tag": "button",
+          "width": 94,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u25a4 Updates",
+          "tag": "button",
+          "width": 94,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "TEXTAREA",
+          "tag": "textarea",
+          "width": 336,
+          "height": 63,
+          "fontSizePx": 14
+        },
+        {
+          "label": "Post Update",
+          "tag": "button",
+          "width": 132,
+          "height": 47,
+          "fontSizePx": 14
+        }
+      ],
+      "editorFieldCount": 1,
+      "bottomNavigation": {
+        "top": 778,
+        "bottom": 844,
+        "height": 66,
+        "computedPaddingBottom": "7px",
+        "bottomGapPx": 0
+      }
+    },
+    {
+      "label": "Mobile / Today",
+      "viewport": {
+        "width": 375,
+        "height": 667,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/mobile/375x667/today.png",
+      "document": {
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "bodyScrollWidth": 375,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 19,
+      "controlsBelow44px": 9,
+      "below44Examples": [
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        }
+      ],
+      "controlsBelow16px": 15,
+      "below16Examples": [
+        {
+          "label": "New task",
+          "tag": "button",
+          "width": 79,
+          "height": 61,
+          "fontSizePx": 13
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "See all",
+          "tag": "button",
+          "width": 51,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "\u25f7 Today",
+          "tag": "button",
+          "width": 90,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u2637 Tasks",
+          "tag": "button",
+          "width": 90,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u25a6 Calendar",
+          "tag": "button",
+          "width": 90,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u25a4 Updates",
+          "tag": "button",
+          "width": 90,
+          "height": 51,
+          "fontSizePx": 10
+        }
+      ],
+      "editorFieldCount": 0,
+      "bottomNavigation": {
+        "top": 601,
+        "bottom": 667,
+        "height": 66,
+        "computedPaddingBottom": "7px",
+        "bottomGapPx": 0
+      }
+    },
+    {
+      "label": "Mobile / Tasks",
+      "viewport": {
+        "width": 375,
+        "height": 667,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/mobile/375x667/tasks.png",
+      "document": {
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "bodyScrollWidth": 375,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 17,
+      "controlsBelow44px": 9,
+      "below44Examples": [
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        }
+      ],
+      "controlsBelow16px": 14,
+      "below16Examples": [
+        {
+          "label": "New task",
+          "tag": "button",
+          "width": 84,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "\u25f7 Today",
+          "tag": "button",
+          "width": 90,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u2637 Tasks",
+          "tag": "button",
+          "width": 90,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u25a6 Calendar",
+          "tag": "button",
+          "width": 90,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u25a4 Updates",
+          "tag": "button",
+          "width": 90,
+          "height": 51,
+          "fontSizePx": 10
+        }
+      ],
+      "editorFieldCount": 0,
+      "bottomNavigation": {
+        "top": 601,
+        "bottom": 667,
+        "height": 66,
+        "computedPaddingBottom": "7px",
+        "bottomGapPx": 0
+      }
+    },
+    {
+      "label": "Mobile / Calendar",
+      "viewport": {
+        "width": 375,
+        "height": 667,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/mobile/375x667/calendar.png",
+      "document": {
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "bodyScrollWidth": 375,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 47,
+      "controlsBelow44px": 38,
+      "below44Examples": [
+        {
+          "label": "Previous month",
+          "tag": "button",
+          "width": 10,
+          "height": 44,
+          "fontSizePx": 23
+        },
+        {
+          "label": "Next month",
+          "tag": "button",
+          "width": 10,
+          "height": 44,
+          "fontSizePx": 23
+        },
+        {
+          "label": "2026-11-01",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-02",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-03",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-04",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-05",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-06",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-07",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-08",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-09",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-10",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-11",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-12",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-13",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        }
+      ],
+      "controlsBelow16px": 42,
+      "below16Examples": [
+        {
+          "label": "Add event",
+          "tag": "button",
+          "width": 91,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-01",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-02",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-03",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-04",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-05",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-06",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-07",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-08",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-09",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-10",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-11",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-12",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-13",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-14",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        }
+      ],
+      "editorFieldCount": 0,
+      "bottomNavigation": {
+        "top": 601,
+        "bottom": 667,
+        "height": 66,
+        "computedPaddingBottom": "7px",
+        "bottomGapPx": 0
+      }
+    },
+    {
+      "label": "Mobile / Updates",
+      "viewport": {
+        "width": 375,
+        "height": 667,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/mobile/375x667/updates.png",
+      "document": {
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "bodyScrollWidth": 375,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 6,
+      "controlsBelow44px": 0,
+      "below44Examples": [],
+      "controlsBelow16px": 5,
+      "below16Examples": [
+        {
+          "label": "New update",
+          "tag": "button",
+          "width": 101,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "\u25f7 Today",
+          "tag": "button",
+          "width": 90,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u2637 Tasks",
+          "tag": "button",
+          "width": 90,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u25a6 Calendar",
+          "tag": "button",
+          "width": 90,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u25a4 Updates",
+          "tag": "button",
+          "width": 90,
+          "height": 51,
+          "fontSizePx": 10
+        }
+      ],
+      "editorFieldCount": 0,
+      "bottomNavigation": {
+        "top": 601,
+        "bottom": 667,
+        "height": 66,
+        "computedPaddingBottom": "7px",
+        "bottomGapPx": 0
+      }
+    },
+    {
+      "label": "Mobile / Task editor",
+      "viewport": {
+        "width": 375,
+        "height": 667,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/mobile/375x667/task-editor.png",
+      "document": {
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "bodyScrollWidth": 375,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 32,
+      "controlsBelow44px": 12,
+      "below44Examples": [
+        {
+          "label": "INPUT",
+          "tag": "input",
+          "width": 16,
+          "height": 16,
+          "fontSizePx": 16
+        },
+        {
+          "label": "Add subtask...",
+          "tag": "input",
+          "width": 247,
+          "height": 40,
+          "fontSizePx": 12
+        },
+        {
+          "label": "+ Add",
+          "tag": "button",
+          "width": 66,
+          "height": 40,
+          "fontSizePx": 13
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        }
+      ],
+      "controlsBelow16px": 26,
+      "below16Examples": [
+        {
+          "label": "e.g. Apply for Health Permit",
+          "tag": "input",
+          "width": 321,
+          "height": 44,
+          "fontSizePx": 14
+        },
+        {
+          "label": "Lease & TI Menu & Bar Staffing Permits Marketing Financials Operations IT & Systems",
+          "tag": "select",
+          "width": 321,
+          "height": 44,
+          "fontSizePx": 14
+        },
+        {
+          "label": "Low Medium High Critical",
+          "tag": "select",
+          "width": 321,
+          "height": 44,
+          "fontSizePx": 14
+        },
+        {
+          "label": "INPUT",
+          "tag": "input",
+          "width": 321,
+          "height": 44,
+          "fontSizePx": 14
+        },
+        {
+          "label": "Not Started In Progress Needs review Complete Overdue",
+          "tag": "select",
+          "width": 321,
+          "height": 44,
+          "fontSizePx": 14
+        },
+        {
+          "label": "Anyone \u2014 e.g. B, C, Alex, Manager",
+          "tag": "input",
+          "width": 321,
+          "height": 44,
+          "fontSizePx": 14
+        },
+        {
+          "label": "None Update - fixture service walkthrough Fixture menu notes",
+          "tag": "select",
+          "width": 321,
+          "height": 44,
+          "fontSizePx": 14
+        },
+        {
+          "label": "Add subtask...",
+          "tag": "input",
+          "width": 247,
+          "height": 40,
+          "fontSizePx": 12
+        },
+        {
+          "label": "+ Add",
+          "tag": "button",
+          "width": 66,
+          "height": 40,
+          "fontSizePx": 13
+        },
+        {
+          "label": "Cancel",
+          "tag": "button",
+          "width": 96,
+          "height": 47,
+          "fontSizePx": 14
+        },
+        {
+          "label": "Create Task",
+          "tag": "button",
+          "width": 128,
+          "height": 47,
+          "fontSizePx": 14
+        },
+        {
+          "label": "New task",
+          "tag": "button",
+          "width": 79,
+          "height": 61,
+          "fontSizePx": 13
+        },
+        {
+          "label": "To do",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Needs review",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        },
+        {
+          "label": "Done",
+          "tag": "button",
+          "width": 99,
+          "height": 33,
+          "fontSizePx": 11
+        }
+      ],
+      "editorFieldCount": 9,
+      "bottomNavigation": {
+        "top": 601,
+        "bottom": 667,
+        "height": 66,
+        "computedPaddingBottom": "7px",
+        "bottomGapPx": 0
+      }
+    },
+    {
+      "label": "Mobile / Event editor",
+      "viewport": {
+        "width": 375,
+        "height": 667,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/mobile/375x667/event-editor.png",
+      "document": {
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "bodyScrollWidth": 375,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 58,
+      "controlsBelow44px": 38,
+      "below44Examples": [
+        {
+          "label": "Previous month",
+          "tag": "button",
+          "width": 10,
+          "height": 44,
+          "fontSizePx": 23
+        },
+        {
+          "label": "Next month",
+          "tag": "button",
+          "width": 10,
+          "height": 44,
+          "fontSizePx": 23
+        },
+        {
+          "label": "2026-11-01",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-02",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-03",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-04",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-05",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-06",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-07",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-08",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-09",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-10",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-11",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-12",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-13",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        }
+      ],
+      "controlsBelow16px": 52,
+      "below16Examples": [
+        {
+          "label": "Add event",
+          "tag": "button",
+          "width": 91,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-01",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-02",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-03",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-04",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-05",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-06",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-07",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-08",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-09",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-10",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-11",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-12",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-13",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "2026-11-14",
+          "tag": "button",
+          "width": 41,
+          "height": 44,
+          "fontSizePx": 13
+        }
+      ],
+      "editorFieldCount": 4,
+      "bottomNavigation": {
+        "top": 601,
+        "bottom": 667,
+        "height": 66,
+        "computedPaddingBottom": "7px",
+        "bottomGapPx": 0
+      }
+    },
+    {
+      "label": "Mobile / Update editor",
+      "viewport": {
+        "width": 375,
+        "height": 667,
+        "devicePixelRatio": 1
+      },
+      "screenshot": "docs/design/before/mobile/375x667/update-editor.png",
+      "document": {
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "bodyScrollWidth": 375,
+        "horizontalOverflowPx": 0
+      },
+      "bodyFont": {
+        "family": "Manrope, \"Segoe UI\", \"Helvetica Neue\", Arial, sans-serif",
+        "sizePx": 16
+      },
+      "controlCount": 9,
+      "controlsBelow44px": 0,
+      "below44Examples": [],
+      "controlsBelow16px": 7,
+      "below16Examples": [
+        {
+          "label": "New update",
+          "tag": "button",
+          "width": 101,
+          "height": 44,
+          "fontSizePx": 13
+        },
+        {
+          "label": "\u25f7 Today",
+          "tag": "button",
+          "width": 90,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u2637 Tasks",
+          "tag": "button",
+          "width": 90,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u25a6 Calendar",
+          "tag": "button",
+          "width": 90,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "\u25a4 Updates",
+          "tag": "button",
+          "width": 90,
+          "height": 51,
+          "fontSizePx": 10
+        },
+        {
+          "label": "TEXTAREA",
+          "tag": "textarea",
+          "width": 321,
+          "height": 63,
+          "fontSizePx": 14
+        },
+        {
+          "label": "Post Update",
+          "tag": "button",
+          "width": 132,
+          "height": 47,
+          "fontSizePx": 14
+        }
+      ],
+      "editorFieldCount": 1,
+      "bottomNavigation": {
+        "top": 601,
+        "bottom": 667,
+        "height": 66,
+        "computedPaddingBottom": "7px",
+        "bottomGapPx": 0
+      }
+    }
+  ],
+  "screenshotCount": 21,
+  "businessWriteAttempts": 0,
+  "settingsWriteAttempts": 0,
+  "pageErrors": [],
+  "externalHostsBlocked": [
+    "fonts.googleapis.com"
+  ],
+  "unexpectedLocalApiRequests": [],
+  "metricNotes": "Control sizes, font sizes, horizontal overflow, editor field counts, and bottom navigation geometry are observations only. This capture does not assert design requirements or grade compliance."
+}

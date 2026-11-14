@@ -75,7 +75,7 @@ try {
     await button('New task').click();
     const dialog = page.getByRole('dialog');
     await dialog.getByLabel('TASK NAME').fill('PGlite mobile task');
-    await dialog.getByLabel('CATEGORY').selectOption('Operations');
+    assert.equal(await dialog.getByLabel('CATEGORY').count(), 0, 'Detailed category editing stays on desktop');
     await dialog.getByLabel('PRIORITY').selectOption('High');
     await dialog.getByLabel('DUE DATE').fill(today);
     await dialog.getByRole('button', { name: 'Create Task', exact: true }).click();

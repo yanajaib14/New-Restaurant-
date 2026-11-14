@@ -8,6 +8,14 @@ Initial checkout: branch `work`, commit `66af2a4577ed1adeba86332774ca9233c94a6a3
 
 All browser business requests use synthetic, in-memory fixtures; external HTTP requests are aborted and WebSockets are mocked without connecting to a server. Reload tests exercise a mock shared backend that remains alive across page reloads. The separate-browser test uses independent browser storage. These checks do **not** establish real database permissions, production persistence, realtime delivery, authenticated identities or phone push delivery. No production records were changed, migrations run, deployment published or branch merged.
 
+## Owner-approved visual pass (November 14, 2026)
+
+`mobile-design-plan` implements the approved shared/desktop/mobile polish. Exactly four mobile destinations remain, with short task/event/todo/update editors, one prominent action per screen, 16px body/input text, 44px controls, readable sync/error states, keyboard focus and safe-area spacing. Existing save handlers and hidden editor state are retained. No database or production change is included.
+
+The [comparison gallery](design/README.md) contains matching desktop and both phone sizes. [After measurements](design/after/manifest.json) cover 48 captures at 375/390/768/1024/1440 widths, including empty, pending-load/sync and failed-load states and CSS inset simulations: zero document horizontal overflow, mobile controls below 44px, page errors or business/settings writes. Navigation, single primary action, short editors and bottom-bar clearance are asserted. Compact nav captions are 12px within full-size targets. Fonts were blocked to match the baseline; physical iPhone behavior remains unverified.
+
+`npm test` passes 38 tests, the existing browser suites pass 31 scenario groups, and four compiled-App → API → local PostgreSQL scenarios pass. Build passes with the existing large-bundle warning. These are isolated local checks, not proof of live Neon readiness, production editing, permissions or push delivery. [Full results](design/results.md) record the exact boundaries. Owner approval for Drive removal is handled on its separate branch; CI is separate as well. The owners' opening-day must-have list has been requested. Existing overdue/dependency/authentication/privacy defects remain open.
+
 ## Section-by-section results
 
 | Section | Controls actually exercised | Defect and rebuilt fix | Reload/shared evidence and remaining limits |

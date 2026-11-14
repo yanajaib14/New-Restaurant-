@@ -24,11 +24,13 @@ export function CalendarEventModal({
   initialDate,
   onSave,
   onClose,
+  compact = false,
 }: {
   event: CalendarEvent | null;
   initialDate?: string;
   onSave: (form: any) => boolean | Promise<boolean>;
   onClose: () => void;
+  compact?: boolean;
 }) {
   const blank = { title: '', date: initialDate || toDateStr(new Date()), time: '', type: 'Event' as CalendarEventType, notes: '' };
   const [form, setForm] = React.useState<any>(event ? { ...event } : blank);
@@ -36,24 +38,25 @@ export function CalendarEventModal({
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
   return (
-    <Modal title={event ? 'Edit Event' : 'New Event'} onClose={draftSave.close} width={480}>
+    <Modal title={event ? 'Edit Event' : 'New Event'} onClose={draftSave.close} width={compact ? 420 : 480}>
       <Field label="TITLE">
         <input
           value={form.title}
           onChange={e => set('title', e.target.value)}
           placeholder="e.g. Team lunch meeting"
-          style={inpStyle}
+          style={compact ? { ...inpStyle, fontSize: 16 } : inpStyle}
           autoFocus
         />
       </Field>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : '1fr 1fr', gap: 12 }}>
         <Field label="DATE">
-          <input type="date" value={form.date} onChange={e => set('date', e.target.value)} style={inpStyle} />
+          <input type="date" value={form.date} onChange={e => set('date', e.target.value)} style={compact ? { ...inpStyle, fontSize: 16 } : inpStyle} />
         </Field>
         <Field label="TIME (OPTIONAL)">
-          <input type="time" value={form.time || ''} onChange={e => set('time', e.target.value)} style={inpStyle} />
+          <input type="time" value={form.time || ''} onChange={e => set('time', e.target.value)} style={compact ? { ...inpStyle, fontSize: 16 } : inpStyle} />
         </Field>
       </div>
+      {!compact && <>
       <Field label="TYPE">
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {CALENDAR_EVENT_TYPES.map(t => {
@@ -76,6 +79,7 @@ export function CalendarEventModal({
           placeholder="Add details, links, or reminders..."
           rows={3} style={{ ...inpStyle, resize: 'vertical', lineHeight: 1.6 }} />
       </Field>
+      </>}
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
         <DraftSaveError error={draftSave.error} />
         <Btn onClick={draftSave.close} variant="ghost" disabled={draftSave.pending}>Cancel</Btn>

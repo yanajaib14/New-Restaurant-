@@ -5,8 +5,7 @@ import { PartnerBadge } from './Enhancements';
 import { PenLine, Trash2 } from 'lucide-react';
 import { useDraftSave, DraftSaveError } from '../hooks/useDraftSave';
 
-export function TaskModal({ task, initialDate, notes, onSave, onClose }: { task: Task | null, initialDate?: string, notes: Note[], onSave: (form: any) => boolean | Promise<boolean>, onClose: () => void }) {
-  const isMobile = window.innerWidth < 1024;
+export function TaskModal({ task, initialDate, notes, onSave, onClose, compact = false }: { task: Task | null, initialDate?: string, notes: Note[], onSave: (form: any) => boolean | Promise<boolean>, onClose: () => void, compact?: boolean }) {
   const blank = { task: "", category: "Lease & TI", due: initialDate || "", status: "Not Started", priority: "Medium", checklist: [], assignedTo: "", isCritical: false, linkedNoteId: null };
   const [form, setForm] = useState<any>(task ? { ...task, checklist: task.checklist.map(c => ({ ...c })) } : blank);
   const [newItem, setNewItem] = useState("");
@@ -16,16 +15,19 @@ export function TaskModal({ task, initialDate, notes, onSave, onClose }: { task:
 
   return (
     <Modal title={task ? "Edit Task" : "New Task"} onClose={draftSave.close}>
-      <Field label="TASK NAME"><input value={form.task} onChange={e => set("task", e.target.value)} placeholder="e.g. Apply for Health Permit" style={inpStyle} /></Field>
+      <Field label="TASK NAME"><input value={form.task} onChange={e => set("task", e.target.value)} placeholder="e.g. Apply for Health Permit" style={compact ? { ...inpStyle, fontSize: 16 } : inpStyle} /></Field>
+      <div style={{ display: "grid", gridTemplateColumns: compact ? "1fr" : "1fr 1fr", gap: 12 }}>
+        <Field label="DUE DATE"><input type="date" value={form.due} onChange={e => set("due", e.target.value)} style={compact ? { ...inpStyle, fontSize: 16 } : inpStyle} /></Field>
+        <Field label="PRIORITY"><select value={form.priority} onChange={e => set("priority", e.target.value)} style={compact ? { ...selStyle, fontSize: 16 } : selStyle}>{["Low", "Medium", "High", "Critical"].map(p => <option key={p}>{p}</option>)}</select></Field>
+      </div>
+      {!compact && <>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, background: form.isCritical ? T.redLight : T.bg, padding: "8px 12px", borderRadius: 8, border: `1px solid ${form.isCritical ? T.redBorder : T.border}`, transition: "all .2s" }}>
         <input type="checkbox" checked={form.isCritical} onChange={e => set("isCritical", e.target.checked)} style={{ cursor: "pointer", width: 16, height: 16 }} />
         <span style={{ fontSize: 13, fontWeight: 600, color: form.isCritical ? T.red : T.text }}>Critical Path Task</span>
         {form.isCritical && <span style={{ fontSize: 10, color: T.red, fontWeight: 700, marginLeft: "auto" }}>OVERDUE ALERTS ACTIVE</span>}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="CATEGORY"><select value={form.category} onChange={e => set("category", e.target.value)} style={selStyle}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></Field>
-        <Field label="PRIORITY"><select value={form.priority} onChange={e => set("priority", e.target.value)} style={selStyle}>{["Low", "Medium", "High", "Critical"].map(p => <option key={p}>{p}</option>)}</select></Field>
-        <Field label="DUE DATE"><input type="date" value={form.due} onChange={e => set("due", e.target.value)} style={inpStyle} /></Field>
         <Field label="STATUS"><select value={form.status} onChange={e => set("status", e.target.value)} style={selStyle}>{["Not Started", "In Progress", "Needs review", "Complete", "Overdue"].map(s => <option key={s}>{s}</option>)}</select></Field>
       </div>
       <Field label="ASSIGNED TO">
@@ -47,12 +49,12 @@ export function TaskModal({ task, initialDate, notes, onSave, onClose }: { task:
           {form.checklist.length > 0 && <span style={{ fontSize: 11, color: T.muted }}>{form.checklist.filter((c: any) => c.done).length}/{form.checklist.length} done</span>}
         </div>
         {form.checklist.map((item: any) => (
-          <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7, flexWrap: isMobile ? "wrap" : "nowrap" }}>
+          <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7, flexWrap: "nowrap" }}>
             <button onClick={() => setForm((f: any) => ({ ...f, checklist: f.checklist.map((c: any) => c.id === item.id ? { ...c, done: !c.done } : c) }))} style={{ width: 18, height: 18, minWidth: 18, border: `2px solid ${item.done ? T.green : T.border}`, borderRadius: 4, background: item.done ? T.greenLight : "#FFF", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0, flexShrink: 0 }}>
               {item.done && <span style={{ color: T.green, fontSize: 11 }}>x</span>}
             </button>
-            <input value={item.text} onChange={e => setForm((f: any) => ({ ...f, checklist: f.checklist.map((c: any) => c.id === item.id ? { ...c, text: e.target.value } : c) }))} style={{ ...inpStyle, flex: 2, minWidth: isMobile ? "100%" : undefined, padding: "6px 10px", textDecoration: item.done ? "line-through" : "none", color: item.done ? T.muted : T.text, fontSize: 12 }} />
-            <input value={item.assignedTo || ""} onChange={e => setForm((f: any) => ({ ...f, checklist: f.checklist.map((c: any) => c.id === item.id ? { ...c, assignedTo: e.target.value } : c) }))} placeholder="Assign to..." style={{ ...inpStyle, flex: 1, minWidth: isMobile ? "calc(100% - 40px)" : undefined, padding: "6px 10px", fontSize: 11, background: "#FFF" }} title="Assigned To" />
+            <input value={item.text} onChange={e => setForm((f: any) => ({ ...f, checklist: f.checklist.map((c: any) => c.id === item.id ? { ...c, text: e.target.value } : c) }))} style={{ ...inpStyle, flex: 2, padding: "6px 10px", textDecoration: item.done ? "line-through" : "none", color: item.done ? T.muted : T.text, fontSize: 12 }} />
+            <input value={item.assignedTo || ""} onChange={e => setForm((f: any) => ({ ...f, checklist: f.checklist.map((c: any) => c.id === item.id ? { ...c, assignedTo: e.target.value } : c) }))} placeholder="Assign to..." style={{ ...inpStyle, flex: 1, padding: "6px 10px", fontSize: 11, background: "#FFF" }} title="Assigned To" />
             <button onClick={() => setForm((f: any) => ({ ...f, checklist: f.checklist.filter((c: any) => c.id !== item.id) }))} style={{ background: "none", border: "none", color: T.subtle, cursor: "pointer", fontSize: 16, padding: "0 2px" }}>x</button>
           </div>
         ))}
@@ -61,6 +63,7 @@ export function TaskModal({ task, initialDate, notes, onSave, onClose }: { task:
           <Btn onClick={addItem} variant="outline" small>+ Add</Btn>
         </div>
       </div>
+      </>}
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20, flexWrap: "wrap" }}>
         {task && (
           <div style={{ marginRight: "auto" }}>

@@ -11,6 +11,18 @@
 
 Neon setup is done; the earlier blocked CLI steps no longer apply. The app is merged to `main` and deployed on Vercel with a pooled `DATABASE_URL`, and the tables were created from `db/neon-setup.sql`. The `restaurant-neon-handoff` work was merged on top of that, keeping one data layer (`/api/records`, `server/database.ts` -> `db/pool.ts`) and one schema source (`migrations/`). The unused Neon CLI link (`neon.ts`, project `hidden-dream-48165023`) was removed. See `docs/neon-setup.md` for how to change the schema.
 
+## Approved design checkpoint (November 14, 2026)
+
+Work continues from current `main` (`bb951fa`) on `mobile-design-plan`. The owner approved the plan before implementation and separately approved Drive removal. The current order is Drive removal → CI → approved design polish → owners' opening-day must-haves. This supersedes the older order that put design last.
+
+This branch changes presentation only: shared UI/theme/focus/contrast, desktop header spacing and simple mobile cards/editors. Mobile remains exactly Today, Tasks, Calendar, Updates; detailed tools stay desktop-only. Compact editors preserve hidden values and reuse existing save handlers. No database, schema, pool, API rewrite or Neon project configuration changes are included.
+
+Review [the before/after gallery](design/README.md), [measurements and validation](design/results.md), and [approved plan](design/plan.md). There are 21 baseline and 48 after captures, including both required phones, 768/1024/1440 widths, states and CSS safe-area simulations. Physical iPhone notch/home-bar/browser-keyboard behavior still needs device review.
+
+Separate pushed branches: `remove-google-drive` (`42c0e6f`) and `ci-test-build` (`b295537`). They are not included in this branch. GitHub API requests are forbidden by the environment, so automatic PR creation is blocked; compare links and PR bodies are prepared. Do not merge or deploy; the owner reviews previews and merges. No live Neon query or production write was performed. Production schema readiness and editing remain owner checks; do not re-link Neon or run SQL.
+
+Opening-day must-haves were requested from the owners; await their list before reprioritizing functional work. The overdue-count disagreement, implicit dependencies, guest identity and confidential hiring records loading before PIN unlock remain open. This visual pass does not fix authorization or complete the audit.
+
 ## Validation evidence
 
 - `npm test`: 38 automated tests passed.

@@ -5,7 +5,7 @@ export const T = {
   borderStrong: "#D4D4D4",
   text: "#111111",
   muted: "#555555",
-  subtle: "#888888",
+  subtle: "#5B5B5B",
   // Monochrome — all "color" roles use dark text on light gray
   gold: "#111111",
   goldLight: "#F6F6F6",

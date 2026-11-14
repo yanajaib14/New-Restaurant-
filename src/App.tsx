@@ -2411,14 +2411,14 @@ export default function App() {
     return navigator.locks ? navigator.locks.request(`restaurant-cost-${itemId}`, persist) : persist();
   };
   return (
-    <div style={{ minHeight:"100dvh", background:"transparent", color:T.text, fontFamily:"var(--font-sans)", paddingBottom: isMobile ? "calc(64px + env(safe-area-inset-bottom, 0px))" : "env(safe-area-inset-bottom, 0px)" }}>
+    <div className={isMobile ? "mobile-workspace-shell" : "desktop-workspace"} style={{ minHeight:"100dvh", background:"transparent", color:T.text, fontFamily:"var(--font-sans)", paddingTop: isMobile ? "var(--workspace-safe-top, env(safe-area-inset-top, 0px))" : undefined, paddingBottom: isMobile ? 0 : "env(safe-area-inset-bottom, 0px)" }}>
       {/* ���� LOGIN SCREEN ���� */}
       {isAuthLoading ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100dvh', background: T.bg }}>Loading...</div>
       ) : (
         <>
           {/* ���� HEADER ���� */}
-          <div className="glass" style={{ display: isMobile ? "none" : undefined, borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 100, paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)", boxShadow: "0 8px 20px rgba(15, 28, 42, 0.06)" }}>
+          <div className="glass workspace-header" style={{ display: isMobile ? "none" : undefined, borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 100, paddingTop: "env(safe-area-inset-top, 0px)", boxShadow: "0 1px 0 rgba(17, 17, 17, 0.04)" }}>
             {/* Critical Banner */}
             {criticalOverdue > 0 && (
               <div style={{ 
@@ -2429,11 +2429,11 @@ export default function App() {
               </div>
             )}
             {/* Row 1: Logo, Search, Stats */}
-        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", justifyContent: "space-between", gap: isMobile ? 14 : 0, padding: isMobile ? "18px 16px 14px" : "24px 32px 16px", borderBottom: `1px solid ${T.border}` }}>
+        <div className="workspace-header-top" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "16px 24px", borderBottom: `1px solid ${T.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-            <HouseLogo size={isMobile ? 110 : 138} />
-            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-              <span style={{ fontFamily: "var(--font-sans)", fontSize: isMobile ? 22 : 30, lineHeight: 1.2, fontWeight: 800, color: T.text, letterSpacing: -0.4, paddingTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block" }}>{appTitle}</span>
+            <HouseLogo size={78} />
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4, minWidth: 0 }}>
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: 24, lineHeight: 1.2, fontWeight: 800, color: T.text, letterSpacing: -0.4, paddingTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block" }}>{appTitle}</span>
               {!isMobile && <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: T.subtle, letterSpacing: 1, fontWeight: 700 }}>LAUNCH DASHBOARD</span>}
             </div>
           </div>
@@ -2459,7 +2459,7 @@ export default function App() {
           </div>
 
           {/* AI Search Bar */}
-          <div style={{ display: "flex", alignItems: "center", background: "#FFFFFF", borderRadius: 14, padding: isMobile ? "10px 14px" : "10px 14px", border: `1px solid ${T.borderStrong}`, width: isMobile ? "100%" : 360, height: isMobile ? 50 : 48, marginLeft: isMobile ? 0 : 24, boxShadow: "0 4px 12px rgba(15, 28, 42, 0.08)", transition: "all .2s" }}>
+          <div style={{ display: "flex", alignItems: "center", background: "#FFFFFF", borderRadius: 14, padding: isMobile ? "10px 14px" : "10px 14px", border: `1px solid ${T.borderStrong}`, width: 280, maxWidth: "100%", height: 44, marginLeft: 0, boxShadow: "0 4px 12px rgba(15, 28, 42, 0.08)", transition: "all .2s" }}>
             <Sparkles size={15} style={{ marginRight: 10, opacity: 0.85, flexShrink: 0 }} />
             <input 
               placeholder="Ask assistant..." 
@@ -2478,7 +2478,7 @@ export default function App() {
 
         {/* Row 2: Main Groups (Desktop) */}
         {!isMobile && (
-          <div style={{ display: "flex", padding: "0 24px", gap: 24, height: 46, alignItems: "center" }}>
+          <div className="workspace-primary-nav" style={{ display: "flex", padding: "0 24px", gap: 24, height: 46, alignItems: "center" }}>
             {GROUPS.map(g => (
               <button 
                 key={g} 
@@ -2492,7 +2492,7 @@ export default function App() {
                   padding: "16px 0", cursor: "pointer", fontSize: 15, fontFamily: "var(--font-sans)",
                   color: activeGroup === g ? T.text : T.muted, fontWeight: activeGroup === g ? 800 : 600,
                   letterSpacing: 0.5, transition: "all .2s",
-                  opacity: activeGroup === g ? 1 : 0.7
+                  opacity: 1
                 }}
               >
                 {g.toUpperCase()}
@@ -2504,7 +2504,7 @@ export default function App() {
 
       {/* Row 3: Sub-tabs (Desktop) */}
       {!isMobile && (
-        <div style={{ display: "flex", background: "#FAFAFA", padding: "0 24px", gap: 8, borderBottom: `1px solid ${T.border}` }}>
+        <div className="workspace-secondary-nav" style={{ display: "flex", background: "#FAFAFA", padding: "0 24px", gap: 8, borderBottom: `1px solid ${T.border}` }}>
           {TABS.filter(t => t.group === activeGroup).map(t => {
             const Icon = t.icon;
             const active = tab === t.id;
@@ -2518,7 +2518,7 @@ export default function App() {
                   fontSize: 13, fontWeight: active ? 700 : 600, transition: "all .2s",
                   borderBottom: `3px solid ${active ? T.text : "transparent"}`,
                   marginBottom: -1,
-                  opacity: active ? 1 : 0.8
+                  opacity: 1
                 }}
               >
                 <Icon size={16} />
@@ -2582,27 +2582,28 @@ export default function App() {
         )}
 
       {/* ���� MODALS ���� */}
-      {taskModal  && <TaskModal task={taskModal==="new"?null:taskModal} initialDate={calDate || undefined} notes={notes} onSave={saveTask} onClose={()=>{setTaskModal(null); setCalDate(null);}}/>}
+      {taskModal  && <TaskModal compact={isMobile} task={taskModal==="new"?null:taskModal} initialDate={calDate || undefined} notes={notes} onSave={saveTask} onClose={()=>{setTaskModal(null); setCalDate(null);}}/>}
       {todoModal && (
         <Modal title={todoModal === "new" ? "Add Todo Item" : "Edit Todo Item"} onClose={() => setTodoModal(null)} width={460}>
           <Field label="TODO TITLE"><input value={todoDraft.title} onChange={e => setTodoDraft(d => ({ ...d, title: e.target.value }))} style={inpStyle} placeholder="e.g. Confirm POS training schedule" /></Field>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
-            <Field label="CATEGORY">
+            {!isMobile && (<Field label="CATEGORY">
               <select value={todoDraft.category} onChange={e => setTodoDraft(d => ({ ...d, category: e.target.value }))} style={{ ...dropdownStyle, height: 42 }}>
                 {CATEGORIES.map(category => <option key={category} value={category}>{category}</option>)}
               </select>
-            </Field>
+            </Field>)}
             <Field label="STATUS">
               <select value={todoDraft.status} onChange={e => setTodoDraft(d => ({ ...d, status: e.target.value as TaskTodoItem["status"] }))} style={{ ...dropdownStyle, height: 42 }}>
                 {TODO_STATUSES.map(status => <option key={status} value={status}>{status}</option>)}
               </select>
             </Field>
           </div>
-          <Field label="ASSIGNED TO"><input value={todoDraft.assignedTo} onChange={e => setTodoDraft(d => ({ ...d, assignedTo: e.target.value }))} style={inpStyle} placeholder="Owner, Manager, Team" /></Field>
+          {!isMobile && (<Field label="ASSIGNED TO"><input value={todoDraft.assignedTo} onChange={e => setTodoDraft(d => ({ ...d, assignedTo: e.target.value }))} style={inpStyle} placeholder="Owner, Manager, Team" /></Field>)}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
-            <Field label="REFERENCE LINK (OPTIONAL)"><input value={todoDraft.linkUrl} onChange={e => setTodoDraft(d => ({ ...d, linkUrl: e.target.value }))} style={inpStyle} placeholder="https://..." /></Field>
+            {!isMobile && (<Field label="REFERENCE LINK (OPTIONAL)"><input value={todoDraft.linkUrl} onChange={e => setTodoDraft(d => ({ ...d, linkUrl: e.target.value }))} style={inpStyle} placeholder="https://..." /></Field>)}
             <Field label="SHORT NOTE (OPTIONAL)"><input value={todoDraft.note} onChange={e => setTodoDraft(d => ({ ...d, note: e.target.value }))} style={inpStyle} placeholder="Quick context for this todo" /></Field>
           </div>
+          {!isMobile && (<>
           {/* Subtasks */}
           <div style={{ marginTop: 4 }}>
             <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.subtle, letterSpacing: 1, fontWeight: 600, marginBottom: 8 }}>SUBTASKS</div>
@@ -2648,6 +2649,7 @@ export default function App() {
               }}>+ Add</Btn>
             </div>
           </div>
+          </>)}
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20, flexWrap: "wrap" }}>
             {todoModal !== "new" && (
               <div style={{ marginRight: "auto" }}>
@@ -2662,7 +2664,7 @@ export default function App() {
       {menuModal  && <MenuModal item={menuModal==="new"?null:menuModal} onSave={saveMenu} onClose={()=>setMenuModal(null)}/>}
       {finModal   && <FinModal item={finModal.item||null} type={finModal.type} onSave={saveFin} onClose={()=>setFinModal(null)} userRole={userRole} />}
       {tlModal    && <TimelineModal item={tlModal==="new"?null:tlModal} onSave={saveTL} onClose={()=>setTlModal(null)}/>}
-      {noteModal  && <NoteModal note={noteModal==="new"?null:noteModal} tasks={tasks} onSave={saveNote} onClose={()=>setNoteModal(null)}/>} 
+      {noteModal  && <NoteModal compact={isMobile} note={noteModal==="new"?null:noteModal} tasks={tasks} onSave={saveNote} onClose={()=>setNoteModal(null)}/>}
       {noteDetail && <NoteDetailModal note={noteDetail} tasks={tasks} onClose={() => setNoteDetail(null)} onSave={saveNote} onDelete={(id) => {
         const selected = noteDetail;
         setNoteDetail(null);
@@ -2779,8 +2781,8 @@ export default function App() {
         </div>
       )}
 
-      <div style={{maxWidth:1360,margin:"0 auto",padding:"0 16px"}}><SharedSyncStatus {...todoSync} /></div>
-      {dataReadErrors.length > 0 && <aside role="alert" style={{padding:12,margin:16,border:"1px solid #e4b16b",borderRadius:12,background:"#fff6e9"}}>
+      <div className="workspace-sync-banner" style={{maxWidth:1360,margin:"0 auto",padding:"0 16px"}}><SharedSyncStatus {...todoSync} /></div>
+      {dataReadErrors.length > 0 && <aside className="workspace-load-error" role="alert" style={{padding:12,margin:16,border:"1px solid #e4b16b",borderRadius:12,background:"#fff6e9"}}>
         Some workspace lists could not load. Displayed records and counts may be older or incomplete.
         <button onClick={() => void loadAllData()} style={{marginLeft:12}}>Retry workspace load</button>
       </aside>}
@@ -2792,7 +2794,7 @@ export default function App() {
           catch { return false; }
         }} onNewUpdate={() => setMobileUpdateOpen(true)} onEditUpdate={setNoteModal}
         onOpenEvent={setMobileEvent} onNewEvent={date => { setMobileEventDate(date); setMobileEvent("new"); }} />}
-      {mobileEvent && <CalendarEventModal event={mobileEvent === "new" ? null : mobileEvent} initialDate={mobileEventDate}
+      {mobileEvent && <CalendarEventModal compact event={mobileEvent === "new" ? null : mobileEvent} initialDate={mobileEventDate}
         onClose={() => setMobileEvent(null)} onSave={async form => {
           const ok = await saveCalendarEvent({ ...form, _editId: mobileEvent !== "new" ? mobileEvent.id : undefined });
           if (ok) setMobileEvent(null); return ok;
@@ -2805,7 +2807,7 @@ export default function App() {
         })}>Post Update</Btn>
       </Modal>}
       {!isMobile && (
-      <div style={{ padding: isMobile ? "16px" : "22px 24px", maxWidth: 1360, margin: "0 auto", display: "flex", gap: 24, paddingBottom: isMobile ? "96px" : undefined }}>
+      <div className="workspace-content" style={{ padding: "24px", maxWidth: 1360, margin: "0 auto", display: "flex", gap: 24, paddingBottom: isMobile ? "96px" : undefined }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* �"��"��"��"��"��"� OVERVIEW �"��"��"��"��"��"� */}
         {tab==="overview" && (
@@ -2887,13 +2889,13 @@ export default function App() {
                   <button
                     key={t}
                     onClick={() => setTab(t)}
-                    className={pulses ? "pulse-deadline" : undefined}
+                    className={`workspace-quick-link${pulses ? " pulse-deadline" : ""}`}
                     title={pulses ? `${label}: a deadline is inside the next 7 days` : undefined}
                     style={{ background: tab === t ? tone.bg : "#FFF", border: `1px solid ${tab === t ? tone.border : T.border}`, borderRadius: 14, padding: isMobile ? "10px 2px" : "14px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: isMobile ? 5 : 7, cursor: "pointer", transition: "all 0.15s", minWidth: 0 }}
                     onMouseEnter={e => (e.currentTarget.style.background = tone.bg)}
                     onMouseLeave={e => (e.currentTarget.style.background = tab === t ? tone.bg : "#FFF")}
                   >
-                    <span style={{ width: isMobile ? 30 : 34, height: isMobile ? 30 : 34, borderRadius: 10, background: tone.bg, border: `1px solid ${tone.border}`, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <span className="workspace-quick-icon" style={{ width: isMobile ? 30 : 34, height: isMobile ? 30 : 34, borderRadius: 10, background: tone.bg, border: `1px solid ${tone.border}`, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       <Icon size={isMobile ? 15 : 17} color={tone.text} strokeWidth={1.8} />
                     </span>
                     <span style={{ fontSize: isMobile ? 9.5 : 10, fontWeight: 700, color: T.text, letterSpacing: 0.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{label}</span>

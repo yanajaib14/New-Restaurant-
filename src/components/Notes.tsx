@@ -93,7 +93,7 @@ const resizeImageFile = (file: File, maxWidth = 1600, quality = 0.82) => new Pro
   reader.readAsDataURL(file);
 });
 
-export function NoteModal({ note, tasks, onSave, onClose }: { note: Note | null, tasks: Task[], onSave: (form: any) => Promise<boolean>, onClose: () => void }) {
+export function NoteModal({ note, tasks, onSave, onClose, compact = false }: { note: Note | null, tasks: Task[], onSave: (form: any) => Promise<boolean>, onClose: () => void, compact?: boolean }) {
   const blank = { title: "", body: "", tag: "General", date: new Date().toISOString().slice(0, 10), files: [], linkedTaskId: null };
   const [form, setForm] = React.useState<any>(note ? { ...note, files: [...(note.files || [])] } : blank);
   const draft = useDraftSave(onClose);
@@ -161,8 +161,9 @@ export function NoteModal({ note, tasks, onSave, onClose }: { note: Note | null,
   const save = async () => { if (String(form.title || "").trim() && !readingFiles && await draft.save(() => onSave(form))) onClose(); };
 
   return (
-    <Modal title={note ? "Edit Note" : "Quick Entry"} onClose={draft.close} width={640}>
-      <Field label="TITLE"><input value={form.title} onChange={e => set("title", e.target.value)} placeholder="Note title..." autoFocus style={{ ...inpStyle, border: "none", borderBottom: `1px solid ${T.border}`, borderRadius: 0, paddingLeft: 0, background: "transparent", fontSize: 18, fontWeight: 700 }} /></Field>
+    <Modal title={note ? "Edit Note" : "Quick Entry"} onClose={draft.close} width={compact ? 460 : 640}>
+      <Field label="TITLE"><input value={form.title} onChange={e => set("title", e.target.value)} placeholder="Note title..." autoFocus style={{ ...inpStyle, border: "none", borderBottom: `1px solid ${T.border}`, borderRadius: 0, paddingLeft: 0, background: "transparent", fontSize: compact ? 16 : 18, fontWeight: 700 }} /></Field>
+      {!compact && <>
       <Field label="DATE"><input type="date" value={form.date || ""} onChange={e => set("date", e.target.value)} style={inpStyle} /></Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 0 }}>
         <Field label="TAG">
@@ -180,10 +181,12 @@ export function NoteModal({ note, tasks, onSave, onClose }: { note: Note | null,
           </div>
         </Field>
       </div>
+      </>}
       <Field label="BODY">
-        <textarea value={form.body} onChange={e => set("body", e.target.value)} placeholder="Write your note here..." rows={8}
+        <textarea value={form.body} onChange={e => set("body", e.target.value)} placeholder="Write your note here..." rows={compact ? 4 : 8}
           style={{ ...inpStyle, resize: "vertical", lineHeight: 1.7, borderRadius: 18, background: T.bg }} />
       </Field>
+      {!compact && <>
       <Field label="LINKED TASK (OPTIONAL)">
         <select value={form.linkedTaskId || ""} onChange={e => set("linkedTaskId", e.target.value ? Number(e.target.value) : null)} style={inpStyle}>
           <option value="">None</option>
@@ -211,6 +214,7 @@ export function NoteModal({ note, tasks, onSave, onClose }: { note: Note | null,
           </div>
         )}
       </Field>
+      </>}
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
         <DraftSaveError error={draft.error} />
         <Btn onClick={draft.close} variant="ghost">Cancel</Btn>

@@ -3,7 +3,7 @@ import { T } from '../types';
 import { Lock } from 'lucide-react';
 
 export const Pill = ({ label, color, bg, border, size = 11 }: { label: string, color: string, bg: string, border: string, size?: number }) => (
-  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: bg, border: `1px solid ${border}`, color, borderRadius: 999, padding: "5px 12px", fontSize: size, fontFamily: "var(--font-sans)", fontWeight: 700, whiteSpace: "nowrap", letterSpacing: 0.2 }}>
+  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: bg, border: `1px solid ${border}`, color, borderRadius: 999, padding: "5px 12px", fontSize: Math.max(size, 12), fontFamily: "var(--font-sans)", fontWeight: 700, whiteSpace: "nowrap", letterSpacing: 0.2 }}>
     <span style={{ width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0 }} />
     {label}
   </span>
@@ -11,29 +11,38 @@ export const Pill = ({ label, color, bg, border, size = 11 }: { label: string, c
 
 export const Btn = ({ children, onClick, variant = "ghost", small = false, style = {}, active = false, disabled = false, title }: { children: React.ReactNode, onClick?: () => void, variant?: "primary" | "danger" | "ghost" | "outline", small?: boolean, style?: React.CSSProperties, active?: boolean, disabled?: boolean, title?: string }) => {
   const isMobile = window.innerWidth < 1024;
-  const base: React.CSSProperties = { cursor: disabled ? "not-allowed" : "pointer", borderRadius: 10, fontSize: small ? (isMobile ? 13 : 12) : (isMobile ? 14 : 13), fontFamily: "var(--font-sans)", fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: small ? (isMobile ? 40 : 32) : (isMobile ? 44 : 36), gap: 8, transition: "all .2s ease", opacity: disabled ? 0.6 : 1, ...style };
+  const base: React.CSSProperties = { borderRadius: 10, fontSize: isMobile ? 16 : small ? 13 : 14, fontFamily: "var(--font-sans)", fontWeight: 650, display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: small ? (isMobile ? 44 : 36) : (isMobile ? 44 : 40), gap: 8, transition: "background-color .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease" };
   const variants = {
-    primary: { background: "#111111", border: "1px solid #111111", color: "#FFFFFF", padding: small ? (isMobile ? "8px 14px" : "7px 14px") : (isMobile ? "12px 24px" : "10px 18px"), boxShadow: "0 2px 8px rgba(0, 0, 0, 0.14)" },
+    primary: { background: "#111111", border: "1px solid #111111", color: "#FFFFFF", padding: small ? (isMobile ? "8px 14px" : "7px 14px") : (isMobile ? "12px 24px" : "10px 18px"), boxShadow: "0 1px 3px rgba(0, 0, 0, 0.14)" },
     danger: { background: T.redLight, border: `1px solid ${T.redBorder}`, color: T.red, padding: small ? (isMobile ? "8px 14px" : "7px 14px") : (isMobile ? "12px 24px" : "10px 18px") },
     ghost: { background: active ? "#F4F4F5" : "#FFFFFF", border: `1px solid ${T.border}`, color: T.text, padding: small ? (isMobile ? "8px 14px" : "7px 14px") : (isMobile ? "12px 24px" : "10px 18px") },
     outline: { background: active ? "#F4F4F5" : "#FFFFFF", border: `1px solid ${T.borderStrong}`, color: T.text, padding: small ? (isMobile ? "8px 14px" : "7px 14px") : (isMobile ? "12px 24px" : "10px 18px") },
+  };
+  const buttonStyle: React.CSSProperties = {
+    ...base,
+    ...variants[variant],
+    ...style,
+    fontSize: isMobile ? 16 : style.fontSize ?? base.fontSize,
+    minHeight: isMobile ? 44 : style.minHeight ?? base.minHeight,
+    cursor: disabled ? "not-allowed" : style.cursor || "pointer",
+    opacity: disabled ? 0.56 : style.opacity,
   };
   return <button 
     onClick={onClick}
     disabled={disabled}
     title={title}
-    style={{ ...base, ...variants[variant] }}
+    style={buttonStyle}
   >{children}</button>;
 };
 
 export function Modal({ title, onClose, children, width = 520 }: { title: string, onClose: () => void, children: React.ReactNode, width?: number }) {
   const isMobile = window.innerWidth < 1024;
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(44, 54, 57, 0.32)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label={title} style={{ background: "#FFF", borderRadius: isMobile ? 14 : 18, padding: isMobile ? "1.125rem 1rem 1rem" : "2.5rem", width: isMobile ? "calc(100vw - 20px)" : width, maxWidth: isMobile ? "calc(100vw - 20px)" : width, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 14px 42px rgba(15, 28, 42, 0.16)", border: `1px solid ${T.border}` }} onClick={e => e.stopPropagation()}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(17, 17, 17, 0.38)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: "max(12px, var(--workspace-safe-top, env(safe-area-inset-top, 0px))) max(12px, env(safe-area-inset-right, 0px)) max(12px, var(--workspace-safe-bottom, env(safe-area-inset-bottom, 0px))) max(12px, env(safe-area-inset-left, 0px))" }} onClick={onClose}>
+      <div className="shared-modal-surface" role="dialog" aria-modal="true" aria-label={title} style={{ background: "#FFF", borderRadius: isMobile ? 14 : 16, padding: isMobile ? "16px" : "32px", width: isMobile ? "100%" : width, maxWidth: isMobile ? "100%" : width, maxHeight: isMobile ? "calc(100dvh - var(--workspace-safe-top, env(safe-area-inset-top, 0px)) - var(--workspace-safe-bottom, env(safe-area-inset-bottom, 0px)) - 24px)" : "min(90vh, 48rem)", overflowY: "auto", overscrollBehavior: "contain", boxShadow: "0 12px 32px rgba(17, 17, 17, 0.14)", border: `1px solid ${T.border}` }} onClick={e => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: isMobile ? 14 : 24 }}>
-          <span style={{ fontFamily: "var(--font-sans)", fontSize: isMobile ? 20 : 22, fontWeight: 800, color: T.text, letterSpacing: -0.3 }}>{title}</span>
-          <button aria-label={`Close ${title}`} onClick={onClose} style={{ background: "none", border: "none", color: T.text, cursor: "pointer", fontSize: 24, lineHeight: 1 }}>x</button>
+          <span style={{ fontFamily: "var(--font-sans)", fontSize: isMobile ? 20 : 22, fontWeight: 700, color: T.text, letterSpacing: -0.3 }}>{title}</span>
+          <button aria-label={`Close ${title}`} onClick={onClose} style={{ background: "none", border: "none", borderRadius: 8, color: T.text, cursor: "pointer", fontSize: 24, lineHeight: 1, width: 44, height: 44, minWidth: 44, minHeight: 44, flexShrink: 0 }}>×</button>
         </div>
         {children}
       </div>
@@ -46,24 +55,24 @@ export const Field = ({ label, children }: { label: string, children: React.Reac
   const field = React.isValidElement(children) && ["input", "select", "textarea"].includes(String(children.type)) ? React.cloneElement(children as React.ReactElement<{id?: string}>, { id }) : children;
   const isMobile = window.innerWidth < 1024;
   return (
-  <div style={{ marginBottom: isMobile ? 14 : 14 }}>
-    <label htmlFor={id} style={{ display: "block", fontSize: isMobile ? 11 : 12, fontFamily: "'IBM Plex Mono', monospace", color: T.muted, letterSpacing: 1.1, marginBottom: 8, fontWeight: 700 }}>{label}</label>
+  <div style={{ marginBottom: 16 }}>
+    <label htmlFor={id} style={{ display: "block", fontSize: isMobile ? 13 : 12, fontFamily: "'IBM Plex Mono', monospace", color: T.muted, letterSpacing: 0.5, marginBottom: 8, fontWeight: 600 }}>{label}</label>
     {field}
   </div>
   );
 };
 
-export const inpStyle: React.CSSProperties = { width: "100%", background: "#FDFDFD", border: `1px solid ${T.border}`, borderRadius: 12, padding: "11px 13px", color: T.text, fontSize: 14, lineHeight: 1.4, fontFamily: "var(--font-sans)", fontWeight: 600 };
+export const inpStyle: React.CSSProperties = { width: "100%", background: "#FFFFFF", border: `1px solid ${T.borderStrong}`, borderRadius: 10, padding: "11px 13px", color: T.text, fontSize: 16, lineHeight: 1.4, fontFamily: "var(--font-sans)", fontWeight: 500 };
 export const selStyle: React.CSSProperties = { ...inpStyle, cursor: "pointer" };
-export const dropdownStyle: React.CSSProperties = { width: "100%", background: "#FDFDFD", border: `1px solid ${T.border}`, borderRadius: 12, padding: "8px 10px", color: T.text, fontSize: 12, lineHeight: 1.4, fontFamily: "var(--font-sans)", fontWeight: 600, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
+export const dropdownStyle: React.CSSProperties = { width: "100%", background: "#FFFFFF", border: `1px solid ${T.borderStrong}`, borderRadius: 10, padding: "8px 12px", color: T.text, fontSize: 16, lineHeight: 1.4, fontFamily: "var(--font-sans)", fontWeight: 500, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minHeight: 44 };
 
 export function SectionHeader({ title, subtitle, action }: { title: string, subtitle?: string, action?: React.ReactNode }) {
   const isMobile = window.innerWidth < 1024;
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "flex-end", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 14 : 0, marginBottom: isMobile ? 24 : 30 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "flex-end", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 16 : 12, marginBottom: isMobile ? 24 : 32 }}>
       <div>
         <h2 style={{ fontFamily: "var(--font-sans)", fontSize: isMobile ? 26 : 34, margin: "0 0 8px", fontWeight: 800, color: T.text, letterSpacing: -0.6, lineHeight: 1.08 }}>{title}</h2>
-        {subtitle && <p style={{ fontFamily: "var(--font-sans)", color: T.muted, fontSize: isMobile ? 14 : 15, margin: 0, fontWeight: 600, opacity: 0.95 }}>{subtitle}</p>}
+        {subtitle && <p style={{ fontFamily: "var(--font-sans)", color: T.muted, fontSize: isMobile ? 16 : 15, margin: 0, fontWeight: 500 }}>{subtitle}</p>}
       </div>
       {action}
     </div>
