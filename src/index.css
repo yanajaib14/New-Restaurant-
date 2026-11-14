@@ -358,3 +358,8 @@ button[title^="Remove"] {
   justify-content: center !important;
   line-height: 1 !important;
 }
+
+/* ── Desktop canvas: off-white page so white cards read as distinct groups ── */
+@media (min-width: 1024px) {
+  body { background: #FAFAFA; }
+}
