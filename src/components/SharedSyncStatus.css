@@ -1,1 +1,4 @@
 .shared-sync{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;margin:12px 0;border:1px solid #d9e0e7;border-radius:12px;background:#f6f8fb;font-size:13px}.shared-sync small{display:block;margin-top:4px}.shared-sync--error,.shared-sync--offline{background:#fff6ed;border-color:#efbe87}.shared-sync button{padding:8px;border:1px solid currentColor;border-radius:8px;background:white;white-space:nowrap}
+
+/* Desktop: a healthy sync state is a quiet one-line note, not a banner. Problems keep the full banner. */
+@media (min-width:1024px){.shared-sync--shared,.shared-sync--loading,.shared-sync--syncing{justify-content:flex-end;margin:10px 8px 0;padding:0;border:0;background:none;font-size:11px;color:#888}}

@@ -812,9 +812,9 @@ export function InspirationPreview({ assets, onOpenGallery, onQuickAdd, isMobile
   const visible = (tagFilter ? photos.filter(p => parseTags(p.tags).includes(tagFilter)) : photos).slice(0, 10);
 
   return (
-    <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? 12 : 18, marginBottom: isMobile ? 14 : 18 }}>
+    <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? 12 : 20, marginBottom: isMobile ? 14 : 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
-        <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: PASTEL.lemon.text, letterSpacing: 1.2, fontWeight: 600 }}>
+        <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>
           <Lightbulb size={11} style={{ verticalAlign: -1, marginRight: 5 }} />INSPIRATION
         </div>
         <div style={{ display: "flex", gap: 8 }}>
@@ -1121,26 +1121,28 @@ export function ReminderBanner({ tasks, parseDate, onViewTask, isMobile }: {
   const top = [...overdue, ...dueToday].slice(0, 3);
   const summary = [overdue.length ? `${overdue.length} overdue` : "", dueToday.length ? `${dueToday.length} due today` : ""].filter(Boolean).join(" · ");
 
+  const accent = overdue.length ? T.red : T.text;
+
   return (
-    <div style={{ background: PASTEL.peach.bg, border: `1px solid ${PASTEL.peach.border}`, borderRadius: 14, padding: isMobile ? 12 : 14, marginBottom: isMobile ? 14 : 18 }}>
+    <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderLeft: `3px solid ${accent}`, borderRadius: 14, padding: isMobile ? 12 : "14px 18px", marginBottom: isMobile ? 14 : 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 800, color: PASTEL.peach.text, display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: accent, display: "flex", alignItems: "center", gap: 6 }}>
           ⏰ {summary}
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           {supported && perm === "default" && (
-            <button onClick={requestPerm} style={{ background: "#FFF", border: `1px solid ${PASTEL.peach.border}`, color: PASTEL.peach.text, borderRadius: 8, padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+            <button onClick={requestPerm} style={{ background: "#FFF", border: `1px solid ${T.border}`, color: T.text, borderRadius: 8, padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
               Enable reminders
             </button>
           )}
-          <button onClick={() => setDismissed(true)} aria-label="Dismiss reminders" style={{ background: "none", border: "none", color: PASTEL.peach.text, cursor: "pointer", padding: 2, display: "flex", lineHeight: 1 }}>
+          <button onClick={() => setDismissed(true)} aria-label="Dismiss reminders" style={{ background: "none", border: "none", color: T.subtle, cursor: "pointer", padding: 2, display: "flex", lineHeight: 1 }}>
             <X size={15} />
           </button>
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {top.map(t => (
-          <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, background: "#FFF", border: `1px solid ${PASTEL.peach.border}`, borderRadius: 9, padding: "7px 10px" }}>
+          <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 9, padding: "7px 10px" }}>
             <PartnerBadge assignedTo={t.assignedTo} size={16} />
             <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: T.text, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.task}</span>
             <span style={{ fontSize: 10, color: t.status === "Overdue" ? T.red : T.subtle, fontWeight: 700, flexShrink: 0 }}>{t.status === "Overdue" || (parseDate(t.due) && parseDate(t.due)! < new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())) ? "overdue" : "today"}</span>

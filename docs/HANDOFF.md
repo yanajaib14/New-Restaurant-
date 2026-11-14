@@ -38,3 +38,14 @@ Prompt 2's full functionality audit is still incomplete. Follow the source brief
 8. Finish visual design polish after functional work is verified.
 
 Known limits to repeat clearly: the app still uses a shared guest Owner identity; PIN is only a browser convenience lock, not authorization; confidential hiring data currently loads before PIN unlock; person-specific notifications, push inbox and closed-app push were not recovered or implemented. Do not invent owners, dates, restaurant records, menu prices, vendors, or policies. For delegated straightforward work, use smaller/cheaper models as the user requested.
+
+## Desktop redesign pass (November 14, 2026)
+
+Done at the user's request, ahead of plan step 8. It covers the desktop only (`!isMobile` branches and `min-width: 1024px` CSS); mobile is unchanged. It changes layout and styling only, and every label the tests use is kept.
+
+- The header is now one 64px row: brand, section groups, assistant input, date and lock. Below it is a quieter row of sub-tabs. The duplicate `LOCK` pill is removed; "Lock Sensitive Views" does the same thing.
+- The Overview is two columns. The main column holds a "Today" panel (date, the five stats and the phase bars, which used to be split between the hero and "Status snapshot", plus Copy Brief, Save to Notes and Daily Debrief), then reminders, the 7-day calendar, quick update and inspiration. The right rail holds quick access (a compact list, with a red dot for a deadline in the next 7 days), the photo album and the photo strip.
+- Colours are back on the monochrome theme `T`: pastels are removed from the Overview and ReminderBanner, and red is used only for risk. The page background on desktop is `#FAFAFA`. When todo sync is healthy, the desktop shows a one-line note instead of a banner.
+- `LaunchWindow` has a new `embedded` prop, used only by the Overview.
+
+Still open: "Overdue Tasks" counts `status === "Overdue"`, but the reminder card uses due dates, so the two numbers can disagree. This is the known defect from step 1, and it is now easier to see. Other desktop pages (Kitchen, Operations, and so on) only get the new header and canvas, not a full redesign.

@@ -287,8 +287,10 @@ function DayPanel({
 
 // ─── LaunchWindow ─────────────────────────────────────────────────────────────
 
-export function LaunchWindow({ tasks, permits, candidates, calendarEvents, onOpenDay }: {
-  tasks: Task[], permits: Permit[], candidates: Candidate[], calendarEvents?: CalendarEvent[], onOpenDay?: (dateStr: string) => void
+export function LaunchWindow({ tasks, permits, candidates, calendarEvents, onOpenDay, embedded = false }: {
+  tasks: Task[], permits: Permit[], candidates: Candidate[], calendarEvents?: CalendarEvent[], onOpenDay?: (dateStr: string) => void,
+  /** Inside a parent card that already has its own frame and heading. */
+  embedded?: boolean
 }) {
   const isMobile = window.innerWidth < 1024;
   const [hoveredDay, setHoveredDay] = React.useState<string | null>(null);
@@ -301,9 +303,9 @@ export function LaunchWindow({ tasks, permits, candidates, calendarEvents, onOpe
   });
 
   return (
-    <div style={{ background: '#FFF', border: `1px solid ${T.border}`, borderRadius: 16,
+    <div style={embedded ? undefined : { background: '#FFF', border: `1px solid ${T.border}`, borderRadius: 16,
       padding: isMobile ? '14px 16px' : 32, marginTop: isMobile ? 16 : 40 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: isMobile ? 12 : 24 }}>
+      <div style={{ display: embedded ? 'none' : 'flex', alignItems: 'center', gap: 8, marginBottom: isMobile ? 12 : 24 }}>
         <CalendarIcon size={16} color={T.gold} />
         <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: isMobile ? 10 : 11,
           color: T.muted, letterSpacing: 1.2, fontWeight: 700 }}>NEXT 7 DAYS</span>

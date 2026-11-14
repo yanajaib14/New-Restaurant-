@@ -2418,116 +2418,99 @@ export default function App() {
       ) : (
         <>
           {/* ���� HEADER ���� */}
-          <div className="glass" style={{ display: isMobile ? "none" : undefined, borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 100, paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)", boxShadow: "0 8px 20px rgba(15, 28, 42, 0.06)" }}>
-            {/* Critical Banner */}
+          {/* Desktop header: one compact row (brand · section groups · actions), then the section's sub-tabs. Hidden on mobile. */}
+          <div className="glass no-print" style={{ display: isMobile ? "none" : undefined, borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 100, paddingTop: "env(safe-area-inset-top, 0px)" }}>
             {criticalOverdue > 0 && (
-              <div style={{ 
-                background: T.red, color: "#FFF", padding: "8px 32px", textAlign: "center", 
-                fontSize: 12, fontWeight: 700, letterSpacing: 0.5, animation: "pulse 2s infinite" 
-              }}>
+              <div role="alert" style={{ background: T.red, color: "#FFF", padding: "6px 32px", textAlign: "center", fontSize: 12, fontWeight: 700, letterSpacing: 0.4 }}>
                 CRITICAL PATH ALERT: {criticalOverdue} MANDATORY TASKS ARE OVERDUE. LAUNCH DATE AT RISK.
               </div>
             )}
-            {/* Row 1: Logo, Search, Stats */}
-        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", justifyContent: "space-between", gap: isMobile ? 14 : 0, padding: isMobile ? "18px 16px 14px" : "24px 32px 16px", borderBottom: `1px solid ${T.border}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-            <HouseLogo size={isMobile ? 110 : 138} />
-            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-              <span style={{ fontFamily: "var(--font-sans)", fontSize: isMobile ? 22 : 30, lineHeight: 1.2, fontWeight: 800, color: T.text, letterSpacing: -0.4, paddingTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block" }}>{appTitle}</span>
-              {!isMobile && <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: T.subtle, letterSpacing: 1, fontWeight: 700 }}>LAUNCH DASHBOARD</span>}
+            <div style={{ maxWidth: 1360, margin: "0 auto", padding: "0 24px", height: 64, display: "flex", alignItems: "center", gap: 28 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flexShrink: 0 }}>
+                <HouseLogo size={40} strokeWidth={3.6} />
+                <div style={{ display: "flex", flexDirection: "column", minWidth: 0, lineHeight: 1.15 }}>
+                  <span style={{ fontSize: 17, fontWeight: 800, color: T.text, letterSpacing: -0.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 220 }}>{appTitle}</span>
+                  <span style={{ fontSize: 10, color: T.subtle, letterSpacing: 1.2, fontWeight: 700 }}>LAUNCH DASHBOARD</span>
+                </div>
+              </div>
+
+              <nav aria-label="Sections" style={{ display: "flex", gap: 4, alignItems: "center", height: "100%" }}>
+                {GROUPS.map(g => {
+                  const active = activeGroup === g;
+                  return (
+                    <button
+                      key={g}
+                      onClick={() => {
+                        setActiveGroup(g);
+                        const firstTab = TABS.find(t => t.group === g);
+                        if (firstTab) setTab(firstTab.id);
+                      }}
+                      aria-current={active ? "page" : undefined}
+                      style={{ background: active ? T.goldLight : "none", border: "none", borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 12, letterSpacing: 0.8, fontWeight: 700, color: active ? T.text : T.subtle, transition: "color .15s, background .15s" }}
+                      onMouseEnter={e => { if (!active) e.currentTarget.style.color = T.text; }}
+                      onMouseLeave={e => { if (!active) e.currentTarget.style.color = T.subtle; }}
+                    >
+                      {g.toUpperCase()}
+                    </button>
+                  );
+                })}
+              </nav>
+
+              <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", background: T.surface, borderRadius: 10, padding: "0 12px", border: `1px solid ${T.border}`, width: 260, height: 38 }}>
+                  <Sparkles size={14} color={T.subtle} style={{ marginRight: 8, flexShrink: 0 }} />
+                  <input
+                    placeholder="Ask assistant..."
+                    aria-label="Ask assistant"
+                    style={{ background: "none", border: "none", outline: "none", fontSize: 13, width: "100%", color: T.text, fontFamily: "var(--font-sans)", fontWeight: 500 }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                        const val = e.currentTarget.value;
+                        e.currentTarget.value = "";
+                        setTab("ai");
+                        sendAi(val);
+                      }
+                    }}
+                  />
+                </div>
+                <span style={{ fontSize: 12, color: T.subtle, fontWeight: 600, whiteSpace: "nowrap" }}>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Phoenix" })}</span>
+                <button
+                  onClick={() => setIsUnlocked(false)}
+                  title="Lock sensitive data"
+                  style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 10, height: 38, padding: "0 12px", fontSize: 12, fontWeight: 700, color: T.text, cursor: "pointer", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 6 }}
+                >
+                  <ShieldCheck size={14} />
+                  Lock Sensitive Views
+                </button>
+              </div>
+            </div>
+
+            {/* Sub-tabs for the active section */}
+            <div style={{ borderTop: `1px solid ${T.border}` }}>
+              <div style={{ maxWidth: 1360, margin: "0 auto", padding: "0 16px", display: "flex", gap: 2 }}>
+                {TABS.filter(t => t.group === activeGroup).map(t => {
+                  const Icon = t.icon;
+                  const active = tab === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setTab(t.id)}
+                      aria-current={active ? "page" : undefined}
+                      style={{
+                        background: "none", border: "none", padding: "11px 12px", cursor: "pointer",
+                        display: "flex", alignItems: "center", gap: 7, color: active ? T.text : T.subtle,
+                        fontSize: 13, fontWeight: active ? 700 : 600, transition: "color .15s",
+                        borderBottom: `2px solid ${active ? T.text : "transparent"}`, marginBottom: -1,
+                      }}
+                    >
+                      <Icon size={15} />
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
-          
-          <div style={{ display: "flex", gap: isMobile ? 10 : 8, alignItems: "center", justifyContent: isMobile ? "space-between" : "flex-end", width: isMobile ? "100%" : "auto" }}>
-            {isUnlocked && (
-              <button 
-                onClick={() => setIsUnlocked(false)}
-                title="Lock sensitive data"
-                style={{ background: "#F4F4F5", border: `1px solid ${T.borderStrong}`, borderRadius: 10, padding: isMobile ? "6px 10px" : "6px 12px", cursor: "pointer", color: T.text, display: "flex", alignItems: "center", gap: 6 }}
-              >
-                <ShieldCheck size={14} />
-                <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "var(--font-sans)" }}>LOCK</span>
-              </button>
-            )}
-            <button 
-              onClick={() => setIsUnlocked(false)}
-              style={{ background: "#FFFFFF", border: `1px solid ${T.borderStrong}`, borderRadius: 10, padding: isMobile ? "8px 12px" : "8px 16px", fontSize: 13, fontWeight: 700, color: T.text, cursor: "pointer", whiteSpace: "nowrap", boxShadow: "0 1px 4px rgba(15, 28, 42, 0.08)" }}
-            >
-              Lock Sensitive Views
-            </button>
-            {!isMobile && <span style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: T.subtle, fontWeight: 700 }}>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Phoenix" })}</span>}
-          </div>
-
-          {/* AI Search Bar */}
-          <div style={{ display: "flex", alignItems: "center", background: "#FFFFFF", borderRadius: 14, padding: isMobile ? "10px 14px" : "10px 14px", border: `1px solid ${T.borderStrong}`, width: isMobile ? "100%" : 360, height: isMobile ? 50 : 48, marginLeft: isMobile ? 0 : 24, boxShadow: "0 4px 12px rgba(15, 28, 42, 0.08)", transition: "all .2s" }}>
-            <Sparkles size={15} style={{ marginRight: 10, opacity: 0.85, flexShrink: 0 }} />
-            <input 
-              placeholder="Ask assistant..." 
-              style={{ background: "none", border: "none", outline: "none", fontSize: isMobile ? 15 : 15, width: "100%", color: T.text, fontFamily: "var(--font-sans)", fontWeight: 600 }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && e.currentTarget.value.trim()) {
-                  const val = e.currentTarget.value;
-                  e.currentTarget.value = "";
-                  setTab("ai");
-                  sendAi(val);
-                }
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Row 2: Main Groups (Desktop) */}
-        {!isMobile && (
-          <div style={{ display: "flex", padding: "0 24px", gap: 24, height: 46, alignItems: "center" }}>
-            {GROUPS.map(g => (
-              <button 
-                key={g} 
-                onClick={() => {
-                  setActiveGroup(g);
-                  const firstTab = TABS.find(t => t.group === g);
-                  if (firstTab) setTab(firstTab.id);
-                }}
-                style={{ 
-                  background: "none", border: "none", borderBottom: `2px solid ${activeGroup === g ? T.text : "transparent"}`,
-                  padding: "16px 0", cursor: "pointer", fontSize: 15, fontFamily: "var(--font-sans)",
-                  color: activeGroup === g ? T.text : T.muted, fontWeight: activeGroup === g ? 800 : 600,
-                  letterSpacing: 0.5, transition: "all .2s",
-                  opacity: activeGroup === g ? 1 : 0.7
-                }}
-              >
-                {g.toUpperCase()}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Row 3: Sub-tabs (Desktop) */}
-      {!isMobile && (
-        <div style={{ display: "flex", background: "#FAFAFA", padding: "0 24px", gap: 8, borderBottom: `1px solid ${T.border}` }}>
-          {TABS.filter(t => t.group === activeGroup).map(t => {
-            const Icon = t.icon;
-            const active = tab === t.id;
-            return (
-              <button 
-                key={t.id} 
-                onClick={() => setTab(t.id)}
-                style={{ 
-                  background: "none", border: "none", padding: "10px 16px", cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: 10, color: active ? T.text : T.muted,
-                  fontSize: 13, fontWeight: active ? 700 : 600, transition: "all .2s",
-                  borderBottom: `3px solid ${active ? T.text : "transparent"}`,
-                  marginBottom: -1,
-                  opacity: active ? 1 : 0.8
-                }}
-              >
-                <Icon size={16} />
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
 
         {/* Mobile Menu Overlay (full tab list via "More") */}
         {false && isMobile && isMenuOpen && (
@@ -2808,230 +2791,209 @@ export default function App() {
       <div style={{ padding: isMobile ? "16px" : "22px 24px", maxWidth: 1360, margin: "0 auto", display: "flex", gap: 24, paddingBottom: isMobile ? "96px" : undefined }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* �"��"��"��"��"��"� OVERVIEW �"��"��"��"��"��"� */}
-        {tab==="overview" && (
-          <div className="fu" style={isMobile ? { display: "flex", flexDirection: "column" } : undefined}>
-            {/* ── Hero (desktop only): white card with logo + stats ── */}
-            {!isMobile && (
-            <div style={{ order: 0, background: "#FFFFFF", border: `1px solid ${T.border}`, borderRadius: 18, padding: "22px 28px", marginBottom: 22, color: T.text, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 18, boxShadow: "0 1px 2px rgba(17,17,17,0.04)" }}>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-                  <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, letterSpacing: 1, color: T.subtle, fontWeight: 700, textTransform: "uppercase" }}>{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</span>
-                  <PresenceIndicator presence={partnerPresence} />
-                </div>
-                <button
-                  onClick={() => setDebriefOpen(true)}
-                  style={{ background: T.text, color: "#FFF", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 800, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 7, boxShadow: "0 4px 14px rgba(0,0,0,0.12)" }}
-                >
-                  📋 Daily Debrief
-                </button>
-              </div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {computePhases(tasks).map((p, i) => {
-                  const tone = [PASTEL.sky, PASTEL.peach, PASTEL.mint, PASTEL.lavender][i] || PASTEL.sky;
-                  const complete = p.total > 0 && p.pct === 100;
-                  return (
-                    <div key={p.name} title={`${p.name}: ${p.done}/${p.total} tasks`} style={{ background: tone.bg, border: `1px solid ${tone.border}`, borderRadius: 12, padding: "10px 12px", width: 92, textAlign: "center" }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginBottom: 2 }}>
-                        <span style={{ width: 15, height: 15, borderRadius: 99, fontSize: 8, fontWeight: 800, background: complete ? tone.text : "#FFF", color: complete ? "#FFF" : tone.text, border: `1.5px solid ${complete ? tone.text : tone.border}`, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{complete ? "✓" : i + 1}</span>
-                        <span style={{ fontSize: 20, fontWeight: 800, color: tone.text }}>{p.pct}%</span>
-                      </div>
-                      <div style={{ fontSize: 9, color: tone.text, fontWeight: 700, marginBottom: 5, whiteSpace: "nowrap" }}>{p.short}</div>
-                      <div style={{ height: 4, borderRadius: 99, background: "#FFFFFF", border: `1px solid ${tone.border}`, overflow: "hidden" }}>
-                        <div style={{ width: `${p.pct}%`, height: "100%", background: tone.text, borderRadius: 99, transition: "width .5s ease" }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            )}
+        {tab==="overview" && (() => {
+          // Desktop-only overview (mobile renders MobileWorkspace instead).
+          const card: React.CSSProperties = { background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: 20 };
+          const eyebrow: React.CSSProperties = { fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, fontWeight: 600 };
+          const cardHead: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 14 };
+          const permitRisk = permitAlerts.filter(x => (x.daysLeft as number) <= 14).length;
+          const stats = [
+            { label: "Launch Progress", value: `${prog}%`, risk: false },
+            { label: "Open Todos", value: String(openTaskTodos.length), risk: false },
+            { label: "Overdue Tasks", value: String(overdue), risk: overdue > 0 },
+            { label: "Permit Risks", value: String(permitRisk), risk: permitRisk > 0 },
+            { label: "Staff Hired", value: `${totHired}/${totOpenings}`, risk: false },
+          ];
+          const shortcuts = [
+            { label: "Tasks",      icon: CheckSquare,  tab: "tasks" },
+            { label: "Notes",      icon: BookOpen,     tab: "notes" },
+            { label: "Ideas",      icon: Lightbulb,    tab: "inspiration" },
+            { label: "Calendar",   icon: Calendar,     tab: "calendar" },
+            { label: "Finances",   icon: DollarSign,   tab: "financials" },
+            { label: "Hiring",     icon: UserPlus,     tab: "talent" },
+            { label: "Menu",       icon: Utensils,     tab: "menu" },
+            { label: "Timeline",   icon: MapPin,       tab: "timeline" },
+            { label: "Decisions",  icon: MessageSquare,tab: "decisions" },
+            { label: "Vendors",    icon: Package,      tab: "vendors" },
+            { label: "Permits",    icon: ShieldCheck,  tab: "permits" },
+            { label: "AI",         icon: Sparkles,     tab: "ai" },
+          ];
+          return (
+          <div className="fu" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 320px", gap: 20, alignItems: "start" }}>
+            {/* ── Main column: today → what needs attention → this week → updates → ideas ── */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 20, minWidth: 0 }}>
 
-            {/* ── Deadline reminders (top of dashboard) ── */}
-            <div style={{ order: isMobile ? 0 : undefined }}>
+              {/* Today: greeting, key numbers, launch phases and brief actions in one panel */}
+              <section style={{ ...card, padding: 24 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 22 }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
+                      <span style={{ ...eyebrow, color: T.subtle }}>{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }).toUpperCase()}</span>
+                      <PresenceIndicator presence={partnerPresence} />
+                    </div>
+                    <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: -0.5, color: T.text }}>Today</h1>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    <Btn onClick={copyWeeklyPartnerBrief} variant="outline" small>Copy Brief</Btn>
+                    <Btn onClick={saveWeeklyPartnerBriefToNotes} variant="outline" small>Save to Notes</Btn>
+                    <button
+                      onClick={() => setDebriefOpen(true)}
+                      style={{ background: T.text, color: "#FFF", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
+                    >
+                      📋 Daily Debrief
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}` }}>
+                  {stats.map((s, i) => (
+                    <div key={s.label} style={{ padding: "16px 4px 16px 16px", borderLeft: i === 0 ? "none" : `1px solid ${T.border}`, paddingLeft: i === 0 ? 0 : 16 }}>
+                      <div style={{ fontSize: 11, color: s.risk ? T.red : T.subtle, fontWeight: 600, marginBottom: 4 }}>{s.label}</div>
+                      <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: -0.5, color: s.risk ? T.red : T.text, fontVariantNumeric: "tabular-nums" }}>{s.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 20, marginTop: 18 }}>
+                  {computePhases(tasks).map((p, i) => {
+                    const complete = p.total > 0 && p.pct === 100;
+                    return (
+                      <div key={p.name} title={`${p.name}: ${p.done}/${p.total} tasks`}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6, gap: 6 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{complete ? "✓" : `${i + 1}.`} {p.short}</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: T.text, fontVariantNumeric: "tabular-nums" }}>{p.pct}%</span>
+                        </div>
+                        <div style={{ height: 4, borderRadius: 99, background: T.stone, overflow: "hidden" }}>
+                          <div style={{ width: `${p.pct}%`, height: "100%", background: T.text, borderRadius: 99, transition: "width .5s ease" }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {/* Needs attention: overdue / due today (renders nothing when clear) */}
               <ReminderBanner
                 tasks={tasks}
                 parseDate={parsePlannerDate}
-                isMobile={isMobile}
+                isMobile={false}
                 onViewTask={t => setBlockerSheetTask(t)}
               />
-            </div>
 
-            {/* ── Multi-phase launch progress (mobile only — desktop shows phases in the hero) ── */}
-            {isMobile && (
-              <div style={{ order: 7 }}>
-                <PhaseTracker tasks={tasks} isMobile={isMobile} />
-              </div>
-            )}
-
-            {/* ── Quick-access hub shortcuts ── */}
-            <div style={{ order: isMobile ? 5 : 2, background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? 12 : 18, marginBottom: isMobile ? 14 : 18 }}>
-              <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, fontWeight: 600, marginBottom: isMobile ? 10 : 14 }}>QUICK ACCESS</div>
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(4,1fr)" : "repeat(6,1fr)", gap: isMobile ? 8 : 10 }}>
-                {[
-                  { label: "Tasks",      icon: CheckSquare,  tab: "tasks" },
-                  { label: "Notes",      icon: BookOpen,     tab: "notes" },
-                  { label: "Ideas",      icon: Lightbulb,    tab: "inspiration" },
-                  { label: "Calendar",   icon: Calendar,     tab: "calendar" },
-                  { label: "Finances",   icon: DollarSign,   tab: "financials" },
-                  { label: "Hiring",     icon: UserPlus,     tab: "talent" },
-                  { label: "Menu",       icon: Utensils,     tab: "menu" },
-                  { label: "Timeline",   icon: MapPin,       tab: "timeline" },
-                  { label: "Decisions",  icon: MessageSquare,tab: "decisions" },
-                  { label: "Vendors",    icon: Package,      tab: "vendors" },
-                  { label: "Permits",    icon: ShieldCheck,  tab: "permits" },
-                  { label: "AI",         icon: Sparkles,     tab: "ai" },
-                ].map(({ label, icon: Icon, tab: t }, idx) => {
-                  const pulses = quickAccessPulses(t);
-                  const tone = PASTEL_CYCLE[idx % PASTEL_CYCLE.length];
-                  return (
-                  <button
-                    key={t}
-                    onClick={() => setTab(t)}
-                    className={pulses ? "pulse-deadline" : undefined}
-                    title={pulses ? `${label}: a deadline is inside the next 7 days` : undefined}
-                    style={{ background: tab === t ? tone.bg : "#FFF", border: `1px solid ${tab === t ? tone.border : T.border}`, borderRadius: 14, padding: isMobile ? "10px 2px" : "14px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: isMobile ? 5 : 7, cursor: "pointer", transition: "all 0.15s", minWidth: 0 }}
-                    onMouseEnter={e => (e.currentTarget.style.background = tone.bg)}
-                    onMouseLeave={e => (e.currentTarget.style.background = tab === t ? tone.bg : "#FFF")}
-                  >
-                    <span style={{ width: isMobile ? 30 : 34, height: isMobile ? 30 : 34, borderRadius: 10, background: tone.bg, border: `1px solid ${tone.border}`, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <Icon size={isMobile ? 15 : 17} color={tone.text} strokeWidth={1.8} />
-                    </span>
-                    <span style={{ fontSize: isMobile ? 9.5 : 10, fontWeight: 700, color: T.text, letterSpacing: 0.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{label}</span>
-                  </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* ── Dropbox Photos shortcut ── */}
-            <div style={{ order: isMobile ? 2 : 3, background: PASTEL.sky.bg, border: `1px solid ${PASTEL.sky.border}`, borderRadius: 14, padding: isMobile ? "12px 14px" : "14px 18px", marginBottom: isMobile ? 14 : 18, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: "#111", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <Image size={18} color="#FFF" />
+              {/* This week */}
+              <section style={card}>
+                <div style={cardHead}>
+                  <div style={eyebrow}>7-DAY CALENDAR</div>
+                  <Btn onClick={() => setTab("calendar")} variant="outline" small>Full Calendar</Btn>
                 </div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>Photo Album</div>
-                  <div style={{ fontSize: 12, color: T.subtle }}>All your restaurant photos organized in Dropbox</div>
+                <LaunchWindow
+                  embedded
+                  tasks={tasks}
+                  permits={permits}
+                  candidates={candidates}
+                  calendarEvents={calendarEvents}
+                  onOpenDay={(dateStr) => { setCalendarFocusDate(dateStr); setTab("calendar"); }}
+                />
+              </section>
+
+              {/* Partner updates */}
+              <section style={card}>
+                <div style={cardHead}>
+                  <div style={eyebrow}>QUICK UPDATE</div>
+                  <Btn onClick={() => setTab("notes")} variant="outline" small>All Notes</Btn>
                 </div>
-              </div>
-              <a
-                href="https://www.dropbox.com/scl/fo/2bqe785ejhqtovanktrb7/AMn-iAg9rAWSmq7yXP7uQyE?rlkey=fm5kpcuktza3p1y2l35kz7huq&st=gjgw1few&dl=0"
-                target="_blank"
-                rel="noreferrer"
-                style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "#111", color: "#FFF", border: "none", borderRadius: 10, padding: "10px 16px", fontWeight: 700, fontSize: 13, textDecoration: "none" }}
-              >
-                <ExternalLink size={14} />
-                Open Dropbox Album
-              </a>
-            </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    value={partnerUpdateDraft}
+                    onChange={e => setPartnerUpdateDraft(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); savePartnerUpdate(); } }}
+                    placeholder="e.g. Spoke to contractor about timeline..."
+                    style={{ ...inpStyle, height: 42, width: "100%", flex: 1 }}
+                  />
+                  <VoiceMicButton onTranscript={text => setPartnerUpdateDraft(prev => (prev ? prev + " " : "") + text)} title="Speak an update or task" />
+                  <Btn onClick={savePartnerUpdate} variant="primary" small style={{ height: 42, whiteSpace: "nowrap" }}>Post Update</Btn>
+                </div>
+                <div style={{ fontSize: 11, color: T.subtle, lineHeight: 1.4, margin: "8px 0 14px" }}>
+                  Tip: type <strong style={{ color: T.muted }}>@B order glassware by Friday</strong> or <strong style={{ color: T.muted }}>@C ...</strong> to instantly create an assigned task.
+                </div>
+                {partnerUpdates.length === 0 ? (
+                  <div style={{ fontSize: 12, color: T.subtle, padding: "4px 0" }}>
+                    No updates yet — post your first one above.
+                  </div>
+                ) : (
+                  <div style={{ borderTop: `1px solid ${T.border}` }}>
+                    {partnerUpdates.slice(0, 4).map(update => (
+                      <div key={`partner-update-${update.id}`} style={{ padding: "11px 0", borderBottom: `1px solid ${T.border}`, display: "grid", gridTemplateColumns: "1fr auto", gap: 12 }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: T.text, overflowWrap: "anywhere" }}>{update.title}</div>
+                          <div style={{ fontSize: 12, color: T.muted, marginTop: 2, overflowWrap: "anywhere" }}>{update.body}</div>
+                        </div>
+                        <div style={{ fontSize: 11, color: T.subtle, whiteSpace: "nowrap" }}>{update.date || ""}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
 
-            {/* ── Dropbox photo preview strip (shows when API token configured) ── */}
-            <div style={{ order: isMobile ? 3 : 4 }}>
-              <PhotoPreviewStrip isMobile={isMobile} />
-            </div>
-
-            {/* ── Inspiration preview grid (last 10) ── */}
-            <div style={{ order: isMobile ? 4 : 5 }}>
               <InspirationPreview
                 assets={assets}
-                isMobile={isMobile}
+                isMobile={false}
                 onOpenGallery={() => setTab("inspiration")}
                 onQuickAdd={() => setInspoSheetOpen(true)}
               />
             </div>
 
-            <div style={{ order: isMobile ? 1 : 6, display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 14 : 18, marginBottom: isMobile ? 14 : 18 }}>
-              {/* ── Post quick update ── */}
-              <div style={{ flex: 1, background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? "14px" : 18 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 10, flexWrap: "wrap" }}>
-                  <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>QUICK UPDATE</div>
-                  <Btn onClick={() => setTab("notes")} variant="outline" small>All Notes</Btn>
+            {/* ── Right rail: navigation shortcuts and media ── */}
+            <aside style={{ display: "flex", flexDirection: "column", gap: 20, position: "sticky", top: 132 }}>
+              <section style={{ ...card, padding: 16 }}>
+                <div style={{ ...eyebrow, marginBottom: 10, paddingLeft: 4 }}>QUICK ACCESS</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                  {shortcuts.map(({ label, icon: Icon, tab: t }) => {
+                    const pulses = quickAccessPulses(t);
+                    return (
+                      <button
+                        key={t}
+                        onClick={() => setTab(t)}
+                        title={pulses ? `${label}: a deadline is inside the next 7 days` : undefined}
+                        style={{ background: "none", border: "none", borderRadius: 8, padding: "8px", display: "flex", alignItems: "center", gap: 9, cursor: "pointer", minWidth: 0, color: T.text, fontSize: 13, fontWeight: 600, textAlign: "left", transition: "background .15s" }}
+                        onMouseEnter={e => (e.currentTarget.style.background = T.goldLight)}
+                        onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                      >
+                        <Icon size={15} color={T.muted} strokeWidth={1.8} style={{ flexShrink: 0 }} />
+                        <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
+                        {pulses && <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: 99, background: T.red, marginLeft: "auto", flexShrink: 0 }} />}
+                      </button>
+                    );
+                  })}
                 </div>
-                <div style={{ display: "flex", gap: 8, flexDirection: "column", marginBottom: 12 }}>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input
-                      value={partnerUpdateDraft}
-                      onChange={e => setPartnerUpdateDraft(e.target.value)}
-                      onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); savePartnerUpdate(); } }}
-                      placeholder="e.g. Spoke to contractor about timeline..."
-                      style={{ ...inpStyle, height: 42, width: "100%", flex: 1 }}
-                    />
-                    <VoiceMicButton onTranscript={text => setPartnerUpdateDraft(prev => (prev ? prev + " " : "") + text)} title="Speak an update or task" />
+              </section>
+
+              <section style={{ ...card, padding: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: T.goldLight, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Image size={16} color={T.text} />
                   </div>
-                  <div style={{ fontSize: 10, color: T.subtle, lineHeight: 1.4 }}>
-                    Tip: type <strong style={{ color: T.muted }}>@B order glassware by Friday</strong> or <strong style={{ color: T.muted }}>@C ...</strong> to instantly create an assigned task.
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Photo Album</div>
+                    <div style={{ fontSize: 11, color: T.subtle }}>All your restaurant photos organized in Dropbox</div>
                   </div>
-                  <Btn onClick={savePartnerUpdate} variant="primary" small>Post Update</Btn>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {partnerUpdates.length === 0 ? (
-                    <div style={{ fontSize: 12, color: T.muted, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 12px" }}>
-                      No updates yet — post your first one above.
-                    </div>
-                  ) : partnerUpdates.slice(0, 4).map((update, idx) => (
-                    <div key={`partner-update-${update.id}`} style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 12px", background: "#FFF", display: "grid", gridTemplateColumns: "22px 1fr", gap: 8 }}>
-                      <div style={{ width: 22, height: 22, borderRadius: 99, border: `1px solid ${T.border}`, background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: T.subtle, fontWeight: 700 }}>{idx + 1}</div>
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: T.text, overflowWrap: "anywhere" }}>{update.title}</div>
-                        <div style={{ fontSize: 12, color: T.subtle, marginTop: 3, overflowWrap: "anywhere" }}>{update.body}</div>
-                        <div style={{ fontSize: 10, color: T.muted, marginTop: 4 }}>{update.date || ""}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                <a
+                  href="https://www.dropbox.com/scl/fo/2bqe785ejhqtovanktrb7/AMn-iAg9rAWSmq7yXP7uQyE?rlkey=fm5kpcuktza3p1y2l35kz7huq&st=gjgw1few&dl=0"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "#FFF", color: T.text, border: `1px solid ${T.borderStrong}`, borderRadius: 10, padding: "8px 12px", fontWeight: 700, fontSize: 12, textDecoration: "none" }}
+                >
+                  <ExternalLink size={13} />
+                  Open Dropbox Album
+                </a>
+              </section>
 
-            </div>
-
-            {/* ── 7-day calendar ── */}
-            <div style={{ order: isMobile ? 6 : 7, background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? "12px" : 18, marginBottom: isMobile ? 14 : 18 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
-                <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>7-DAY CALENDAR</div>
-                <Btn onClick={() => setTab("calendar")} variant="outline" small>Full Calendar</Btn>
-              </div>
-              <LaunchWindow
-                tasks={tasks}
-                permits={permits}
-                candidates={candidates}
-                calendarEvents={calendarEvents}
-                onOpenDay={(dateStr) => { setCalendarFocusDate(dateStr); setTab("calendar"); }}
-              />
-            </div>
-
-            {/* ── Status stats ── */}
-            <div style={{ order: isMobile ? 8 : 9, background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, padding: isMobile ? 12 : 18, marginBottom: isMobile ? 14 : 18 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 10, flexWrap: "wrap" }}>
-                <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: T.muted, letterSpacing: 1.2, fontWeight: 600 }}>STATUS SNAPSHOT</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <Btn onClick={copyWeeklyPartnerBrief} variant="outline" small>Copy Brief</Btn>
-                  <Btn onClick={saveWeeklyPartnerBriefToNotes} variant="primary" small>Save to Notes</Btn>
-                </div>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, 1fr)", gap: isMobile ? 8 : 10 }}>
-                <div style={{ background: PASTEL.sky.bg, border: `1px solid ${PASTEL.sky.border}`, borderRadius: 10, padding: isMobile ? "10px 12px" : "12px 14px" }}>
-                  <div style={{ fontSize: 10, color: PASTEL.sky.text, fontWeight: 600 }}>Launch Progress</div>
-                  <div style={{ fontSize: isMobile ? 19 : 22, fontWeight: 800, color: T.text }}>{prog}%</div>
-                </div>
-                <div style={{ background: PASTEL.lavender.bg, border: `1px solid ${PASTEL.lavender.border}`, borderRadius: 10, padding: isMobile ? "10px 12px" : "12px 14px" }}>
-                  <div style={{ fontSize: 10, color: PASTEL.lavender.text, fontWeight: 600 }}>Open Todos</div>
-                  <div style={{ fontSize: isMobile ? 19 : 22, fontWeight: 800, color: T.text }}>{openTaskTodos.length}</div>
-                </div>
-                <div style={{ background: overdue > 0 ? T.redLight : PASTEL.mint.bg, border: `1px solid ${overdue > 0 ? T.redBorder : PASTEL.mint.border}`, borderRadius: 10, padding: isMobile ? "10px 12px" : "12px 14px" }}>
-                  <div style={{ fontSize: 10, color: overdue > 0 ? T.red : PASTEL.mint.text, fontWeight: 600 }}>Overdue Tasks</div>
-                  <div style={{ fontSize: isMobile ? 19 : 22, fontWeight: 800, color: overdue > 0 ? T.red : T.text }}>{overdue}</div>
-                </div>
-                <div style={{ background: permitAlerts.filter(x => (x.daysLeft as number) <= 14).length > 0 ? T.redLight : PASTEL.lemon.bg, border: `1px solid ${permitAlerts.filter(x => (x.daysLeft as number) <= 14).length > 0 ? T.redBorder : PASTEL.lemon.border}`, borderRadius: 10, padding: isMobile ? "10px 12px" : "12px 14px" }}>
-                  <div style={{ fontSize: 10, color: PASTEL.lemon.text, fontWeight: 600 }}>Permit Risks</div>
-                  <div style={{ fontSize: isMobile ? 19 : 22, fontWeight: 800, color: T.text }}>{permitAlerts.filter(x => (x.daysLeft as number) <= 14).length}</div>
-                </div>
-                <div style={{ background: PASTEL.peach.bg, border: `1px solid ${PASTEL.peach.border}`, borderRadius: 10, padding: isMobile ? "10px 12px" : "12px 14px", gridColumn: isMobile ? "1 / -1" : "auto" }}>
-                  <div style={{ fontSize: 10, color: PASTEL.peach.text, fontWeight: 600 }}>Staff Hired</div>
-                  <div style={{ fontSize: isMobile ? 19 : 22, fontWeight: 800, color: T.text }}>{totHired}/{totOpenings}</div>
-                </div>
-              </div>
-            </div>
+              <PhotoPreviewStrip isMobile={false} />
+            </aside>
           </div>
-        )}
+          );
+        })()}
 
         {/* �"��"��"��"��"��"� TASKS �"��"��"��"��"��"� */}
         {tab==="tasks" && (
