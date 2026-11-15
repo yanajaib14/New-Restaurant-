@@ -2425,7 +2425,7 @@ export default function App() {
                 CRITICAL PATH ALERT: {criticalOverdue} MANDATORY TASKS ARE OVERDUE. LAUNCH DATE AT RISK.
               </div>
             )}
-            <div style={{ maxWidth: 1360, margin: "0 auto", padding: "0 24px", height: 64, display: "flex", alignItems: "center", gap: 28 }}>
+            <div style={{ maxWidth: 1360, margin: "0 auto", padding: "0 24px", height: 64, display: "flex", alignItems: "center", gap: 20 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flexShrink: 0 }}>
                 <HouseLogo size={40} strokeWidth={3.6} />
                 <div style={{ display: "flex", flexDirection: "column", minWidth: 0, lineHeight: 1.15 }}>
@@ -2434,7 +2434,7 @@ export default function App() {
                 </div>
               </div>
 
-              <nav aria-label="Sections" style={{ display: "flex", gap: 4, alignItems: "center", height: "100%" }}>
+              <nav aria-label="Sections" style={{ display: "flex", gap: 2, alignItems: "center", height: "100%", flexShrink: 0 }}>
                 {GROUPS.map(g => {
                   const active = activeGroup === g;
                   return (
@@ -2446,7 +2446,7 @@ export default function App() {
                         if (firstTab) setTab(firstTab.id);
                       }}
                       aria-current={active ? "page" : undefined}
-                      style={{ background: active ? T.goldLight : "none", border: "none", borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 12, letterSpacing: 0.8, fontWeight: 700, color: active ? T.text : T.subtle, transition: "color .15s, background .15s" }}
+                      style={{ background: active ? T.goldLight : "none", border: "none", borderRadius: 8, padding: "0 10px", height: 36, flexShrink: 0, whiteSpace: "nowrap", cursor: "pointer", fontSize: 12, letterSpacing: 0.6, fontWeight: 700, color: active ? T.text : T.subtle, transition: "color .15s, background .15s" }}
                       onMouseEnter={e => { if (!active) e.currentTarget.style.color = T.text; }}
                       onMouseLeave={e => { if (!active) e.currentTarget.style.color = T.subtle; }}
                     >
@@ -2456,8 +2456,8 @@ export default function App() {
                 })}
               </nav>
 
-              <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ display: "flex", alignItems: "center", background: T.surface, borderRadius: 10, padding: "0 12px", border: `1px solid ${T.border}`, width: 260, height: 38 }}>
+              <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10, flex: "1 1 auto", minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", background: T.surface, borderRadius: 10, padding: "0 12px", border: `1px solid ${T.border}`, flex: "0 1 260px", minWidth: 120, height: 38 }}>
                   <Sparkles size={14} color={T.subtle} style={{ marginRight: 8, flexShrink: 0 }} />
                   <input
                     placeholder="Ask assistant..."
@@ -2473,14 +2473,15 @@ export default function App() {
                     }}
                   />
                 </div>
-                <span style={{ fontSize: 12, color: T.subtle, fontWeight: 600, whiteSpace: "nowrap" }}>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Phoenix" })}</span>
+                <span className="header-date" style={{ fontSize: 12, color: T.subtle, fontWeight: 600, whiteSpace: "nowrap" }}>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Phoenix" })}</span>
                 <button
                   onClick={() => setIsUnlocked(false)}
                   title="Lock sensitive data"
-                  style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 10, height: 38, padding: "0 12px", fontSize: 12, fontWeight: 700, color: T.text, cursor: "pointer", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 6 }}
+                  aria-label="Lock Sensitive Views"
+                  style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 10, height: 38, padding: "0 12px", flexShrink: 0, fontSize: 12, fontWeight: 700, color: T.text, cursor: "pointer", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 6 }}
                 >
                   <ShieldCheck size={14} />
-                  Lock Sensitive Views
+                  <span className="header-lock-label">Lock Sensitive Views</span>
                 </button>
               </div>
             </div>
@@ -2497,7 +2498,7 @@ export default function App() {
                       onClick={() => setTab(t.id)}
                       aria-current={active ? "page" : undefined}
                       style={{
-                        background: "none", border: "none", padding: "11px 12px", cursor: "pointer",
+                        background: "none", border: "none", padding: "11px 12px", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
                         display: "flex", alignItems: "center", gap: 7, color: active ? T.text : T.subtle,
                         fontSize: 13, fontWeight: active ? 700 : 600, transition: "color .15s",
                         borderBottom: `2px solid ${active ? T.text : "transparent"}`, marginBottom: -1,
