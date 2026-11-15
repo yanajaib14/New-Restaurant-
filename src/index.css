@@ -58,7 +58,7 @@
     -webkit-backdrop-filter: blur(10px);
   }
 
-  @media (max-width: 1024px) {
+  @media (max-width: 1023px) {
     body {
       line-height: 1.5;
     }
@@ -156,7 +156,7 @@
 }
 
 /* ── Mobile-first premium styles ────────────────────────────── */
-@media (max-width: 1024px) {
+@media (max-width: 1023px) {
   /* Minimum tap target size (iOS HIG: 44px) */
   button, a, [role="button"], select {
     min-height: 44px;
@@ -362,4 +362,10 @@ button[title^="Remove"] {
 /* ── Desktop canvas: off-white page so white cards read as distinct groups ── */
 @media (min-width: 1024px) {
   body { background: #FAFAFA; }
+}
+
+/* ── Desktop header: section names never wrap or get cut off ──
+   The search box shrinks first; below 1200px the date and the lock button's words step aside. */
+@media (max-width: 1199px) {
+  .header-date, .header-lock-label { display: none; }
 }
