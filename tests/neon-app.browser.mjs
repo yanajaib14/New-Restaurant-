@@ -62,7 +62,7 @@ try {
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('No local HTTP address');
   const base = `http://127.0.0.1:${address.port}`;
-  assert.equal((await applyMigrations(adapter)).length, 2);
+  assert.equal((await applyMigrations(adapter)).length, 3);
   await page.goto(base, { waitUntil: 'domcontentloaded', timeout: 20000 });
   await page.getByRole('navigation', { name: 'Main navigation' }).waitFor();
   await scenario('compiled App renders the mobile workspace against Express records API', async () => {

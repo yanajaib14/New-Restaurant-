@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
-export const migrationFiles = ['0001_neon_baseline.sql', '20261112_prompt2_functionality.sql'];
+export const migrationFiles = ['0001_neon_baseline.sql', '20261112_prompt2_functionality.sql', '20261120_todo_priority.sql'];
 export interface MigrationDatabase {
   query(sql: string, values?: any[]): Promise<{ rows: any[] }>;
 }

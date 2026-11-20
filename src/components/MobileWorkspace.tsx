@@ -15,6 +15,12 @@ type Props = {
   onChangeTaskStatus: (task: Task, status: string) => Promise<boolean>;
   onEditTodo: (todo: TaskTodoItem) => void;
   onChangeTodoStatus: (todo: TaskTodoItem, status: string) => Promise<boolean>;
+  onChangeTaskPriority: (task: Task, priority: string) => Promise<boolean>;
+  onChangeTodoPriority: (todo: TaskTodoItem, priority: string) => Promise<boolean>;
+  onAddTaskSubtask: (task: Task, text: string) => Promise<boolean>;
+  onToggleTaskSubtask: (task: Task, subtaskId: number) => Promise<boolean>;
+  onAddTodoSubtask: (todo: TaskTodoItem, text: string) => Promise<boolean>;
+  onToggleTodoSubtask: (todo: TaskTodoItem, subtaskId: number) => Promise<boolean>;
   onNewUpdate: () => void;
   onEditUpdate: (note: Note) => void;
   onOpenEvent: (event: CalendarEvent) => void;
@@ -27,19 +33,42 @@ const formatDate = (value: string, options: Intl.DateTimeFormatOptions = { weekd
   const date = parseDate(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString(undefined, options);
 };
-const priorityTone = (priority: string) => priority === 'High' || priority === 'Critical' ? 'high' : priority === 'Medium' ? 'medium' : 'low';
-const taskGroup = (task: Task): 'todo' | 'review' | 'done' => {
-  if (task.status === 'Complete' || task.status === 'Done') return 'done';
-  if (task.status === 'Needs review') return 'review';
+const PRIORITIES = ['High', 'Medium', 'Low'] as const;
+const priorityTone = (priority?: string) => priority === 'High' || priority === 'Critical' ? 'high' : priority === 'Low' ? 'low' : 'medium';
+type Group = 'todo' | 'progress' | 'review' | 'done';
+const statusGroup = (status: string): Group => {
+  if (status === 'Complete' || status === 'Done') return 'done';
+  if (status === 'Needs review') return 'review';
+  if (status === 'In Progress') return 'progress';
   return 'todo';
 };
-const todoGroup = (todo: TaskTodoItem): 'todo' | 'review' | 'done' => {
-  if (todo.status === 'Done') return 'done';
-  if ((todo.status as string) === 'Needs review') return 'review';
-  return 'todo';
-};
+const taskGroup = (task: Task) => statusGroup(task.status);
+const GROUPS: { key: Group; title: string; hint: string }[] = [
+  { key: 'todo', title: 'To Do', hint: 'Not started yet' },
+  { key: 'progress', title: 'In Progress', hint: 'Moving, waiting on a reply' },
+  { key: 'review', title: 'Need Review', hint: 'Needs your eyes or a decision' },
+  { key: 'done', title: 'Done', hint: 'Closed out' },
+];
 
-export function MobileWorkspace({ tasks, todos, events, updates, appTitle, pendingTodoIds = [], onEditTask, onNewTask, onChangeTaskStatus, onEditTodo, onChangeTodoStatus, onNewUpdate, onEditUpdate, onOpenEvent, onNewEvent }: Props) {
+/** One card shape for master tasks and to-dos, so both get priority colour and subtasks. */
+type CardItem = {
+  key: string;
+  kind: 'task' | 'todo';
+  title: string;
+  category: string;
+  priority: string;
+  status: string;
+  due?: string;
+  note?: string;
+  subtasks: { id: number; text: string; done: boolean }[];
+  task?: Task;
+  todo?: TaskTodoItem;
+};
+const fromTask = (task: Task): CardItem => ({ key: `task-${task.id}`, kind: 'task', title: task.task, category: task.category, priority: task.priority || 'Medium', status: task.status, due: task.due, subtasks: task.checklist || [], task });
+const fromTodo = (todo: TaskTodoItem): CardItem => ({ key: `todo-${todo.id}`, kind: 'todo', title: todo.title, category: todo.category, priority: todo.priority || 'Medium', status: todo.status, note: todo.note, subtasks: todo.subtasks || [], todo });
+const priorityRank = (priority: string) => priority === 'High' || priority === 'Critical' ? 0 : priority === 'Low' ? 2 : 1;
+
+export function MobileWorkspace({ tasks, todos, events, updates, appTitle, pendingTodoIds = [], onEditTask, onNewTask, onChangeTaskStatus, onEditTodo, onChangeTodoStatus, onChangeTaskPriority, onChangeTodoPriority, onAddTaskSubtask, onToggleTaskSubtask, onAddTodoSubtask, onToggleTodoSubtask, onNewUpdate, onEditUpdate, onOpenEvent, onNewEvent }: Props) {
   const today = dateKey(new Date());
   const [tab, setTab] = useState<Tab>('Today');
   const [selectedDate, setSelectedDate] = useState(today);
@@ -47,37 +76,44 @@ export function MobileWorkspace({ tasks, todos, events, updates, appTitle, pendi
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
-  const [pendingStatus, setPendingStatus] = useState<Record<number, string>>({});
-  const [statusErrors, setStatusErrors] = useState<Record<number, { message: string; status: string }>>({});
-  const [todoPending, setTodoPending] = useState<Record<number, string>>({});
-  const [todoErrors, setTodoErrors] = useState<Record<number, { message: string; status: string }>>({});
+  // Keyed by card key ("task-1" / "todo-1") because task and to-do ids can overlap.
+  const [pending, setPending] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, { message: string; retry: () => void }>>({});
+  const [openSubtasks, setOpenSubtasks] = useState<Record<string, boolean>>({});
+  const [subtaskDrafts, setSubtaskDrafts] = useState<Record<string, string>>({});
 
-  const changeStatus = async (task: Task, status: string) => {
-    if (pendingStatus[task.id]) return;
-    setPendingStatus(prev => ({ ...prev, [task.id]: status }));
-    setStatusErrors(prev => { const next = { ...prev }; delete next[task.id]; return next; });
+  /** Runs one save for a card, shows "Saving…" while it runs, and keeps a Retry on failure. */
+  const runSave = async (key: string, label: string, save: () => Promise<boolean>) => {
+    if (pending[key]) return;
+    setPending(prev => ({ ...prev, [key]: label }));
+    setErrors(prev => { const next = { ...prev }; delete next[key]; return next; });
     try {
-      const saved = await onChangeTaskStatus(task, status);
-      if (saved !== true) throw new Error('Could not save this status. Please retry.');
+      const saved = await save();
+      if (saved !== true) throw new Error('Could not save this change. Please retry.');
     } catch (error) {
-      setStatusErrors(prev => ({ ...prev, [task.id]: { message: error instanceof Error ? error.message : 'Could not save this status. Please retry.', status } }));
+      const message = error instanceof Error ? error.message : 'Could not save this change. Please retry.';
+      setErrors(prev => ({ ...prev, [key]: { message, retry: () => void runSave(key, label, save) } }));
     } finally {
-      setPendingStatus(prev => { const next = { ...prev }; delete next[task.id]; return next; });
+      setPending(prev => { const next = { ...prev }; delete next[key]; return next; });
     }
   };
 
-  const changeTodoStatus = async (todo: TaskTodoItem, status: string) => {
-    if (todoPending[todo.id]) return;
-    setTodoPending(prev => ({ ...prev, [todo.id]: status }));
-    setTodoErrors(prev => { const next = { ...prev }; delete next[todo.id]; return next; });
-    try {
-      const saved = await onChangeTodoStatus(todo, status);
-      if (saved !== true) throw new Error('Could not save this status. Please retry.');
-    } catch (error) {
-      setTodoErrors(prev => ({ ...prev, [todo.id]: { message: error instanceof Error ? error.message : 'Could not save this status. Please retry.', status } }));
-    } finally {
-      setTodoPending(prev => { const next = { ...prev }; delete next[todo.id]; return next; });
-    }
+  const changeStatus = (item: CardItem, group: Group) => {
+    const status = group === 'done' ? (item.kind === 'task' ? 'Complete' : 'Done') : group === 'review' ? 'Needs review' : group === 'progress' ? 'In Progress' : 'Not Started';
+    return runSave(item.key, 'Saving…', () => item.task ? onChangeTaskStatus(item.task, status) : onChangeTodoStatus(item.todo!, status));
+  };
+  const changePriority = (item: CardItem, priority: string) =>
+    runSave(item.key, 'Saving…', () => item.task ? onChangeTaskPriority(item.task, priority) : onChangeTodoPriority(item.todo!, priority));
+  const toggleSubtask = (item: CardItem, id: number) =>
+    runSave(item.key, 'Saving…', () => item.task ? onToggleTaskSubtask(item.task, id) : onToggleTodoSubtask(item.todo!, id));
+  const addSubtask = (item: CardItem) => {
+    const text = (subtaskDrafts[item.key] || '').trim();
+    if (!text) return;
+    return runSave(item.key, 'Saving…', async () => {
+      const ok = item.task ? await onAddTaskSubtask(item.task, text) : await onAddTodoSubtask(item.todo!, text);
+      if (ok) setSubtaskDrafts(prev => ({ ...prev, [item.key]: '' }));
+      return ok;
+    });
   };
 
   const dayEvents = useMemo(() => events.filter(event => event.date === selectedDate).sort((a, b) => (a.time || '').localeCompare(b.time || '')), [events, selectedDate]);
@@ -94,53 +130,66 @@ export function MobileWorkspace({ tasks, todos, events, updates, appTitle, pendi
     return day > 0 && day <= daysInMonth ? new Date(month.getFullYear(), month.getMonth(), day) : null;
   });
 
-  const renderTask = (task: Task) => {
-    const requestedStatus = pendingStatus[task.id];
-    const error = statusErrors[task.id];
-    return <article className="mw-card" key={task.id}>
-      <button className="mw-card-main" onClick={() => onEditTask(task)}>
-        <span className="mw-card-title">{task.task}</span>
-        <span className="mw-card-meta">{task.due ? formatDate(task.due) : 'No due date'} · {task.category}</span>
+  const renderCard = (item: CardItem) => {
+    const busy = !!pending[item.key];
+    const error = errors[item.key];
+    const group = statusGroup(item.status);
+    const tone = priorityTone(item.priority);
+    const total = item.subtasks.length;
+    const doneCount = item.subtasks.filter(sub => sub.done).length;
+    const open = !!openSubtasks[item.key];
+    const overdue = !!item.due && item.due < today && group !== 'done';
+    const statusButtons = [
+      { group: 'todo', label: 'To do' }, { group: 'progress', label: 'In progress' }, { group: 'review', label: 'Review', name: 'Needs review' }, { group: 'done', label: 'Done' },
+    ] as { group: Group; label: string; name?: string }[];
+    return <article className={`mw-card mw-task-card mw-tone-${tone} ${group === 'done' ? 'is-done' : ''}`} key={item.key}>
+      <div className="mw-card-top">
+        <span className="mw-chip">{item.category}</span>
+        <select className={`mw-priority-select mw-priority-${tone}`} aria-label={`Priority for ${item.title}`} value={PRIORITIES.includes(item.priority as any) ? item.priority : 'High'}
+          disabled={busy} onChange={event => void changePriority(item, event.target.value)}>
+          {PRIORITIES.map(priority => <option key={priority} value={priority}>{priority.toUpperCase()}</option>)}
+        </select>
+      </div>
+      <button className="mw-card-main" onClick={() => item.task ? onEditTask(item.task) : onEditTodo(item.todo!)}>
+        <span className="mw-card-title">{item.title}</span>
+        <span className={`mw-card-meta ${overdue ? 'is-overdue' : ''}`}>
+          {item.kind === 'task' ? (item.due ? `${overdue ? 'Overdue · ' : 'Due '}${formatDate(item.due)}` : 'No due date') : 'To-do'}
+          {' · '}<span className="mw-status-label">{busy ? 'Saving…' : item.status}</span>
+        </span>
       </button>
-      <div className="mw-task-footer">
-        <span className={`mw-priority mw-priority-${priorityTone(task.priority)}`}>{task.priority}</span>
-        <span className="mw-status-label">{requestedStatus ? 'Saving…' : task.status}</span>
+      {item.note && <span className="mw-event-notes">{item.note}</span>}
+      {item.todo && pendingTodoIds.includes(item.todo.id) && <span className="mw-pending-label">Pending — only on this device</span>}
+
+      <button className="mw-subtask-toggle" aria-expanded={open} onClick={() => setOpenSubtasks(prev => ({ ...prev, [item.key]: !open }))}>
+        <span>{total ? `Subtasks · ${doneCount} of ${total} done` : '+ Add subtask'}</span>
+        <span aria-hidden="true">{open ? '▴' : '▾'}</span>
+      </button>
+      {total > 0 && <div className="mw-progress" aria-hidden="true"><i style={{ width: `${Math.round((doneCount / total) * 100)}%` }} /></div>}
+      {open && <div className="mw-subtasks">
+        {item.subtasks.map(sub => <label key={sub.id} className={sub.done ? 'is-done' : ''}>
+          <input type="checkbox" checked={sub.done} disabled={busy} onChange={() => void toggleSubtask(item, sub.id)} />
+          <span>{sub.text}</span>
+        </label>)}
+        <form className="mw-subtask-add" onSubmit={event => { event.preventDefault(); void addSubtask(item); }}>
+          <input value={subtaskDrafts[item.key] || ''} onChange={event => setSubtaskDrafts(prev => ({ ...prev, [item.key]: event.target.value }))} placeholder="New subtask" aria-label={`New subtask for ${item.title}`} />
+          <button type="submit" disabled={busy || !(subtaskDrafts[item.key] || '').trim()}>Add</button>
+        </form>
+      </div>}
+
+      <div className="mw-status-actions" aria-label={`Change status for ${item.title}`}>
+        {statusButtons.map(button => <button key={button.group} aria-label={button.name} disabled={busy || group === button.group} onClick={() => void changeStatus(item, button.group)}>{button.label}</button>)}
       </div>
-      <div className="mw-status-actions" aria-label={`Change status for ${task.task}`}>
-        <button disabled={!!requestedStatus || taskGroup(task) === 'todo'} onClick={() => void changeStatus(task, 'Not Started')}>To do</button>
-        <button disabled={!!requestedStatus || taskGroup(task) === 'review'} onClick={() => void changeStatus(task, 'Needs review')}>Needs review</button>
-        <button disabled={!!requestedStatus || taskGroup(task) === 'done'} onClick={() => void changeStatus(task, 'Complete')}>Done</button>
-      </div>
-      {error?.message && <div className="mw-save-error" role="alert"><span>{error.message}</span><button disabled={!!requestedStatus} onClick={() => void changeStatus(task, error.status)}>Retry</button></div>}
+      {error?.message && <div className="mw-save-error" role="alert"><span>{error.message}</span><button disabled={busy} onClick={error.retry}>Retry</button></div>}
     </article>;
   };
+  const renderTask = (task: Task) => renderCard(fromTask(task));
+  const renderTodo = (todo: TaskTodoItem) => renderCard(fromTodo(todo));
 
   const renderEvent = (event: CalendarEvent) => <button className="mw-card mw-event-card" key={event.id} onClick={() => onOpenEvent(event)}>
     <span className="mw-card-title">{event.title}</span>
     <span className="mw-card-meta">{event.time ? `${event.time} · ` : ''}{event.type}</span>
     {event.notes && <span className="mw-event-notes">{event.notes}</span>}
   </button>;
-
-  const renderTodo = (todo: TaskTodoItem) => {
-    const pendingStatusValue = todoPending[todo.id];
-    const error = todoErrors[todo.id];
-    const review = (todo.status as string) === 'Needs review';
-    const done = todo.status === 'Done';
-    return <article className="mw-card" key={todo.id}>
-      <button className="mw-card-main" onClick={() => onEditTodo(todo)}>
-        <span className="mw-card-title">{todo.title}</span>
-        <span className="mw-card-meta">{todo.category} · {pendingStatusValue ? 'Saving…' : todo.status}</span>
-      </button>
-      {todo.note && <span className="mw-event-notes">{todo.note}</span>}
-      {pendingTodoIds.includes(todo.id) && <span className="mw-pending-label">Pending — only on this device</span>}
-      <div className="mw-status-actions" aria-label={`Change status for ${todo.title}`}>
-        <button disabled={!!pendingStatusValue || todo.status === 'Not Started' || todo.status === 'In Progress'} onClick={() => void changeTodoStatus(todo, 'Not Started')}>To do</button>
-        <button disabled={!!pendingStatusValue || review} onClick={() => void changeTodoStatus(todo, 'Needs review')}>Needs review</button>
-        <button disabled={!!pendingStatusValue || done} onClick={() => void changeTodoStatus(todo, 'Done')}>Done</button>
-      </div>
-      {error?.message && <div className="mw-save-error" role="alert"><span>{error.message}</span><button disabled={!!pendingStatusValue} onClick={() => void changeTodoStatus(todo, error.status)}>Retry</button></div>}
-    </article>;
-  };
 
   const renderToday = () => <>
     <header className="mw-page-heading"><div>{appTitle && <p className="mw-brand">{appTitle}</p>}<p className="mw-eyebrow">TODAY</p><h1>{formatDate(today, { weekday: 'long', month: 'long', day: 'numeric' })}</h1></div><button className="mw-primary" onClick={onNewTask}>New task</button></header>
@@ -157,17 +206,26 @@ export function MobileWorkspace({ tasks, todos, events, updates, appTitle, pendi
   </>;
 
   const renderTasks = () => {
-    const groups: { key: 'todo' | 'review' | 'done'; title: string }[] = [
-      { key: 'todo', title: 'To do' }, { key: 'review', title: 'Needs review' }, { key: 'done', title: 'Done' },
-    ];
+    const items = [...tasks.map(fromTask), ...todos.map(fromTodo)]
+      .sort((x, y) => priorityRank(x.priority) - priorityRank(y.priority) || (x.due || '9999').localeCompare(y.due || '9999'));
+    const open = items.filter(item => statusGroup(item.status) !== 'done');
+    const high = open.filter(item => priorityTone(item.priority) === 'high').length;
+    const review = items.filter(item => statusGroup(item.status) === 'review').length;
     return <>
       <header className="mw-page-heading"><div>{appTitle && <p className="mw-brand">{appTitle}</p>}<p className="mw-eyebrow">WORK</p><h1>Tasks</h1></div><button className="mw-primary" onClick={onNewTask}>New task</button></header>
-      {groups.map(group => {
-        const taskRows = tasks.filter(task => taskGroup(task) === group.key);
-        const todoRows = todos.filter(todo => todoGroup(todo) === group.key);
-        const count = taskRows.length + todoRows.length;
-        return <section className="mw-section" key={group.key}><h2>{group.title}<span className="mw-count">{count}</span></h2>
-          {count ? <div className="mw-list">{taskRows.map(renderTask)}{todoRows.map(renderTodo)}</div> : <p className="mw-empty">No {group.title.toLowerCase()} items.</p>}
+      <div className="mw-summary">
+        <span>{open.length} open</span>
+        <span className={high ? 'is-high' : ''}>{high} high priority</span>
+        <span>{review} need review</span>
+      </div>
+      {GROUPS.map(group => {
+        const rows = items.filter(item => statusGroup(item.status) === group.key);
+        return <section className={`mw-section mw-lane mw-lane-${group.key}`} key={group.key}>
+          <div className="mw-lane-head">
+            <div><h2>{group.title}</h2><p>{group.hint}</p></div>
+            <span className="mw-count">{rows.length}</span>
+          </div>
+          {rows.length ? <div className="mw-list">{rows.map(renderCard)}</div> : <p className="mw-empty">Nothing here.</p>}
         </section>;
       })}
     </>;

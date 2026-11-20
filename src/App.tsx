@@ -107,6 +107,7 @@ const sanitizeTaskTodo = (todo: any): TaskTodoItem => ({
   linkUrl: todo?.linkUrl ? String(todo.linkUrl) : undefined,
   note: todo?.note ? String(todo.note) : undefined,
   subtasks: Array.isArray(todo?.subtasks) ? todo.subtasks : [],
+  ...(["High", "Medium", "Low"].includes(todo?.priority) ? { priority: todo.priority } : {}),
   created_at: todo?.created_at ? String(todo.created_at) : new Date().toISOString(),
 });
 
@@ -1304,14 +1305,14 @@ export default function App() {
   const saveTodoSubtasks = async (todo: TaskTodoItem, subtasks: TodoSubtask[], fallbackStatus?: TaskTodoItem["status"]) => {
     const allDone = subtasks.length > 0 && subtasks.every(s => s.done);
     const nextStatus = allDone ? "Done" : (todo.status === "Done" ? (fallbackStatus || "In Progress") : todo.status);
-    try { todoSync.put({ ...todo, subtasks, status: nextStatus }); }
-    catch (e: any) { alert(`Could not keep the checklist change: ${e.message}`); }
+    try { todoSync.put({ ...todo, subtasks, status: nextStatus }); return true; }
+    catch (e: any) { alert(`Could not keep the checklist change: ${e.message}`); return false; }
   };
 
   const toggleTodoSubtaskDone = async (todo: TaskTodoItem, sid: number) => {
     const subtasks = todo.subtasks || [];
     const updated = subtasks.map(s => s.id === sid ? { ...s, done: !s.done } : s);
-    await saveTodoSubtasks(todo, updated);
+    return saveTodoSubtasks(todo, updated);
   };
 
   const updateTodoSubtaskText = async (todo: TaskTodoItem, sid: number, text: string) => {
@@ -1330,21 +1331,21 @@ export default function App() {
 
   const addTodoSubtask = async (todo: TaskTodoItem, text: string) => {
     const value = text.trim();
-    if (!value) return;
+    if (!value) return false;
     const subtasks = todo.subtasks || [];
     const updated = [...subtasks, { id: Date.now(), text: value, done: false }];
-    await saveTodoSubtasks(todo, updated);
+    return saveTodoSubtasks(todo, updated);
   };
 
   const saveTaskChecklist = async (tid: number, checklist: Task["checklist"]) => {
-    await updateRecord('tasks', tid, { checklist }, 'Task Checklist', setTasks);
+    return updateRecord('tasks', tid, { checklist }, 'Task Checklist', setTasks);
   };
 
   const toggleTaskCheck = async (tid: number, cid: number) => {
     const t = tasks.find(x => x.id === tid);
-    if (!t) return;
+    if (!t) return false;
     const newChecklist = t.checklist.map(c => c.id === cid ? { ...c, done: !c.done } : c);
-    await saveTaskChecklist(tid, newChecklist);
+    return saveTaskChecklist(tid, newChecklist);
   };
 
   const updateTaskSubtaskText = async (tid: number, cid: number, text: string) => {
@@ -1363,11 +1364,11 @@ export default function App() {
 
   const addTaskSubtask = async (tid: number, text: string) => {
     const value = text.trim();
-    if (!value) return;
+    if (!value) return false;
     const t = tasks.find(x => x.id === tid);
-    if (!t) return;
+    if (!t) return false;
     const newChecklist = [...t.checklist, { id: Date.now(), text: value, done: false, assignedTo: "" }];
-    await saveTaskChecklist(tid, newChecklist);
+    return saveTaskChecklist(tid, newChecklist);
   };
 
   const shiftIsoDateByDays = (isoDate: string, days: number) => {
@@ -2774,7 +2775,17 @@ export default function App() {
         onEditTodo={openEditTodo} onChangeTodoStatus={async (todo, status) => {
           try { todoSync.put({ ...todo, status: status as TaskTodoItem["status"] }); return true; }
           catch { return false; }
-        }} onNewUpdate={() => setMobileUpdateOpen(true)} onEditUpdate={setNoteModal}
+        }}
+        onChangeTaskPriority={(task, priority) => updateRecord('tasks', task.id, { priority }, 'Task priority', setTasks)}
+        onChangeTodoPriority={async (todo, priority) => {
+          try { todoSync.put({ ...todo, priority: priority as TaskTodoItem["priority"] }); return true; }
+          catch { return false; }
+        }}
+        onAddTaskSubtask={(task, text) => addTaskSubtask(task.id, text)}
+        onToggleTaskSubtask={(task, id) => toggleTaskCheck(task.id, id)}
+        onAddTodoSubtask={addTodoSubtask}
+        onToggleTodoSubtask={toggleTodoSubtaskDone}
+        onNewUpdate={() => setMobileUpdateOpen(true)} onEditUpdate={setNoteModal}
         onOpenEvent={setMobileEvent} onNewEvent={date => { setMobileEventDate(date); setMobileEvent("new"); }} />}
       {mobileEvent && <CalendarEventModal event={mobileEvent === "new" ? null : mobileEvent} initialDate={mobileEventDate}
         onClose={() => setMobileEvent(null)} onSave={async form => {
