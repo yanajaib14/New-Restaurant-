@@ -154,6 +154,14 @@ await scenario('desktop kanban board moves cards by drag and by menu, filters by
  assert.match(await lane('Done').innerText(),/Board menu fixture/);
  await button('List').click();
 });
+await scenario('the /board link (QR code) opens Planning → Tasks in Board view, and other menus still work',async()=>{
+ await page.evaluate(()=>localStorage.setItem('restaurant_tasks_view','list'));
+ await page.goto('http://127.0.0.1:4173/board',{waitUntil:'networkidle'});
+ assert.equal(await button('Board').getAttribute('aria-pressed'),'true');
+ assert.equal(await page.locator('.task-kanban--columns .mw-lane').count(),4);
+ await button('DASHBOARD').click();assert.equal(await page.locator('.task-kanban--columns').count(),0);
+ await page.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});
+});
 console.log(JSON.stringify({passed,pageErrors,externalRequestsBlocked:[...unexpectedHosts]},null,2));
 assert.deepEqual(pageErrors,[]);
 } finally {await browser.close();}
