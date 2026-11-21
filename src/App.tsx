@@ -23,6 +23,7 @@ import { MasterInventory } from "./components/MasterInventory";
 import { MarketingCalendar, MarketingModal, TrainingPortal, TrainingModal, DailyChecklistManager, ChecklistModal, DigitalAssetManager, DigitalAssetModal } from "./components/MarketingTraining";
 import { TalentHiring, TeamMap, TeamMapMemberModal, PositionModal, CandidateModal } from "./components/Team";
 import { MobileWorkspace } from "./components/MobileWorkspace";
+import { TaskKanban, type CardHandlers } from "./components/TaskKanban";
 import { LaunchWindow, FullCalendar, CalendarEventModal } from "./components/CalendarView";
 import { getGoogleAuthUrl, getGoogleDriveStatus, saveToGoogleDrive, fileToBase64 } from "./services/googleDriveService";
 import { exportToCSV } from "./lib/exportUtils";
@@ -353,6 +354,14 @@ export default function App() {
   };
 
   const [tab, setTab] = useState("overview");
+  // Desktop Tasks page: "list" (classic) or "board" (kanban). Remembered on this browser only.
+  const [tasksView, setTasksView] = useState<"list" | "board">(() => {
+    try { return localStorage.getItem("restaurant_tasks_view") === "board" ? "board" : "list"; } catch { return "list"; }
+  });
+  const chooseTasksView = (view: "list" | "board") => {
+    setTasksView(view);
+    try { localStorage.setItem("restaurant_tasks_view", view); } catch { /* storage unavailable */ }
+  };
 
   // Data states
   const [tasks, setTasks]       = useState<Task[]>(() => {
@@ -1369,6 +1378,26 @@ export default function App() {
     if (!t) return false;
     const newChecklist = [...t.checklist, { id: Date.now(), text: value, done: false, assignedTo: "" }];
     return saveTaskChecklist(tid, newChecklist);
+  };
+
+  // Save actions shared by the phone task board and the desktop kanban board.
+  const boardHandlers: CardHandlers = {
+    onEditTask: setTaskModal,
+    onEditTodo: openEditTodo,
+    onChangeTaskStatus: setTaskStatusWithUndo,
+    onChangeTodoStatus: async (todo, status) => {
+      try { todoSync.put({ ...todo, status: status as TaskTodoItem["status"] }); return true; }
+      catch { return false; }
+    },
+    onChangeTaskPriority: (task, priority) => updateRecord('tasks', task.id, { priority }, 'Task priority', setTasks),
+    onChangeTodoPriority: async (todo, priority) => {
+      try { todoSync.put({ ...todo, priority: priority as TaskTodoItem["priority"] }); return true; }
+      catch { return false; }
+    },
+    onAddTaskSubtask: (task, text) => addTaskSubtask(task.id, text),
+    onToggleTaskSubtask: (task, id) => toggleTaskCheck(task.id, id),
+    onAddTodoSubtask: addTodoSubtask,
+    onToggleTodoSubtask: toggleTodoSubtaskDone,
   };
 
   const shiftIsoDateByDays = (isoDate: string, days: number) => {
@@ -2769,22 +2798,9 @@ export default function App() {
         Some workspace lists could not load. Displayed records and counts may be older or incomplete.
         <button onClick={() => void loadAllData()} style={{marginLeft:12}}>Retry workspace load</button>
       </aside>}
-      {isMobile && <MobileWorkspace appTitle={appTitle} tasks={tasks} todos={taskTodos} events={calendarEvents}
-        updates={partnerUpdates} pendingTodoIds={todoSync.pendingIds} onEditTask={setTaskModal}
-        onNewTask={() => setTaskModal("new")} onChangeTaskStatus={setTaskStatusWithUndo}
-        onEditTodo={openEditTodo} onChangeTodoStatus={async (todo, status) => {
-          try { todoSync.put({ ...todo, status: status as TaskTodoItem["status"] }); return true; }
-          catch { return false; }
-        }}
-        onChangeTaskPriority={(task, priority) => updateRecord('tasks', task.id, { priority }, 'Task priority', setTasks)}
-        onChangeTodoPriority={async (todo, priority) => {
-          try { todoSync.put({ ...todo, priority: priority as TaskTodoItem["priority"] }); return true; }
-          catch { return false; }
-        }}
-        onAddTaskSubtask={(task, text) => addTaskSubtask(task.id, text)}
-        onToggleTaskSubtask={(task, id) => toggleTaskCheck(task.id, id)}
-        onAddTodoSubtask={addTodoSubtask}
-        onToggleTodoSubtask={toggleTodoSubtaskDone}
+      {isMobile && <MobileWorkspace {...boardHandlers} appTitle={appTitle} tasks={tasks} todos={taskTodos} events={calendarEvents}
+        updates={partnerUpdates} pendingTodoIds={todoSync.pendingIds}
+        onNewTask={() => setTaskModal("new")}
         onNewUpdate={() => setMobileUpdateOpen(true)} onEditUpdate={setNoteModal}
         onOpenEvent={setMobileEvent} onNewEvent={date => { setMobileEventDate(date); setMobileEvent("new"); }} />}
       {mobileEvent && <CalendarEventModal event={mobileEvent === "new" ? null : mobileEvent} initialDate={mobileEventDate}
@@ -3013,10 +3029,23 @@ export default function App() {
             <SectionHeader title="Task Manager" subtitle={`${tasks.filter(t=>{const d=t.due?new Date(t.due+"T12:00:00"):null;return d&&d<new Date()&&t.status!=="Complete"}).length} overdue · ${tasks.filter(t=>t.status==="In Progress").length} in progress · ${tasks.filter(t=>t.status==="Complete").length} complete`}
               action={
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: isMobile ? "stretch" : "flex-end" }}>
+                  <div role="group" aria-label="Task view" style={{ display: "inline-flex", padding: 3, borderRadius: 10, background: T.goldLight, border: `1px solid ${T.border}` }}>
+                    {(["list", "board"] as const).map(view => (
+                      <button key={view} onClick={() => chooseTasksView(view)} aria-pressed={tasksView === view}
+                        style={{ border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer",
+                          background: tasksView === view ? "#FFF" : "transparent", color: tasksView === view ? T.text : T.muted,
+                          boxShadow: tasksView === view ? "0 1px 2px rgba(17,17,17,0.08)" : "none" }}>
+                        {view === "list" ? "List" : "Board"}
+                      </button>
+                    ))}
+                  </div>
                   <Btn onClick={openNewTodo} variant="outline" small>+ Full Todo Form</Btn>
                   <Btn onClick={()=>setTaskModal("new")} variant="primary">+ New Master Task</Btn>
                 </div>
               }/>
+            {tasksView === "board" ? (
+              <TaskKanban tasks={tasks} todos={taskTodos} handlers={boardHandlers} pendingTodoIds={todoSync.pendingIds} layout="columns" categories={CATEGORIES} />
+            ) : (
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, alignItems: "start" }}>
               <div style={{ background: "#FFF", border: `1px solid ${T.border}`, borderRadius: 16, boxShadow: "0 1px 2px rgba(17, 17, 17, 0.05)", overflow: "hidden", minWidth: 0 }}>
                 <div style={{ position: "sticky", top: 0, zIndex: 4, padding: isMobile ? "12px" : "14px", background: "#FFF", borderBottom: `1px solid ${T.border}` }}>
@@ -3528,6 +3557,7 @@ export default function App() {
               )}
             </div>
             </div>
+            )}
           </div>
         )}
 

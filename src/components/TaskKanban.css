@@ -1,0 +1,31 @@
+/* Shared task board. Card and lane styles live in MobileWorkspace.css (.mw-*);
+   this file gives the board its own colour variables and the desktop column layout. */
+.task-kanban {
+  --mw-surface: #fff;
+  --mw-text: #171717;
+  --mw-muted: #6d6d6d;
+  --mw-border: #e5e5e5;
+  --mw-accent: #242424;
+  --mw-high: #c2410c; --mw-high-bg: #fdece4;
+  --mw-medium: #b7791f; --mw-medium-bg: #fdf3d8;
+  --mw-low: #2f855a; --mw-low-bg: #e5f3ea;
+}
+
+/* ── Desktop: four columns side by side ── */
+.task-kanban--columns .mw-summary { margin: 0 0 14px; }
+.kb-filters { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 10px; margin-bottom: 16px; }
+.kb-filters input, .kb-filters select { height: 42px; padding: 0 14px; border: 1px solid var(--mw-border); border-radius: 12px; background: #fff; color: var(--mw-text); font: inherit; font-size: 14px; }
+.kb-drop-error { margin-bottom: 12px; }
+.task-kanban--columns .kb-lanes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.task-kanban--columns .mw-lane { margin: 0; min-height: 220px; transition: box-shadow .15s ease, border-color .15s ease; }
+.task-kanban--columns .mw-lane.is-drop-target { border-color: #2f6f5e; box-shadow: 0 0 0 3px rgba(47, 111, 94, .15); }
+.task-kanban--columns .mw-lane-head { position: sticky; top: 0; }
+
+.kb-card { cursor: grab; }
+.kb-card:active { cursor: grabbing; }
+.kb-card .mw-subtasks label { min-height: 32px; }
+.kb-card .mw-subtask-add input { height: 34px; font-size: 13px; }
+.kb-card .mw-subtask-add button { height: 34px; }
+.kb-move { display: flex; align-items: center; gap: 6px; color: var(--mw-muted); font-size: 12px; }
+.kb-grip { font-size: 15px; line-height: 1; letter-spacing: -1px; }
+.kb-move select { flex: 1; min-width: 0; height: 32px; padding: 0 8px; border: 1px solid var(--mw-border); border-radius: 8px; background: #fff; color: var(--mw-text); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
