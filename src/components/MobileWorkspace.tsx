@@ -5,6 +5,7 @@ import { TaskCard, TaskKanban, fromTask, fromTodo, statusGroup, type CardHandler
 
 type Tab = 'Today' | 'Tasks' | 'Calendar' | 'Updates';
 type Props = {
+  initialTab?: Tab;
   tasks: Task[];
   todos: TaskTodoItem[];
   events: CalendarEvent[];
@@ -35,9 +36,9 @@ const formatDate = (value: string, options: Intl.DateTimeFormatOptions = { weekd
   const date = parseDate(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString(undefined, options);
 };
-export function MobileWorkspace({ tasks, todos, events, updates, appTitle, pendingTodoIds = [], onEditTask, onNewTask, onChangeTaskStatus, onEditTodo, onChangeTodoStatus, onChangeTaskPriority, onChangeTodoPriority, onAddTaskSubtask, onToggleTaskSubtask, onAddTodoSubtask, onToggleTodoSubtask, onNewUpdate, onEditUpdate, onOpenEvent, onNewEvent }: Props) {
+export function MobileWorkspace({ initialTab = 'Today', tasks, todos, events, updates, appTitle, pendingTodoIds = [], onEditTask, onNewTask, onChangeTaskStatus, onEditTodo, onChangeTodoStatus, onChangeTaskPriority, onChangeTodoPriority, onAddTaskSubtask, onToggleTaskSubtask, onAddTodoSubtask, onToggleTodoSubtask, onNewUpdate, onEditUpdate, onOpenEvent, onNewEvent }: Props) {
   const today = dateKey(new Date());
-  const [tab, setTab] = useState<Tab>('Today');
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [selectedDate, setSelectedDate] = useState(today);
   const [month, setMonth] = useState(() => {
     const now = new Date();

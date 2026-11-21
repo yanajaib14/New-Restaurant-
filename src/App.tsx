@@ -339,6 +339,10 @@ const checkedWrite = async <T extends { error?: any },>(request: Promise<T>): Pr
   return result;
 };
 
+// Opening /board (the QR-code link) starts on the Tasks board: Planning → Tasks → Board on desktop,
+// the Tasks tab on a phone. The rest of the app stays reachable from the normal menus.
+const OPENED_BOARD_LINK = typeof window !== "undefined" && window.location.pathname.replace(/\/+$/, "") === "/board";
+
 export default function App() {
   const USE_SEED_DATA = false;
 
@@ -353,9 +357,10 @@ export default function App() {
     revoked_by?: string;
   };
 
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState(OPENED_BOARD_LINK ? "tasks" : "overview");
   // Desktop Tasks page: "list" (classic) or "board" (kanban). Remembered on this browser only.
   const [tasksView, setTasksView] = useState<"list" | "board">(() => {
+    if (OPENED_BOARD_LINK) return "board";
     try { return localStorage.getItem("restaurant_tasks_view") === "board" ? "board" : "list"; } catch { return "list"; }
   });
   const chooseTasksView = (view: "list" | "board") => {
@@ -2200,7 +2205,7 @@ export default function App() {
     }
   };
 
-  const [activeGroup, setActiveGroup] = useState("DASHBOARD");
+  const [activeGroup, setActiveGroup] = useState(OPENED_BOARD_LINK ? "PLANNING" : "DASHBOARD");
 
   const TABS = [
     { id: "overview", label: "Overview", icon: LayoutDashboard, group: "DASHBOARD" },
@@ -2798,7 +2803,7 @@ export default function App() {
         Some workspace lists could not load. Displayed records and counts may be older or incomplete.
         <button onClick={() => void loadAllData()} style={{marginLeft:12}}>Retry workspace load</button>
       </aside>}
-      {isMobile && <MobileWorkspace {...boardHandlers} appTitle={appTitle} tasks={tasks} todos={taskTodos} events={calendarEvents}
+      {isMobile && <MobileWorkspace {...boardHandlers} initialTab={OPENED_BOARD_LINK ? "Tasks" : "Today"} appTitle={appTitle} tasks={tasks} todos={taskTodos} events={calendarEvents}
         updates={partnerUpdates} pendingTodoIds={todoSync.pendingIds}
         onNewTask={() => setTaskModal("new")}
         onNewUpdate={() => setMobileUpdateOpen(true)} onEditUpdate={setNoteModal}
