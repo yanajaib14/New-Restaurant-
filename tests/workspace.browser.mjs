@@ -137,6 +137,23 @@ await scenario('costing retains failed edits and retries without repeated insert
  await numbers.nth(0).fill('26');await numbers.nth(1).fill('32');await wait(()=>tables.cost_calculator_overrides[0].price===26&&tables.cost_calculator_overrides[0].targetFoodCost===32,'serial cost edits');
  assert.equal(tables.cost_calculator_overrides.length,1);await reload();await nav('KITCHEN','Cost Calculator');await page.getByRole('button',{name:/Fixture dish/}).click();assert.equal(await page.locator('input[type="number"]').nth(0).inputValue(),'26');
 });
+await scenario('desktop kanban board moves cards by drag and by menu, filters by search, and remembers the view',async()=>{
+ tables.tasks=[{id:701,task:'Board drag fixture',category:'Operations',due:'',status:'Not Started',priority:'High',checklist:[]},
+  {id:702,task:'Board menu fixture',category:'Marketing',due:'',status:'In Progress',priority:'Low',checklist:[{id:1,text:'Board sub',done:false}]}];
+ await reload();await nav('PLANNING','Tasks');await button('Board').click();
+ const lane=name=>page.getByRole('region',{name,exact:true});
+ assert.match(await lane('To Do').innerText(),/Board drag fixture/);
+ await page.locator('.kb-card').filter({hasText:'Board drag fixture'}).dragTo(lane('Need Review'));
+ await wait(()=>tables.tasks.find(row=>row.id===701).status==='Needs review','drag to review');
+ await page.getByRole('combobox',{name:'Move Board menu fixture'}).selectOption('done');
+ await wait(()=>tables.tasks.find(row=>row.id===702).status==='Complete','menu to done');
+ await page.getByRole('searchbox',{name:'Search cards'}).fill('drag fixture');
+ assert.equal(await page.locator('.kb-card').count(),1);
+ await reload();await nav('PLANNING','Tasks');
+ assert.equal(await button('Board').getAttribute('aria-pressed'),'true','board view is remembered after reload');
+ assert.match(await lane('Done').innerText(),/Board menu fixture/);
+ await button('List').click();
+});
 console.log(JSON.stringify({passed,pageErrors,externalRequestsBlocked:[...unexpectedHosts]},null,2));
 assert.deepEqual(pageErrors,[]);
 } finally {await browser.close();}
