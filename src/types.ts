@@ -122,6 +122,7 @@ export interface TaskTodoItem {
   linkUrl?: string;
   note?: string;
   subtasks?: TodoSubtask[];
+  priority?: "High" | "Medium" | "Low";
   created_at?: string;
 }
 

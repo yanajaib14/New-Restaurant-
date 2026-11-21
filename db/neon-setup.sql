@@ -370,3 +370,12 @@ ALTER TABLE shopping_list_items
   ADD COLUMN IF NOT EXISTS removed boolean NOT NULL DEFAULT false;
 
 INSERT INTO app_schema_migrations (name, checksum) VALUES ('20261112_prompt2_functionality.sql', '195807dea5d1483f0171e0044652dbf4dfa3ba1ad163415ada8f24b6e8f4369d') ON CONFLICT (name) DO NOTHING;
+
+-- ===== 20261120_todo_priority.sql =====
+
+-- To-dos get the same High / Medium / Low priority that master tasks already have,
+-- so the mobile task board can colour-code every card. Additive and safe to re-run.
+ALTER TABLE task_todos
+  ADD COLUMN IF NOT EXISTS priority text NOT NULL DEFAULT 'Medium';
+
+INSERT INTO app_schema_migrations (name, checksum) VALUES ('20261120_todo_priority.sql', '74358e789342ee6df9c53400be1610489124c13f0f7e724c47df798c2b2c256b') ON CONFLICT (name) DO NOTHING;

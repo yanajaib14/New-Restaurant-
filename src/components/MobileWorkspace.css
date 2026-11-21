@@ -30,14 +30,15 @@ button.mw-card { cursor: pointer; }
 .mw-card-meta, .mw-event-notes { color: var(--mw-muted); font-size: 12px; line-height: 1.4; }
 .mw-event-notes { margin-top: 1px; }
 .mw-task-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.mw-priority { display: inline-flex; padding: 3px 8px; border-radius: 99px; font-size: 10px; font-weight: 700; }
-.mw-priority-high { background: #fde9e7; color: #b42318; }
-.mw-priority-medium { background: #fff1dd; color: #975a00; }
-.mw-priority-low { border: 1px solid var(--mw-border); background: #fff; color: #555; }
+/* Priority colours: one place, used by the card edge and the priority pill. */
+.mobile-workspace { --mw-high: #c2410c; --mw-high-bg: #fdece4; --mw-medium: #b7791f; --mw-medium-bg: #fdf3d8; --mw-low: #2f855a; --mw-low-bg: #e5f3ea; }
+.mw-priority-high { background: var(--mw-high-bg); color: var(--mw-high); }
+.mw-priority-medium { background: var(--mw-medium-bg); color: #8a5a00; }
+.mw-priority-low { background: var(--mw-low-bg); color: var(--mw-low); }
 .mw-status-label { color: var(--mw-muted); font-size: 11px; }
 .mw-pending-label { display: inline-flex; width: fit-content; padding: 4px 8px; border-radius: 7px; background: #fff1dd; color: #805000; font-size: 11px; font-weight: 600; }
 .mw-status-actions { display: flex; gap: 6px; margin-top: 2px; }
-.mw-status-actions button, .mw-save-error button { flex: 1; min-height: 33px; border: 1px solid var(--mw-border); border-radius: 8px; background: #fff; color: var(--mw-muted); font-size: 11px; font-weight: 600; cursor: pointer; }
+.mw-status-actions button, .mw-save-error button { flex: 1; min-height: 36px; padding: 0 4px; white-space: nowrap; border: 1px solid var(--mw-border); border-radius: 8px; background: #fff; color: var(--mw-muted); font-size: 11px; font-weight: 600; cursor: pointer; }
 .mw-status-actions button:disabled { background: #f4f4f4; color: #858585; cursor: default; }
 .mw-save-error { display: flex; align-items: center; gap: 8px; color: #b42318; font-size: 12px; }
 .mw-save-error button { flex: none; padding: 0 10px; color: #8d2018; }
@@ -65,3 +66,43 @@ button.mw-card { cursor: pointer; }
 .mw-bottom-nav button.is-active { color: #111; }
 .mw-nav-icon { font-size: 19px; line-height: 1; }
 @media (min-width: 700px) { .mw-content { padding-top: 34px; } }
+
+/* ── Task board cards ── */
+.mw-task-card { border-top: 3px solid var(--mw-medium); gap: 9px; }
+.mw-task-card.mw-tone-high { border-top-color: var(--mw-high); }
+.mw-task-card.mw-tone-low { border-top-color: var(--mw-low); }
+.mw-task-card.is-done .mw-card-title { text-decoration: line-through; color: var(--mw-muted); }
+.mw-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mw-chip { padding: 4px 10px; border-radius: 99px; background: #eef1ef; color: #44514a; font-size: 11px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
+.mw-priority-select { appearance: none; -webkit-appearance: none; border: 0; border-radius: 99px; padding: 5px 22px 5px 10px; font: inherit; font-size: 11px; font-weight: 800; letter-spacing: .4px; cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: right 11px center, right 7px center; background-size: 4px 4px; background-repeat: no-repeat; }
+.mw-priority-select.mw-priority-high { background-color: var(--mw-high-bg); }
+.mw-priority-select.mw-priority-medium { background-color: var(--mw-medium-bg); }
+.mw-priority-select.mw-priority-low { background-color: var(--mw-low-bg); }
+.mw-card-meta.is-overdue { color: var(--mw-high); font-weight: 600; }
+.mw-subtask-toggle { display: flex; justify-content: space-between; align-items: center; min-height: 36px; padding: 0; border: 0; background: none; color: #44514a; font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; text-align: left; }
+.mw-progress { height: 5px; margin-top: -6px; border-radius: 99px; background: #eceeed; overflow: hidden; }
+.mw-progress i { display: block; height: 100%; border-radius: 99px; background: #2f6f5e; transition: width .3s ease; }
+.mw-subtasks { display: grid; gap: 2px; padding: 4px 0 2px; border-top: 1px solid var(--mw-border); }
+.mw-subtasks label { display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: 13px; cursor: pointer; }
+.mw-subtasks label input { width: 20px; height: 20px; accent-color: #2f6f5e; flex-shrink: 0; }
+.mw-subtasks label.is-done span { text-decoration: line-through; color: var(--mw-muted); }
+.mw-subtask-add { display: flex; gap: 8px; margin-top: 4px; }
+.mw-subtask-add input { flex: 1; min-width: 0; height: 40px; padding: 0 12px; border: 1px solid var(--mw-border); border-radius: 10px; background: #fafafa; font: inherit; font-size: 16px; }
+.mw-subtask-add button { height: 40px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--mw-accent); color: #fff; font-size: 13px; font-weight: 650; cursor: pointer; }
+.mw-subtask-add button:disabled { background: #d6d6d6; cursor: default; }
+
+/* ── Board summary and status lanes ── */
+.mw-summary { display: flex; flex-wrap: wrap; gap: 8px; margin: -12px 0 22px; }
+.mw-summary span { padding: 7px 12px; border: 1px solid var(--mw-border); border-radius: 99px; background: #fff; font-size: 12px; font-weight: 700; }
+.mw-summary span.is-high { color: var(--mw-high); border-color: #f3cdbd; }
+.mw-lane { padding: 0 0 10px; border-radius: 16px; background: #fff; border: 1px solid var(--mw-border); overflow: hidden; }
+.mw-lane > .mw-list, .mw-lane > .mw-empty { margin: 10px 10px 0; }
+.mw-lane-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 12px 14px; }
+.mw-lane-head h2 { margin: 0; font-size: 16px; }
+.mw-lane-head p { margin: 2px 0 0; color: var(--mw-muted); font-size: 12px; }
+.mw-lane-todo .mw-lane-head { background: #f1f3f1; }
+.mw-lane-progress .mw-lane-head { background: #fbf3d5; }
+.mw-lane-review .mw-lane-head { background: #fbeadf; }
+.mw-lane-done .mw-lane-head { background: #e4f1e5; }

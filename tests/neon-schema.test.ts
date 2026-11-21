@@ -24,7 +24,7 @@ test('additive migrations and HTTP CRUD run against PostgreSQL; repeated migrati
     return { status:response.status, body:await response.json() };
   };
   try {
-    assert.equal((await applyMigrations(adapter)).length, 2);
+    assert.equal((await applyMigrations(adapter)).length, 3);
     const created = await request('tasks', 'POST', {id:901,task:'Isolated database fixture',category:'Operations',due:'',status:'Not Started',priority:'High',checklist:[{id:1,text:'Fixture subtask',done:false}]});
     assert.equal(created.status,200);assert.equal(created.body[0].id,901);assert.deepEqual(created.body[0].checklist,[{id:1,text:'Fixture subtask',done:false}]);
     const updated = await request('tasks','PATCH',{task:'Edited fixture',status:'Needs review'},901);assert.equal(updated.status,200);assert.equal(updated.body[0].status,'Needs review');
@@ -38,7 +38,7 @@ test('additive migrations and HTTP CRUD run against PostgreSQL; repeated migrati
     const deleted = await request('tasks','DELETE',undefined,901);assert.equal(deleted.status,200);assert.equal((await request('tasks')).body.length,0);
     const again = await request('tasks','DELETE',undefined,901);assert.equal(again.status,200);assert.deepEqual(again.body,[]);
     const missing = await request('tasks','PATCH',{task:'No such row'},901);assert.equal(missing.status,404);
-    const ledger = await db.query('SELECT name FROM app_schema_migrations');assert.equal(ledger.rows.length,2);
+    const ledger = await db.query('SELECT name FROM app_schema_migrations');assert.equal(ledger.rows.length,3);
     console.log('PASS: actual PostgreSQL schema + Express API create/read/update/delete, JSONB, decimal values, stable IDs, onboarding, shopping suppression, repeatable migrations. Live Neon still requires authenticated deployment.');
   } finally { await new Promise<void>(resolve => server.close(()=>resolve())); await db.close(); }
 });

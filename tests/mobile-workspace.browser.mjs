@@ -65,9 +65,9 @@ try {
     const high = page.locator('.mw-card').filter({ hasText: 'High mobile fixture' });
     const medium = page.locator('.mw-card').filter({ hasText: 'Medium mobile fixture' });
     const low = page.locator('.mw-card').filter({ hasText: 'Low mobile fixture' });
-    assert.equal(await high.locator('.mw-priority-high').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(253, 233, 231)');
-    assert.equal(await medium.locator('.mw-priority-medium').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 241, 221)');
-    assert.equal(await low.locator('.mw-priority-low').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)');
+    assert.equal(await high.locator('.mw-priority-high').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(253, 236, 228)');
+    assert.equal(await medium.locator('.mw-priority-medium').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(253, 243, 216)');
+    assert.equal(await low.locator('.mw-priority-low').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(229, 243, 234)');
     const task = page.locator('.mw-card').filter({ hasText: 'High mobile fixture' });
     failOnce = 'tasks:PATCH'; await task.getByRole('button', { name: 'Needs review', exact: true }).click();
     await task.getByRole('alert').waitFor(); assert.equal(tables.tasks.find(row => row.id === 801).status, 'Not Started');
@@ -79,6 +79,30 @@ try {
     await reload(); await button('Tasks').click();
     assert.match(await page.locator('.mw-card').filter({ hasText: 'High mobile fixture' }).innerText(), /Complete/);
     assert.equal(writes.filter(write => write.table === 'tasks' && write.id === '801').length, 2);
+  });
+  await scenario('tasks and to-dos accept new subtasks and priority changes, and they persist', async () => {
+    const card = title => page.locator('.mw-card').filter({ hasText: title });
+    const addSubtask = async (title, text) => {
+      await card(title).getByRole('button', { name: /Add subtask|Subtasks/ }).click();
+      await card(title).getByRole('textbox', { name: `New subtask for ${title}` }).fill(text);
+      await card(title).getByRole('button', { name: 'Add', exact: true }).click();
+    };
+    await addSubtask('Medium mobile fixture', 'Mobile fixture subtask');
+    await wait(() => tables.tasks.find(row => row.id === 802).checklist.some(item => item.text === 'Mobile fixture subtask'), 'task subtask saved');
+    const box = card('Medium mobile fixture').getByRole('checkbox', { name: 'Mobile fixture subtask' });
+    await wait(() => box.isEnabled(), 'card finished saving');
+    await box.click();
+    await wait(() => tables.tasks.find(row => row.id === 802).checklist.every(item => item.done), 'task subtask checked');
+    await card('Low mobile fixture').getByRole('combobox', { name: 'Priority for Low mobile fixture' }).selectOption('High');
+    await wait(() => tables.tasks.find(row => row.id === 803).priority === 'High', 'task priority saved');
+    await addSubtask('Review mobile todo', 'Todo fixture subtask');
+    await wait(() => (tables.task_todos.find(row => row.id === 811).subtasks || []).some(item => item.text === 'Todo fixture subtask'), 'todo subtask saved');
+    await card('Review mobile todo').getByRole('combobox', { name: 'Priority for Review mobile todo' }).selectOption('Low');
+    await wait(() => tables.task_todos.find(row => row.id === 811).priority === 'Low', 'todo priority saved');
+    await reload(); await button('Tasks').click();
+    assert.match(await card('Medium mobile fixture').innerText(), /Subtasks · 1 of 1 done/);
+    assert.match(await card('Review mobile todo').innerText(), /Subtasks · 0 of 1 done/);
+    assert.equal(await card('Review mobile todo').getByRole('combobox').inputValue(), 'Low');
   });
   await scenario('calendar selected day previews events and failed event creation can retry', async () => {
     await button('Calendar').click();
